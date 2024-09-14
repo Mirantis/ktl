@@ -1,30 +1,38 @@
-package yutil
+package yutil_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/Mirantis/rekustomize/pkg/yutil"
+)
 
 func TestPathString(t *testing.T) {
 	tests := map[string]struct {
-		input Path
+		input yutil.Path
 		want  string
 	}{
+		`nil`: {
+			nil,
+			"/",
+		},
 		`empty`: {
-			Path{},
+			yutil.Path{},
 			"/",
 		},
 		`simple`: {
-			Path{"a", "b", "c"},
+			yutil.Path{"a", "b", "c"},
 			"/a/b/c",
 		},
 		`escaped "/"`: {
-			Path{"a/b", "c"},
+			yutil.Path{"a/b", "c"},
 			"/a~1b/c",
 		},
 		`escaped "~"`: {
-			Path{"a~b", "c"},
+			yutil.Path{"a~b", "c"},
 			"/a~0b/c",
 		},
 		`escaped "~" and "/"`: {
-			Path{"a~b", "c/d", "e~/~f", "g/~/h"},
+			yutil.Path{"a~b", "c/d", "e~/~f", "g/~/h"},
 			"/a~0b/c~1d/e~0~1~0f/g~1~0~1h",
 		},
 	}
