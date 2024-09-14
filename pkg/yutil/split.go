@@ -39,5 +39,19 @@ func splitSequence(path Path, rn *yaml.RNode) ([]RNodeEntry, error) {
 }
 
 func splitMap(path Path, rn *yaml.RNode) ([]RNodeEntry, error) {
-	panic("not implemented")
+	entries := []RNodeEntry{}
+	fields, err := rn.Fields()
+	if err != nil {
+		return nil, err
+	}
+	for _, field := range fields {
+		mapNode := rn.Field(field)
+		subPath := append(path, field)
+		subEntries, err := split(subPath, mapNode.Value)
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, subEntries...)
+	}
+	return entries, nil
 }

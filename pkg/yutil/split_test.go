@@ -25,11 +25,11 @@ func testSplit(t *testing.T, rn *yaml.RNode, wantPaths []yutil.Path, wantValues 
 		gotValues = append(gotValues, strings.TrimRight(text, "\n"))
 	}
 
-	if diff := cmp.Diff(gotPaths, wantPaths); diff != "" {
+	if diff := cmp.Diff(wantPaths, gotPaths); diff != "" {
 		t.Errorf("unexpected paths, +got -want:\n %v", diff)
 	}
 
-	if diff := cmp.Diff(gotValues, wantValues); diff != "" {
+	if diff := cmp.Diff(wantValues, gotValues); diff != "" {
 		t.Errorf("unexpected values, +got -want:\n %v", diff)
 	}
 }
@@ -66,4 +66,34 @@ func TestSplitScalar(t *testing.T) {
 			testSplit(t, test.rn, test.wantPaths, test.wantValues)
 		})
 	}
+}
+
+func TestSplitEmptyMap(t *testing.T) {
+	input := yaml.MustParse(`{ }`)
+	testSplit(
+		t,
+		input,
+		[]yutil.Path{nil},
+		[]string{"{}"},
+	)
+}
+
+func TestSplitMap(t *testing.T) {
+	input := yaml.MustParse(`{a: 1, b: 2, c: 3}`)
+	testSplit(
+		t,
+		input,
+		[]yutil.Path{{"a"}, {"b"}, {"c"}},
+		[]string{"1", "2", "3"},
+	)
+}
+
+func TestSplitNestedMap(t *testing.T) {
+	input := yaml.MustParse(`{a: {b: 1, c: 2}}`)
+	testSplit(
+		t,
+		input,
+		[]yutil.Path{{"a", "b"}, {"a", "c"}},
+		[]string{"1", "2"},
+	)
 }
