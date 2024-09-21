@@ -1,0 +1,9 @@
+kind: MyCustomResource
+metadata:
+  name: my-custom-resource
+spec:
+  entries:
+    - name: a
+      attr: 1
+    - name: b
+      attr: 2

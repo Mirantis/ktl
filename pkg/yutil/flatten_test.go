@@ -1,0 +1,78 @@
+package yutil_test
+
+import (
+	_ "embed"
+	"strings"
+	"testing"
+
+	"github.com/Mirantis/rekustomize/pkg/yutil"
+	"github.com/google/go-cmp/cmp"
+	"sigs.k8s.io/kustomize/kyaml/kio"
+)
+
+var (
+	//go:embed testdata/deployment.yaml
+	testdataDeployment []byte
+
+	//go:embed testdata/custom.yaml
+	testdataCustom []byte
+)
+
+func TestFlatten(t *testing.T) {
+	tests := []struct {
+		name  string
+		input []byte
+		want  map[string]string
+	}{
+		{
+			name:  "deployment",
+			input: testdataDeployment,
+			want: map[string]string{
+				"/apiVersion":          "apps/v1",
+				"/kind":                "Deployment",
+				"/metadata/labels/abc": "def",
+				"/metadata/labels/app": "test-app",
+				"/metadata/labels/xyz": "123",
+				"/metadata/name":       "test-deployment",
+				"/metadata/namespace":  "test-namespace",
+				"/spec/replicas":       "1",
+
+				"/spec/selector/matchLabels/app":     "test-app",
+				"/spec/template/metadata/labels/app": "test-app",
+
+				"/spec/template/spec/containers/[name=app]/image": "app-image:1.2",
+				"/spec/template/spec/containers/[name=app]/name":  "app",
+
+				"/spec/template/spec/containers/[name=sidecar]/image": "sidecar-image:3.4",
+				"/spec/template/spec/containers/[name=sidecar]/name":  "sidecar",
+			},
+		},
+		{
+			name:  "custom resource",
+			input: testdataCustom,
+			want: map[string]string{
+				"/kind":          "MyCustomResource",
+				"/metadata/name": "my-custom-resource",
+				"/spec/entries": strings.Join([]string{
+					`- name: a`,
+					`  attr: 1`,
+					`- name: b`,
+					`  attr: 2`,
+				}, "\n"),
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := map[string]string{}
+			src, _ := kio.FromBytes(test.input)
+			for path, value := range yutil.Flatten(src[0]) {
+				s, _ := value.String()
+				got[path.String()] = strings.TrimRight(s, "\n")
+			}
+			if diff := cmp.Diff(test.want, got); diff != "" {
+				t.Errorf("-want, +got:\n%v", diff)
+			}
+		})
+	}
+}
