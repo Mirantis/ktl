@@ -8,6 +8,7 @@ import (
 	"github.com/Mirantis/rekustomize/pkg/yutil"
 	"github.com/google/go-cmp/cmp"
 	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 var (
@@ -41,7 +42,8 @@ var (
 		"/spec/template/spec/containers/[name=sidecar]/image": "sidecar-image:3.4",
 		"/spec/template/spec/containers/[name=sidecar]/name":  "sidecar",
 
-		"/spec/template/spec/volumes/[name=tmp]/name": "tmp",
+		"/spec/template/spec/volumes/[name=tmp]/name":     "tmp",
+		"/spec/template/spec/volumes/[name=tmp]/emptyDir": "{}",
 	}
 
 	//go:embed testdata/custom.yaml
@@ -93,6 +95,37 @@ func TestFlatten(t *testing.T) {
 				got[path.String()] = strings.TrimRight(s, "\n")
 			}
 			if diff := cmp.Diff(test.want, got); diff != "" {
+				t.Errorf("-want, +got:\n%v", diff)
+			}
+		})
+	}
+}
+
+func TestFlattenRebuild(t *testing.T) {
+	tests := []struct {
+		name string
+		body []byte
+	}{
+		{name: "deployment", body: testdataDeployment},
+		{name: "deployment in kustomize format", body: testdataDeploymentMinIndent},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			src, _ := kio.FromBytes(test.body)
+			want, _ := src[0].String()
+			dst := yaml.NewMapRNode(&map[string]string{})
+			for path, value := range yutil.Flatten(src[0]) {
+				rn, err := dst.Pipe(yaml.LookupCreate(value.YNode().Kind, path...))
+				if err != nil {
+					t.Fatal(err)
+				}
+				rn.SetYNode(value.YNode())
+			}
+			got, err := dst.String()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(want, got); diff != "" {
 				t.Errorf("-want, +got:\n%v", diff)
 			}
 		})

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"iter"
 	"slices"
+	"sort"
 
 	"sigs.k8s.io/kustomize/kyaml/openapi"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
@@ -23,6 +24,7 @@ func Flatten(rn *yaml.RNode) iter.Seq2[Path, *yaml.RNode] {
 	if _, err := walker.Walk(); err != nil {
 		panic(err)
 	}
+	sort.Sort(visitor)
 
 	return visitor.entries()
 }
@@ -62,6 +64,19 @@ type flatten struct {
 	rpath  rPath
 	rpaths []rPath
 	values []*yaml.RNode
+}
+
+func (v *flatten) Len() int {
+	return len(v.values)
+}
+
+func (v *flatten) Less(i, j int) bool {
+	return v.values[i].YNode().Line < v.values[j].YNode().Line
+}
+
+func (v *flatten) Swap(i, j int) {
+	v.values[i], v.values[j] = v.values[j], v.values[i]
+	v.rpaths[i], v.rpaths[j] = v.rpaths[j], v.rpaths[i]
 }
 
 func (v *flatten) entries() iter.Seq2[Path, *yaml.RNode] {
@@ -113,9 +128,20 @@ func (v *flatten) popRPath() rPath {
 	return rpath
 }
 
+func (v *flatten) append(rpath rPath, rn *yaml.RNode) {
+	value := rn.Copy()
+	value.ShouldKeep = true
+	v.rpaths = append(v.rpaths, rpath)
+	v.values = append(v.values, value)
+}
+
 func (v *flatten) VisitMap(nodes walk.Sources, rs *openapi.ResourceSchema) (*yaml.RNode, error) {
 	rn := nodes.Dest()
 	v.trim(rn.YNode().Column, yaml.MappingNode, yaml.SequenceNode, yaml.ScalarNode)
+	if rn.IsNilOrEmpty() {
+		v.append(v.popRPath(), rn)
+		return nil, nil
+	}
 	v.rpath = append(v.rpath, rPathPart{rn, rs, ""})
 	return rn, nil
 }
@@ -127,8 +153,7 @@ func (v *flatten) VisitScalar(nodes walk.Sources, rs *openapi.ResourceSchema) (*
 		v.rpath = append(v.rpath, rPathPart{rn, rs, ""})
 		return rn, nil
 	}
-	v.rpaths = append(v.rpaths, v.popRPath())
-	v.values = append(v.values, rn)
+	v.append(v.popRPath(), rn)
 	return rn, nil
 }
 
@@ -150,8 +175,7 @@ func (v *flatten) VisitList(nodes walk.Sources, rs *openapi.ResourceSchema, lk w
 		}
 		fallthrough
 	case walk.NonAssociateList:
-		v.rpaths = append(v.rpaths, v.popRPath())
-		v.values = append(v.values, rn)
+		v.append(v.popRPath(), rn)
 	}
 	return nil, nil
 }
