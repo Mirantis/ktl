@@ -35,7 +35,11 @@ func TestFlatten(t *testing.T) {
 				"/metadata/labels/xyz": "123",
 				"/metadata/name":       "test-deployment",
 				"/metadata/namespace":  "test-namespace",
-				"/spec/replicas":       "1",
+				"/metadata/finalizers": strings.Join([]string{
+					`- fin-1`,
+					`- fin-2`,
+				}, "\n"),
+				"/spec/replicas": "1",
 
 				"/spec/selector/matchLabels/app":     "test-app",
 				"/spec/template/metadata/labels/app": "test-app",
@@ -43,8 +47,13 @@ func TestFlatten(t *testing.T) {
 				"/spec/template/spec/containers/[name=app]/image": "app-image:1.2",
 				"/spec/template/spec/containers/[name=app]/name":  "app",
 
+				"/spec/template/spec/containers/[name=app]/volumeMounts/[mountPath=~1tmp]/mountPath": "/tmp",
+				"/spec/template/spec/containers/[name=app]/volumeMounts/[mountPath=~1tmp]/name":      "tmp",
+
 				"/spec/template/spec/containers/[name=sidecar]/image": "sidecar-image:3.4",
 				"/spec/template/spec/containers/[name=sidecar]/name":  "sidecar",
+
+				"/spec/template/spec/volumes/[name=tmp]/name": "tmp",
 			},
 		},
 		{
@@ -59,6 +68,10 @@ func TestFlatten(t *testing.T) {
 					`- name: b`,
 					`  attr: 2`,
 				}, "\n"),
+				"/spec/associativeListEntries/[name=c]/attr": "3",
+				"/spec/associativeListEntries/[name=c]/name": "c",
+				"/spec/associativeListEntries/[name=d]/attr": "4",
+				"/spec/associativeListEntries/[name=d]/name": "d",
 			},
 		},
 	}

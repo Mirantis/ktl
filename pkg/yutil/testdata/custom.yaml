@@ -7,3 +7,9 @@ spec:
       attr: 1
     - name: b
       attr: 2
+  # { "x-kubernetes-patch-merge-key": "name", "x-kubernetes-patch-strategy": "merge" }
+  associativeListEntries:
+    - name: c
+      attr: 3
+    - name: d
+      attr: 4
