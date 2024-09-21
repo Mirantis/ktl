@@ -75,17 +75,13 @@ func (v *flatten) entries() iter.Seq2[Path, *yaml.RNode] {
 	}
 }
 
-func (v *flatten) trim(column int) {
+func (v *flatten) trim(column int, kinds ...yaml.Kind) {
 	for i := len(v.rpath) - 1; i >= 0; i-- {
 		end := v.rpath[i].node.YNode()
-		if end.Column <= column {
+		if end.Column < column {
 			break
 		}
-		v.rpath = v.rpath[:i]
-	}
-	for i := len(v.rpath) - 1; i > 0; i-- {
-		end := v.rpath[i-1].node.YNode()
-		if end.Column < column {
+		if end.Column == column && !slices.Contains(kinds, end.Kind) {
 			break
 		}
 		v.rpath = v.rpath[:i]
@@ -119,25 +115,15 @@ func (v *flatten) popRPath() rPath {
 
 func (v *flatten) VisitMap(nodes walk.Sources, rs *openapi.ResourceSchema) (*yaml.RNode, error) {
 	rn := nodes.Dest()
-	v.trim(rn.YNode().Column)
-	if v.pathKind() == rn.YNode().Kind {
-		// associative list entry
-		v.rpath[len(v.rpath)-1] = rPathPart{rn, rs, ""}
-		return rn, nil
-	}
+	v.trim(rn.YNode().Column, yaml.MappingNode, yaml.SequenceNode, yaml.ScalarNode)
 	v.rpath = append(v.rpath, rPathPart{rn, rs, ""})
 	return rn, nil
 }
 
 func (v *flatten) VisitScalar(nodes walk.Sources, rs *openapi.ResourceSchema) (*yaml.RNode, error) {
 	rn := nodes.Dest()
-	v.trim(rn.YNode().Column)
+	v.trim(rn.YNode().Column, yaml.SequenceNode, yaml.ScalarNode)
 	if v.pathKind() != yaml.ScalarNode {
-		v.rpath = append(v.rpath, rPathPart{rn, rs, ""})
-		return rn, nil
-	}
-	if v.pathColumn() == rn.YNode().Column {
-		v.popRPath()
 		v.rpath = append(v.rpath, rPathPart{rn, rs, ""})
 		return rn, nil
 	}
@@ -166,7 +152,6 @@ func (v *flatten) VisitList(nodes walk.Sources, rs *openapi.ResourceSchema, lk w
 	case walk.NonAssociateList:
 		v.rpaths = append(v.rpaths, v.popRPath())
 		v.values = append(v.values, rn)
-		return nil, nil
 	}
 	return nil, nil
 }

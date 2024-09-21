@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-deployment
+  namespace: test-namespace
+  labels:
+    app: test-app
+    abc: def
+    xyz: 123
+  finalizers:
+  - fin-1
+  - fin-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-app
+  template:
+    metadata:
+      labels:
+        app: test-app
+    spec:
+      containers:
+      - name: app
+        image: app-image:1.2
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+      - name: sidecar
+        image: sidecar-image:3.4
+      volumes:
+      - name: tmp
+        emptyDir: {}

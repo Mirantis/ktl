@@ -13,9 +13,53 @@ import (
 var (
 	//go:embed testdata/deployment.yaml
 	testdataDeployment []byte
+	//go:embed testdata/deployment-min-indent.yaml
+	testdataDeploymentMinIndent []byte
+	flattenedDeployment         = map[string]string{
+		"/apiVersion":          "apps/v1",
+		"/kind":                "Deployment",
+		"/metadata/labels/abc": "def",
+		"/metadata/labels/app": "test-app",
+		"/metadata/labels/xyz": "123",
+		"/metadata/name":       "test-deployment",
+		"/metadata/namespace":  "test-namespace",
+		"/metadata/finalizers": strings.Join([]string{
+			`- fin-1`,
+			`- fin-2`,
+		}, "\n"),
+		"/spec/replicas": "1",
+
+		"/spec/selector/matchLabels/app":     "test-app",
+		"/spec/template/metadata/labels/app": "test-app",
+
+		"/spec/template/spec/containers/[name=app]/image": "app-image:1.2",
+		"/spec/template/spec/containers/[name=app]/name":  "app",
+
+		"/spec/template/spec/containers/[name=app]/volumeMounts/[mountPath=~1tmp]/mountPath": "/tmp",
+		"/spec/template/spec/containers/[name=app]/volumeMounts/[mountPath=~1tmp]/name":      "tmp",
+
+		"/spec/template/spec/containers/[name=sidecar]/image": "sidecar-image:3.4",
+		"/spec/template/spec/containers/[name=sidecar]/name":  "sidecar",
+
+		"/spec/template/spec/volumes/[name=tmp]/name": "tmp",
+	}
 
 	//go:embed testdata/custom.yaml
-	testdataCustom []byte
+	testdataCustom  []byte
+	flattenedCustom = map[string]string{
+		"/kind":          "MyCustomResource",
+		"/metadata/name": "my-custom-resource",
+		"/spec/entries": strings.Join([]string{
+			`- name: a`,
+			`  attr: 1`,
+			`- name: b`,
+			`  attr: 2`,
+		}, "\n"),
+		"/spec/associativeListEntries/[name=c]/attr": "3",
+		"/spec/associativeListEntries/[name=c]/name": "c",
+		"/spec/associativeListEntries/[name=d]/attr": "4",
+		"/spec/associativeListEntries/[name=d]/name": "d",
+	}
 )
 
 func TestFlatten(t *testing.T) {
@@ -27,52 +71,17 @@ func TestFlatten(t *testing.T) {
 		{
 			name:  "deployment",
 			input: testdataDeployment,
-			want: map[string]string{
-				"/apiVersion":          "apps/v1",
-				"/kind":                "Deployment",
-				"/metadata/labels/abc": "def",
-				"/metadata/labels/app": "test-app",
-				"/metadata/labels/xyz": "123",
-				"/metadata/name":       "test-deployment",
-				"/metadata/namespace":  "test-namespace",
-				"/metadata/finalizers": strings.Join([]string{
-					`- fin-1`,
-					`- fin-2`,
-				}, "\n"),
-				"/spec/replicas": "1",
-
-				"/spec/selector/matchLabels/app":     "test-app",
-				"/spec/template/metadata/labels/app": "test-app",
-
-				"/spec/template/spec/containers/[name=app]/image": "app-image:1.2",
-				"/spec/template/spec/containers/[name=app]/name":  "app",
-
-				"/spec/template/spec/containers/[name=app]/volumeMounts/[mountPath=~1tmp]/mountPath": "/tmp",
-				"/spec/template/spec/containers/[name=app]/volumeMounts/[mountPath=~1tmp]/name":      "tmp",
-
-				"/spec/template/spec/containers/[name=sidecar]/image": "sidecar-image:3.4",
-				"/spec/template/spec/containers/[name=sidecar]/name":  "sidecar",
-
-				"/spec/template/spec/volumes/[name=tmp]/name": "tmp",
-			},
+			want:  flattenedDeployment,
+		},
+		{
+			name:  "deployment in kustomize format",
+			input: testdataDeploymentMinIndent,
+			want:  flattenedDeployment,
 		},
 		{
 			name:  "custom resource",
 			input: testdataCustom,
-			want: map[string]string{
-				"/kind":          "MyCustomResource",
-				"/metadata/name": "my-custom-resource",
-				"/spec/entries": strings.Join([]string{
-					`- name: a`,
-					`  attr: 1`,
-					`- name: b`,
-					`  attr: 2`,
-				}, "\n"),
-				"/spec/associativeListEntries/[name=c]/attr": "3",
-				"/spec/associativeListEntries/[name=c]/name": "c",
-				"/spec/associativeListEntries/[name=d]/attr": "4",
-				"/spec/associativeListEntries/[name=d]/name": "d",
-			},
+			want:  flattenedCustom,
 		},
 	}
 	for _, test := range tests {
