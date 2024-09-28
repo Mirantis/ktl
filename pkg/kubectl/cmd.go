@@ -9,12 +9,23 @@ import (
 	"k8s.io/kubectl/pkg/cmd/version"
 )
 
-const DefaultCmd KubectlCmd = "kubectl"
+func DefaultCmd() KubectlCmd {
+	return []string{"kubectl"}
+}
 
-type KubectlCmd string
+type KubectlCmd []string
+
+func (kc KubectlCmd) String() string {
+	return strings.Join(kc, " ")
+}
+
+func (kc KubectlCmd) Server(server string) KubectlCmd {
+	return append(kc, "--server", server)
+}
 
 func (kc KubectlCmd) output(args ...string) ([]byte, error) {
-	cmd := exec.Command(string(kc), args...)
+	args = append(kc[1:], args...)
+	cmd := exec.Command(kc[0], args...)
 	data, err := cmd.Output()
 
 	switch err := err.(type) {
