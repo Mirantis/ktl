@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	tc "github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -40,6 +41,10 @@ func K8sServer(t *testing.T) string {
 		t.Fatalf("unable to start K8s (KWOK): %v", err)
 	}
 	t.Cleanup(func() {
+		immediate := time.Second * 0
+		if err := kwok.Stop(ctx, &immediate); err != nil {
+			t.Errorf("unable to stop K8s (KWOK): %v", err)
+		}
 		if err := kwok.Terminate(ctx); err != nil {
 			t.Errorf("unable to cleanup K8s (KWOK): %v", err)
 		}
