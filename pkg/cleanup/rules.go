@@ -51,8 +51,11 @@ type Rule interface {
 
 type Rules []Rule
 
-func (r Rules) Apply(rn *yaml.RNode) {
+func (r Rules) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	for _, rule := range r {
-		rule.Apply(rn)
+		for _, rn := range nodes {
+			rule.Apply(rn)
+		}
 	}
+	return nodes, nil
 }

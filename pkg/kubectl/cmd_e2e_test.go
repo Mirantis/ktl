@@ -99,17 +99,20 @@ func testExport(t *testing.T, kctl kubectl.Cmd) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, rn := range resources {
-		cleanup.DefaultRules().Apply(rn)
-		rn.Pipe()
-	}
 	memfs := filesys.MakeFsInMemory()
 	pkg := kio.LocalPackageWriter{
 		Kind:        "Kustomization",
 		PackagePath: "/",
 	}
 	pkg.FileSystem.Set(memfs)
-	if err := pkg.Write(resources); err != nil {
+	pipeline := kio.Pipeline{
+		Inputs: []kio.Reader{&kio.PackageBuffer{Nodes: resources}},
+		Filters: []kio.Filter{
+			cleanup.DefaultRules(),
+		},
+		Outputs: []kio.Writer{pkg},
+	}
+	if err := pipeline.Execute(); err != nil {
 		t.Fatal(err)
 	}
 	want := map[string]string{
