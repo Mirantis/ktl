@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"k8s.io/kubectl/pkg/cmd/version"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 func DefaultCmd() KubectlCmd {
@@ -56,4 +57,29 @@ func (kc KubectlCmd) Version(server bool) (*version.Version, error) {
 	}
 
 	return v, nil
+}
+
+func (kc KubectlCmd) ApplyKustomization(path string) error {
+	_, err := kc.output("apply", "--kustomize", path)
+	return err
+}
+
+func (kc KubectlCmd) Get(resources string) ([]*yaml.RNode, error) {
+	response, err := kc.output("get", "-oyaml", resources)
+	if err != nil {
+		return nil, err
+	}
+	root, err := yaml.Parse(string(response))
+	if err != nil {
+		return nil, err
+	}
+	items, err := root.Pipe(yaml.Lookup("items"))
+	if err != nil {
+		return nil, err
+	}
+	nodes := []*yaml.RNode{}
+	for _, item := range items.Content() {
+		nodes = append(nodes, yaml.NewRNode(item))
+	}
+	return nodes, nil
 }
