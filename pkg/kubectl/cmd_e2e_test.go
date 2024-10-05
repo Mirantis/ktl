@@ -1,13 +1,25 @@
 package kubectl_test
 
 import (
+	_ "embed"
+	"io/fs"
 	"sort"
 	"testing"
 
+	"github.com/Mirantis/rekustomize/pkg/cleanup"
 	"github.com/Mirantis/rekustomize/pkg/e2e"
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
 	"github.com/google/go-cmp/cmp"
+	"sigs.k8s.io/kustomize/kyaml/filesys"
+	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/resid"
+)
+
+var (
+	//go:embed testdata/export/nginx-a.yaml
+	testdataNginxA string
+	//go:embed testdata/export/nginx-b.yaml
+	testdataNginxB string
 )
 
 func e2eSubtest(kctl kubectl.Cmd, test func(*testing.T, kubectl.Cmd)) func(*testing.T) {
@@ -28,6 +40,7 @@ func TestE2E(t *testing.T) {
 	t.Run("server-version-error", testServerVersionError)
 	t.Run("server-version", e2eSubtest(kctl, testServerVersion))
 	t.Run("get-deployments", e2eSubtest(kctl, testGetDeployments))
+	t.Run("export", e2eSubtest(kctl, testExport))
 }
 
 func testClientVersion(t *testing.T) {
@@ -79,4 +92,48 @@ func testGetDeployments(t *testing.T, kctl kubectl.Cmd) {
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("unexpected IDs, +got -want:\n%v", diff)
 	}
+}
+
+func testExport(t *testing.T, kctl kubectl.Cmd) {
+	resources, err := kctl.Get("deployments")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, rn := range resources {
+		cleanup.DefaultRules().Apply(rn)
+		rn.Pipe()
+	}
+	memfs := filesys.MakeFsInMemory()
+	pkg := kio.LocalPackageWriter{
+		Kind:        "Kustomization",
+		PackagePath: "/",
+	}
+	pkg.FileSystem.Set(memfs)
+	if err := pkg.Write(resources); err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{
+		"/default/deployment_nginx-a.yaml": testdataNginxA,
+		"/default/deployment_nginx-b.yaml": testdataNginxB,
+	}
+	got := transformKFS(memfs)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("unexpected result, +got -want:\n%v", diff)
+	}
+}
+
+func transformKFS(f filesys.FileSystem) map[string]string {
+	got := map[string]string{}
+	f.Walk("/", func(path string, info fs.FileInfo, err error) error {
+		if info.IsDir() {
+			return nil
+		}
+		data, err := f.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		got[path] = string(data)
+		return nil
+	})
+	return got
 }
