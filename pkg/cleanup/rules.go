@@ -5,23 +5,27 @@ import (
 
 	"github.com/Mirantis/rekustomize/pkg/yutil"
 	"sigs.k8s.io/kustomize/kyaml/resid"
+	kyutil "sigs.k8s.io/kustomize/kyaml/utils"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 func DefaultRules() Rules {
-	return []Rule{
-		&schemaRule{},
-		&regexpRule{regexp.MustCompile(`.*`), yutil.Path{"status"}},
-		&regexpRule{regexp.MustCompile(`.*`), yutil.Path{"metadata", "uid"}},
-		&regexpRule{regexp.MustCompile(`.*`), yutil.Path{"metadata", "selfLink"}},
-		&regexpRule{regexp.MustCompile(`.*`), yutil.Path{"metadata", "resourceVersion"}},
-		&regexpRule{regexp.MustCompile(`.*`), yutil.Path{"metadata", "generation"}},
-		&regexpRule{regexp.MustCompile(`.*`), yutil.Path{"metadata", "creationTimestamp"}},
-		&regexpRule{regexp.MustCompile(`.*`), yutil.Path{"metadata", "annotations", "kubectl.kubernetes.io/last-applied-configuration"}},
-		&regexpRule{regexp.MustCompile(`^Deployment\.v1\.apps/.*$`), yutil.Path{
-			"metadata", "annotations", "deployment.kubernetes.io/revision",
-		}},
+	regexpRules := map[string]string{
+		"status":                     `.*`,
+		"metadata.uid":               `.*`,
+		"metadata.selfLink":          `.*`,
+		"metadata.resourceVersion":   `.*`,
+		"metadata.generation":        `.*`,
+		"metadata.creationTimestamp": `.*`,
+		"metadata.annotations.[kubectl.kubernetes.io/last-applied-configuration]": `.*`,
+		"metadata.annotations.[deployment.kubernetes.io/revision]":                `^Deployment\.v1\.apps/.*$`,
 	}
+	rules := []Rule{&schemaRule{}}
+	for pathStr, regexpStr := range regexpRules {
+		path := yutil.Path(kyutil.SmarterPathSplitter(pathStr, "."))
+		rules = append(rules, &regexpRule{regexp.MustCompile(regexpStr), path})
+	}
+	return rules
 }
 
 type regexpRule struct {
