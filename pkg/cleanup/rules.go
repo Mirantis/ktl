@@ -10,6 +10,7 @@ import (
 
 func DefaultRules() Rules {
 	return []Rule{
+		&schemaRule{},
 		&regexpRule{regexp.MustCompile(`.*`), yutil.Path{"status"}},
 		&regexpRule{regexp.MustCompile(`.*`), yutil.Path{"metadata", "uid"}},
 		&regexpRule{regexp.MustCompile(`.*`), yutil.Path{"metadata", "selfLink"}},
@@ -28,13 +29,13 @@ type regexpRule struct {
 	path   yutil.Path
 }
 
-func (r *regexpRule) Apply(rn *yaml.RNode) {
+func (r *regexpRule) Apply(rn *yaml.RNode) error {
 	id := resid.FromRNode(rn).String()
 	if !r.regexp.MatchString(id) {
-		return
+		return nil
 	}
 	if len(r.path) < 1 {
-		return
+		return nil
 	}
 	filters := []yaml.Filter{}
 	path, name := r.path[:len(r.path)-1], r.path[len(r.path)-1]
@@ -43,10 +44,11 @@ func (r *regexpRule) Apply(rn *yaml.RNode) {
 	}
 	filters = append(filters, yaml.Clear(name))
 	rn.Pipe(filters...)
+	return nil
 }
 
 type Rule interface {
-	Apply(*yaml.RNode)
+	Apply(*yaml.RNode) error
 }
 
 type Rules []Rule
@@ -54,7 +56,9 @@ type Rules []Rule
 func (r Rules) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 	for _, rule := range r {
 		for _, rn := range nodes {
-			rule.Apply(rn)
+			if err := rule.Apply(rn); err != nil {
+				return nil, err
+			}
 		}
 	}
 	return nodes, nil
