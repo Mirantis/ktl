@@ -10,7 +10,7 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/resid"
 )
 
-func e2eSubtest(kctl kubectl.KubectlCmd, test func(*testing.T, kubectl.KubectlCmd)) func(*testing.T) {
+func e2eSubtest(kctl kubectl.Cmd, test func(*testing.T, kubectl.Cmd)) func(*testing.T) {
 	return func(t *testing.T) {
 		test(t, kctl)
 	}
@@ -50,7 +50,7 @@ func testServerVersionError(t *testing.T) {
 	}
 }
 
-func testServerVersion(t *testing.T, kctl kubectl.KubectlCmd) {
+func testServerVersion(t *testing.T, kctl kubectl.Cmd) {
 	v, err := kctl.Version(true)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -60,7 +60,7 @@ func testServerVersion(t *testing.T, kctl kubectl.KubectlCmd) {
 	}
 }
 
-func testGetDeployments(t *testing.T, kctl kubectl.KubectlCmd) {
+func testGetDeployments(t *testing.T, kctl kubectl.Cmd) {
 	want := []string{
 		"Deployment.v1.apps/nginx-a.default",
 		"Deployment.v1.apps/nginx-b.default",

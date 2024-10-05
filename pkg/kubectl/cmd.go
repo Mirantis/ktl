@@ -10,21 +10,21 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func DefaultCmd() KubectlCmd {
+func DefaultCmd() Cmd {
 	return []string{"kubectl"}
 }
 
-type KubectlCmd []string
+type Cmd []string
 
-func (kc KubectlCmd) String() string {
+func (kc Cmd) String() string {
 	return strings.Join(kc, " ")
 }
 
-func (kc KubectlCmd) Server(server string) KubectlCmd {
+func (kc Cmd) Server(server string) Cmd {
 	return append(kc, "--server", server)
 }
 
-func (kc KubectlCmd) output(args ...string) ([]byte, error) {
+func (kc Cmd) output(args ...string) ([]byte, error) {
 	args = append(kc[1:], args...)
 	cmd := exec.Command(kc[0], args...)
 	data, err := cmd.Output()
@@ -40,7 +40,7 @@ func (kc KubectlCmd) output(args ...string) ([]byte, error) {
 	}
 }
 
-func (kc KubectlCmd) Version(server bool) (*version.Version, error) {
+func (kc Cmd) Version(server bool) (*version.Version, error) {
 	args := []string{"version", "-ojson"}
 	if !server {
 		args = append(args, "--client=true")
@@ -59,12 +59,12 @@ func (kc KubectlCmd) Version(server bool) (*version.Version, error) {
 	return v, nil
 }
 
-func (kc KubectlCmd) ApplyKustomization(path string) error {
+func (kc Cmd) ApplyKustomization(path string) error {
 	_, err := kc.output("apply", "--kustomize", path)
 	return err
 }
 
-func (kc KubectlCmd) Get(resources string) ([]*yaml.RNode, error) {
+func (kc Cmd) Get(resources string) ([]*yaml.RNode, error) {
 	response, err := kc.output("get", "-oyaml", resources)
 	if err != nil {
 		return nil, err
