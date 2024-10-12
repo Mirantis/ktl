@@ -20,7 +20,33 @@ func DefaultRules() Rules {
 		"metadata.annotations.[kubectl.kubernetes.io/last-applied-configuration]": `.*`,
 		"metadata.annotations.[deployment.kubernetes.io/revision]":                `^Deployment\.v1\.apps/.*$`,
 	}
-	rules := []Rule{&schemaRule{}}
+	rules := []Rule{
+		&schemaRule{},
+		skipRule{
+			// TODO: refine rules (e.g. current rules drop non-system ClusterRoles)
+			resid.NewResId(resid.NewGvk("", "v1", "ClusterRole"), ""),
+			resid.NewResId(resid.NewGvk("", "v1", "ClusterRoleBinding"), ""),
+			resid.NewResId(resid.NewGvk("", "v1", "ComponentStatus"), ""),
+			resid.NewResId(resid.NewGvk("", "v1", "ConfigMap"), "kube-root-ca.crt"),
+			resid.NewResId(resid.NewGvk("", "v1", "Event"), ""),
+			resid.NewResId(resid.NewGvk("", "v1", "Namespace"), ""),
+			resid.NewResId(resid.NewGvk("", "v1", "Pod"), ""),
+			resid.NewResId(resid.NewGvk("", "v1", "ReplicaSet"), ""),
+			resid.NewResId(resid.NewGvk("", "v1", "ServiceAccount"), "default"),
+			resid.NewResId(resid.NewGvk("admissionregistration.k8s.io", "v1", ""), ""),
+			resid.NewResId(resid.NewGvk("apiregistration.k8s.io", "v1", ""), ""),
+			resid.NewResId(resid.NewGvk("coordination.k8s.io", "v1", ""), ""),
+			resid.NewResId(resid.NewGvk("discovery.k8s.io", "v1", ""), ""),
+			resid.NewResId(resid.NewGvk("events.k8s.io", "v1", ""), ""),
+			resid.NewResId(resid.NewGvk("flowcontrol.apiserver.k8s.io", "v1", ""), ""),
+			resid.NewResId(resid.NewGvk("scheduling.k8s.io", "v1", ""), ""),
+			resid.NewResIdWithNamespace(resid.Gvk{}, "", "kube-public"),
+			resid.NewResIdWithNamespace(resid.Gvk{}, "", "kube-system"),
+			resid.NewResIdWithNamespace(resid.NewGvk("", "v1", "ConfigMap"), "kubernetes", "default"),
+			resid.NewResIdWithNamespace(resid.NewGvk("", "v1", "Endpoints"), "kubernetes", "default"),
+			resid.NewResIdWithNamespace(resid.NewGvk("", "v1", "Service"), "kubernetes", "default"),
+		},
+	}
 	for pathStr, regexpStr := range regexpRules {
 		path := yutil.Path(kyutil.SmarterPathSplitter(pathStr, "."))
 		rules = append(rules, &regexpRule{regexp.MustCompile(regexpStr), path})
@@ -58,12 +84,20 @@ type Rule interface {
 type Rules []Rule
 
 func (r Rules) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
-	for _, rule := range r {
-		for _, rn := range nodes {
-			if err := rule.Apply(rn); err != nil {
+	result := []*yaml.RNode{}
+filterNodes:
+	for _, rn := range nodes {
+		for _, rule := range r {
+			err := rule.Apply(rn)
+			if err == skipErr {
+				// FIXME: refactor
+				continue filterNodes
+			}
+			if err != nil {
 				return nil, err
 			}
 		}
+		result = append(result, rn)
 	}
-	return nodes, nil
+	return result, nil
 }

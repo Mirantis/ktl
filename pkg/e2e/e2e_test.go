@@ -2,23 +2,17 @@ package e2e_test
 
 import (
 	_ "embed"
+	"os"
+	"path/filepath"
 	"sort"
 	"testing"
 
-	"github.com/Mirantis/rekustomize/pkg/cleanup"
+	"github.com/Mirantis/rekustomize/pkg/cmd"
 	"github.com/Mirantis/rekustomize/pkg/e2e"
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
 	"github.com/google/go-cmp/cmp"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
-	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/resid"
-)
-
-var (
-	//go:embed testdata/export/nginx-a.yaml
-	testdataNginxA string
-	//go:embed testdata/export/nginx-b.yaml
-	testdataNginxB string
 )
 
 func e2eSubtest(kctl kubectl.Cmd, test func(*testing.T, kubectl.Cmd)) func(*testing.T) {
@@ -100,31 +94,20 @@ func testGetDeployments(t *testing.T, kctl kubectl.Cmd) {
 }
 
 func testExport(t *testing.T, kctl kubectl.Cmd) {
-	resources, err := kctl.Get("deployments")
-	if err != nil {
+	diskFs := filesys.MakeFsOnDisk()
+	outDir := filepath.Join(t.TempDir(), "export")
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	memfs := filesys.MakeFsInMemory()
-	pkg := kio.LocalPackageWriter{
-		Kind:        "Kustomization",
-		PackagePath: "/",
-	}
-	pkg.FileSystem.Set(memfs)
-	pipeline := kio.Pipeline{
-		Inputs: []kio.Reader{&kio.PackageBuffer{Nodes: resources}},
-		Filters: []kio.Filter{
-			cleanup.DefaultRules(),
-		},
-		Outputs: []kio.Writer{pkg},
-	}
-	if err := pipeline.Execute(); err != nil {
+	exportCmd := cmd.RootCommand()
+	exportCmd.SetArgs([]string{"export", outDir})
+
+	if err := exportCmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]string{
-		"default/deployment_nginx-a.yaml": testdataNginxA,
-		"default/deployment_nginx-b.yaml": testdataNginxB,
-	}
-	got := e2e.ReadFiles(memfs, "/")
+
+	got := e2e.ReadFiles(diskFs, outDir)
+	want := e2e.ReadFiles(diskFs, "testdata/export")
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("unexpected result, +got -want:\n%v", diff)
 	}

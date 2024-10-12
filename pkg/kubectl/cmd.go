@@ -1,6 +1,8 @@
 package kubectl
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -82,4 +84,17 @@ func (kc Cmd) Get(resources string) ([]*yaml.RNode, error) {
 		nodes = append(nodes, yaml.NewRNode(item))
 	}
 	return nodes, nil
+}
+
+func (kc Cmd) ApiResources() ([]string, error) {
+	response, err := kc.output("api-resources", "-oname", "--verbs", "get")
+	if err != nil {
+		return nil, err
+	}
+	s := bufio.NewScanner(bytes.NewBuffer(response))
+	resources := []string{}
+	for s.Scan() {
+		resources = append(resources, s.Text())
+	}
+	return resources, nil
 }
