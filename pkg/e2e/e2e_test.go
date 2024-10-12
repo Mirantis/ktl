@@ -1,8 +1,7 @@
-package kubectl_test
+package e2e_test
 
 import (
 	_ "embed"
-	"io/fs"
 	"sort"
 	"testing"
 
@@ -122,27 +121,11 @@ func testExport(t *testing.T, kctl kubectl.Cmd) {
 		t.Fatal(err)
 	}
 	want := map[string]string{
-		"/default/deployment_nginx-a.yaml": testdataNginxA,
-		"/default/deployment_nginx-b.yaml": testdataNginxB,
+		"default/deployment_nginx-a.yaml": testdataNginxA,
+		"default/deployment_nginx-b.yaml": testdataNginxB,
 	}
-	got := transformKFS(memfs)
+	got := e2e.ReadFiles(memfs, "/")
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("unexpected result, +got -want:\n%v", diff)
 	}
-}
-
-func transformKFS(f filesys.FileSystem) map[string]string {
-	got := map[string]string{}
-	f.Walk("/", func(path string, info fs.FileInfo, err error) error {
-		if info.IsDir() {
-			return nil
-		}
-		data, err := f.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		got[path] = string(data)
-		return nil
-	})
-	return got
 }

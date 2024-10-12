@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +12,7 @@ func exportCommand() *cobra.Command {
 		Long:  "TODO: export (long)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("not implemented")
+			return opts.Run(args[0])
 		},
 	}
 	export.Flags().StringSliceVarP(&opts.nsFilter, "namespace-filter", "n", nil, "TODO: usage")
@@ -25,4 +23,8 @@ func exportCommand() *cobra.Command {
 type exportOpts struct {
 	nsFilter []string
 	server   string
+}
+
+func (opts *exportOpts) Run(dir string) error {
+
 }
