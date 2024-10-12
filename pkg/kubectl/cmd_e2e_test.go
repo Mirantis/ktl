@@ -29,8 +29,11 @@ func e2eSubtest(kctl kubectl.Cmd, test func(*testing.T, kubectl.Cmd)) func(*test
 }
 
 func TestE2E(t *testing.T) {
-	server := e2e.K8sServer(t)
-	kctl := kubectl.DefaultCmd().Server(server)
+	testServers := map[string]string{
+		"server-a": e2e.K8sServer(t),
+	}
+	e2e.KubeConfig(t, testServers, "server-a")
+	kctl := kubectl.DefaultCmd()
 	err := kctl.ApplyKustomization("../testdata/server-a")
 	if err != nil {
 		t.Fatal(err)
@@ -54,10 +57,13 @@ func testClientVersion(t *testing.T) {
 }
 
 func testServerVersionError(t *testing.T) {
-	wantErr := ("kubectl failed: exit status 1, " +
-		"stderr: The connection to the server localhost:8080 was refused - " +
+	wantErr := ("kubectl --server 127.0.0.1:1 failed: exit status 1, " +
+		"stderr: The connection to the server 127.0.0.1:1 was refused - " +
 		"did you specify the right host or port?")
-	_, err := kubectl.DefaultCmd().Version(true)
+	_, err := kubectl.DefaultCmd().Server("127.0.0.1:1").Version(true)
+	if err == nil {
+		t.Fatalf("want err, got nil")
+	}
 	if err.Error() != wantErr {
 		t.Fatalf("unexpected error: %v", err)
 	}
