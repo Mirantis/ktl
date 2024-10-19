@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-cde
+  namespace: default
+  labels:
+    test-label: c
+spec:
+  template:
+    spec:
+      containers:
+      - name: nginx-cde
+        image: nginx:1.14.2-1

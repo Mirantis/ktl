@@ -1,0 +1,3 @@
+kind: Component
+resources:
+- default/nginx-configmap.yaml

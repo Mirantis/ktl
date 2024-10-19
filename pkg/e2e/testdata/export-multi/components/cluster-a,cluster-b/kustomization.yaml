@@ -1,0 +1,6 @@
+kind: Component
+patches:
+- path: default/nginx-configmap.yaml
+resources:
+- default/nginx-a-deployment.yaml
+- default/nginx-b-deployment.yaml

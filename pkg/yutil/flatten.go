@@ -12,6 +12,7 @@ import (
 )
 
 func Flatten(rn *yaml.RNode) iter.Seq2[Path, *yaml.RNode] {
+	// FIXME: incorrect parsing (e.g. containerPort)
 	visitor := &flatten{}
 	walker := walk.Walker{
 		InferAssociativeLists: false, // REVISIT: make configurable

@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    app: nginx-a
-  name: nginx-a
+  name: nginx-c
   namespace: default
+  labels:
+    app: nginx-c
 spec:
   progressDeadlineSeconds: 600
   replicas: 3
   selector:
     matchLabels:
-      app: nginx-a
+      app: nginx-c
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -19,12 +19,12 @@ spec:
   template:
     metadata:
       labels:
-        app: nginx-a
+        app: nginx-c
     spec:
       containers:
-      - image: nginx:1.14.2
+      - name: nginx-c
+        image: nginx:1.14.2
         imagePullPolicy: IfNotPresent
-        name: nginx-a
         resources: {}
         terminationMessagePath: /dev/termination-log
       schedulerName: default-scheduler

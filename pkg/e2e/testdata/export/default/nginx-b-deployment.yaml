@@ -25,9 +25,6 @@ spec:
       - image: nginx:1.14.2
         imagePullPolicy: IfNotPresent
         name: nginx-b
-        ports:
-        - containerPort: 80
-          protocol: TCP
         resources: {}
         terminationMessagePath: /dev/termination-log
       schedulerName: default-scheduler

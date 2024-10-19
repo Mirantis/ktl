@@ -71,7 +71,7 @@ func setObjectPath(obj *yaml.RNode, withNamespace bool) {
 
 func (opts *exportOpts) Run(dir string) error {
 	if len(opts.clusters) > 1 {
-		opts.runMulti(dir)
+		return opts.runMulti(dir)
 	}
 	return opts.runSingle(dir)
 }
@@ -103,13 +103,13 @@ func (opts *exportOpts) runMulti(dir string) error {
 		go func() {
 			defer wg.Done()
 			kctl := kubectl.DefaultCmd().Cluster(cluster)
-			err := opts.export(kctl, buf)
+			err := opts.export(kctl, buf, false)
 			errs = append(errs, err)
 		}()
 	}
 	wg.Wait()
-	if len(errs) > 0 {
-		return errors.Join(errs...)
+	if err := errors.Join(errs...); err != nil {
+		return err
 	}
 
 	index := map[resid.ResId]map[pathKey]map[valueKey]map[clusterKey]*resourceEntry{}
@@ -157,6 +157,7 @@ func (opts *exportOpts) runMulti(dir string) error {
 						entries:  map[resid.ResId][]*resourceEntry{},
 					}
 					comp.Kind = types.ComponentKind
+					components[compKey] = comp
 				}
 				entry := byCluster[clusters[0]]
 				comp.entries[id] = append(comp.entries[id], entry)
@@ -178,6 +179,7 @@ func (opts *exportOpts) runMulti(dir string) error {
 			rn := resourceBase.Copy()
 			rn.SetApiVersion(id.ApiVersion())
 			rn.SetName(id.Name)
+			rn.SetKind(id.Kind)
 			if id.Namespace != "" {
 				rn.SetNamespace(id.Namespace)
 				setObjectPath(rn, true)
@@ -223,6 +225,13 @@ func (opts *exportOpts) runMulti(dir string) error {
 				}
 				vn.SetYNode(entry.value.YNode())
 			}
+			// FIXME: duplicate (annotations are cleared with "{}" value)
+			if id.Namespace != "" {
+				rn.SetNamespace(id.Namespace)
+				setObjectPath(rn, true)
+			} else {
+				setObjectPath(rn, false)
+			}
 
 			if seen[id] {
 				comp.patches = append(comp.patches, rn)
@@ -243,6 +252,7 @@ func (opts *exportOpts) runMulti(dir string) error {
 			PackagePath: filepath.Join(dir, "components", compName),
 			FileSystem:  diskFs,
 		}
+		os.MkdirAll(compWriter.PackagePath, 0o755)
 		err := kio.Pipeline{
 			Inputs: []kio.Reader{
 				&kio.PackageBuffer{Nodes: comp.resources},
@@ -251,15 +261,15 @@ func (opts *exportOpts) runMulti(dir string) error {
 			Outputs: []kio.Writer{compWriter},
 		}.Execute()
 		if err != nil {
-			return err
+			panic(err)
 		}
-		kustBytes, err := yaml.Marshal(&comp)
+		kustBytes, err := yaml.Marshal(&comp.Kustomization)
 		if err != nil {
-			return err
+			panic(err)
 		}
 		kustPath := filepath.Join(compWriter.PackagePath, "kustomization.yaml")
 		if err := os.WriteFile(kustPath, kustBytes, 0o644); err != nil {
-			return err
+			panic(err)
 		}
 		for _, cluster := range comp.clusters {
 			clusterKust := clusterComponents[cluster]
@@ -275,11 +285,12 @@ func (opts *exportOpts) runMulti(dir string) error {
 	for cluster, clusterKust := range clusterComponents {
 		data, err := yaml.Marshal(clusterKust)
 		if err != nil {
-			return err
+			panic(err)
 		}
-		kustPath := filepath.Join(dir, "overlays", cluster)
+		kustPath := filepath.Join(dir, "overlays", cluster, "kustomization.yaml")
+		os.MkdirAll(filepath.Dir(kustPath), 0o755)
 		if err := os.WriteFile(kustPath, data, 0o644); err != nil {
-			return err
+			panic(err)
 		}
 	}
 
@@ -293,10 +304,10 @@ func (opts *exportOpts) runSingle(dir string) error {
 		FileSystem:  filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
 	}
 
-	return opts.export(kctl, out)
+	return opts.export(kctl, out, true)
 }
 
-func (opts *exportOpts) export(kctl kubectl.Cmd, out kio.Writer) error {
+func (opts *exportOpts) export(kctl kubectl.Cmd, out kio.Writer, setPath bool) error {
 	resources, err := kctl.ApiResources()
 	if err != nil {
 		return err
@@ -310,8 +321,10 @@ func (opts *exportOpts) export(kctl kubectl.Cmd, out kio.Writer) error {
 		}
 		inputs = append(inputs, &kio.PackageBuffer{Nodes: objects})
 
-		for _, obj := range objects {
-			setObjectPath(obj, true)
+		if setPath {
+			for _, obj := range objects {
+				setObjectPath(obj, true)
+			}
 		}
 	}
 

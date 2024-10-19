@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx
+  namespace: default
+data:
+  de: test-value-de

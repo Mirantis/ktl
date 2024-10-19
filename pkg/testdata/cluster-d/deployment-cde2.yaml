@@ -18,5 +18,3 @@ spec:
       containers:
         - name: nginx-cde
           image: nginx:1.14.2-2
-          ports:
-            - containerPort: 80

@@ -59,6 +59,7 @@ func TestE2E(t *testing.T) {
 	t.Run("server-version-error", testServerVersionError)
 	t.Run("server-version", testServerVersion)
 	t.Run("export", testExport)
+	t.Run("export-multi-cluster", testExportMultiCluster)
 }
 
 func testClientVersion(t *testing.T) {
@@ -110,6 +111,29 @@ func testExport(t *testing.T) {
 
 	got := e2e.ReadFiles(diskFs, outDir)
 	want := e2e.ReadFiles(diskFs, "testdata/export")
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("unexpected result, +got -want:\n%v", diff)
+	}
+}
+
+func testExportMultiCluster(t *testing.T) {
+	diskFs := filesys.MakeFsOnDisk()
+	outDir := filepath.Join(t.TempDir(), "export-multi")
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	exportCmd := cmd.RootCommand()
+	exportCmd.SetArgs([]string{
+		"export",
+		"--clusters", "cluster-a,cluster-b,cluster-c,cluster-d,cluster-e",
+		outDir})
+
+	if err := exportCmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	got := e2e.ReadFiles(diskFs, outDir)
+	want := e2e.ReadFiles(diskFs, "testdata/export-multi")
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("unexpected result, +got -want:\n%v", diff)
 	}
