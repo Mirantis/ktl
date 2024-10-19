@@ -26,6 +26,10 @@ func (kc Cmd) Server(server string) Cmd {
 	return append(kc, "--server", server)
 }
 
+func (kc Cmd) Cluster(cluster string) Cmd {
+	return append(kc, "--cluster", cluster)
+}
+
 func (kc Cmd) output(args ...string) ([]byte, error) {
 	args = append(kc[1:], args...)
 	cmd := exec.Command(kc[0], args...)

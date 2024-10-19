@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-cde
+  labels:
+    app: nginx-cde
+    test-label: de
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-cde
+  template:
+    metadata:
+      labels:
+        app: nginx-cde
+    spec:
+      containers:
+        - name: nginx-cde
+          image: nginx:1.14.2-3
+          ports:
+            - containerPort: 80

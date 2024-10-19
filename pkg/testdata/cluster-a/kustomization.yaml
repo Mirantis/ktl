@@ -1,0 +1,4 @@
+resources:
+  - deployment-a.yaml
+  - deployment-b.yaml
+  - cm-ab.yaml

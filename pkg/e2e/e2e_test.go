@@ -2,6 +2,7 @@ package e2e_test
 
 import (
 	_ "embed"
+	"errors"
 	"os"
 	"path/filepath"
 	"sort"
@@ -21,16 +22,40 @@ func e2eSubtest(kctl kubectl.Cmd, test func(*testing.T, kubectl.Cmd)) func(*test
 	}
 }
 
+type testServer struct {
+	name string
+	url  string
+}
+
+func initServers(t *testing.T, kctl kubectl.Cmd, clusters []string) map[string]string {
+	result := map[string]string{}
+	ch := make(chan *testServer)
+	errs := []error{}
+	defer close(ch)
+	for _, cluster := range clusters {
+		go func(name string) {
+			url := e2e.K8sServer(t)
+			err := kctl.Server(url).ApplyKustomization("../testdata/" + name)
+			if err != nil {
+				errs = append(errs, err)
+			}
+			ch <- &testServer{name: name, url: url}
+		}(cluster)
+	}
+	for range clusters {
+		entry := <-ch
+		result[entry.name] = entry.url
+	}
+	if len(errs) > 0 {
+		t.Fatal(errors.Join(errs...))
+	}
+	return result
+}
+
 func TestE2E(t *testing.T) {
-	testServers := map[string]string{
-		"server-a": e2e.K8sServer(t),
-	}
-	e2e.KubeConfig(t, testServers, "server-a")
 	kctl := kubectl.DefaultCmd()
-	err := kctl.ApplyKustomization("../testdata/server-a")
-	if err != nil {
-		t.Fatal(err)
-	}
+	testServers := initServers(t, kctl, []string{"cluster-a", "cluster-b", "cluster-c", "cluster-d", "cluster-e"})
+	e2e.KubeConfig(t, testServers, "cluster-a")
 
 	t.Run("client-version", testClientVersion)
 	t.Run("server-version-error", testServerVersionError)

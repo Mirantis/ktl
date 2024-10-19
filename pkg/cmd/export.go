@@ -26,13 +26,13 @@ func exportCommand() *cobra.Command {
 		},
 	}
 	export.Flags().StringSliceVarP(&opts.nsFilter, "namespace-filter", "n", nil, "TODO: usage")
-	export.Flags().StringVarP(&opts.server, "server", "s", "", "TODO: usage")
+	export.Flags().StringSliceVarP(&opts.clusters, "clusters", "c", nil, "TODO: usage")
 	return export
 }
 
 type exportOpts struct {
 	nsFilter []string
-	server   string
+	clusters []string
 }
 
 func setObjectPath(obj *yaml.RNode, withNamespace bool) {
@@ -54,6 +54,17 @@ func setObjectPath(obj *yaml.RNode, withNamespace bool) {
 }
 
 func (opts *exportOpts) Run(dir string) error {
+	if len(opts.clusters) > 1 {
+		opts.runMulti(dir)
+	}
+	return opts.runSingle(dir)
+}
+
+func (opts *exportOpts) runMulti(dir string) error {
+	panic("not implemented")
+}
+
+func (opts *exportOpts) runSingle(dir string) error {
 	kctl := kubectl.DefaultCmd()
 	resources, err := kctl.ApiResources()
 	if err != nil {
