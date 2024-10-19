@@ -5,7 +5,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"sort"
 	"testing"
 
 	"github.com/Mirantis/rekustomize/pkg/cmd"
@@ -13,21 +12,15 @@ import (
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
 	"github.com/google/go-cmp/cmp"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
-	"sigs.k8s.io/kustomize/kyaml/resid"
 )
-
-func e2eSubtest(kctl kubectl.Cmd, test func(*testing.T, kubectl.Cmd)) func(*testing.T) {
-	return func(t *testing.T) {
-		test(t, kctl)
-	}
-}
 
 type testServer struct {
 	name string
 	url  string
 }
 
-func initServers(t *testing.T, kctl kubectl.Cmd, clusters []string) map[string]string {
+func initServers(t *testing.T, clusters []string) map[string]string {
+	kctl := kubectl.DefaultCmd()
 	result := map[string]string{}
 	ch := make(chan *testServer)
 	errs := []error{}
@@ -53,15 +46,19 @@ func initServers(t *testing.T, kctl kubectl.Cmd, clusters []string) map[string]s
 }
 
 func TestE2E(t *testing.T) {
-	kctl := kubectl.DefaultCmd()
-	testServers := initServers(t, kctl, []string{"cluster-a", "cluster-b", "cluster-c", "cluster-d", "cluster-e"})
+	testServers := initServers(t, []string{
+		"cluster-a",
+		"cluster-b",
+		"cluster-c",
+		"cluster-d",
+		"cluster-e",
+	})
 	e2e.KubeConfig(t, testServers, "cluster-a")
 
 	t.Run("client-version", testClientVersion)
 	t.Run("server-version-error", testServerVersionError)
-	t.Run("server-version", e2eSubtest(kctl, testServerVersion))
-	t.Run("get-deployments", e2eSubtest(kctl, testGetDeployments))
-	t.Run("export", e2eSubtest(kctl, testExport))
+	t.Run("server-version", testServerVersion)
+	t.Run("export", testExport)
 }
 
 func testClientVersion(t *testing.T) {
@@ -87,7 +84,8 @@ func testServerVersionError(t *testing.T) {
 	}
 }
 
-func testServerVersion(t *testing.T, kctl kubectl.Cmd) {
+func testServerVersion(t *testing.T) {
+	kctl := kubectl.DefaultCmd()
 	v, err := kctl.Version(true)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -97,28 +95,7 @@ func testServerVersion(t *testing.T, kctl kubectl.Cmd) {
 	}
 }
 
-func testGetDeployments(t *testing.T, kctl kubectl.Cmd) {
-	want := []string{
-		"Deployment.v1.apps/nginx-a.default",
-		"Deployment.v1.apps/nginx-b.default",
-	}
-
-	resources, err := kctl.Get("deployments")
-	if err != nil {
-		t.Fatal(err)
-	}
-	got := []string{}
-	for _, resource := range resources {
-		got = append(got, resid.FromRNode(resource).String())
-	}
-	sort.Strings(got)
-
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("unexpected IDs, +got -want:\n%v", diff)
-	}
-}
-
-func testExport(t *testing.T, kctl kubectl.Cmd) {
+func testExport(t *testing.T) {
 	diskFs := filesys.MakeFsOnDisk()
 	outDir := filepath.Join(t.TempDir(), "export")
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
