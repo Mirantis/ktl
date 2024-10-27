@@ -8,7 +8,7 @@ import (
 
 func TestPathString(t *testing.T) {
 	tests := map[string]struct {
-		input yutil.Path
+		input yutil.NodePath
 		want  string
 	}{
 		`nil`: {
@@ -16,23 +16,23 @@ func TestPathString(t *testing.T) {
 			"/",
 		},
 		`empty`: {
-			yutil.Path{},
+			yutil.NodePath{},
 			"/",
 		},
 		`simple`: {
-			yutil.Path{"a", "b", "c"},
+			yutil.NodePath{"a", "b", "c"},
 			"/a/b/c",
 		},
 		`escaped "/"`: {
-			yutil.Path{"a/b", "c"},
+			yutil.NodePath{"a/b", "c"},
 			"/a~1b/c",
 		},
 		`escaped "~"`: {
-			yutil.Path{"a~b", "c"},
+			yutil.NodePath{"a~b", "c"},
 			"/a~0b/c",
 		},
 		`escaped "~" and "/"`: {
-			yutil.Path{"a~b", "c/d", "e~/~f", "g/~/h"},
+			yutil.NodePath{"a~b", "c/d", "e~/~f", "g/~/h"},
 			"/a~0b/c~1d/e~0~1~0f/g~1~0~1h",
 		},
 	}

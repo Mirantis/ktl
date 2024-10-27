@@ -2,6 +2,7 @@ package yutil_test
 
 import (
 	_ "embed"
+	"log/slog"
 	"strings"
 	"testing"
 
@@ -65,6 +66,7 @@ var (
 )
 
 func TestFlatten(t *testing.T) {
+	slog.SetLogLoggerLevel(slog.LevelDebug)
 	tests := []struct {
 		name  string
 		input []byte

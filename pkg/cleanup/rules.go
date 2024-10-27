@@ -48,7 +48,7 @@ func DefaultRules() Rules {
 		},
 	}
 	for pathStr, regexpStr := range regexpRules {
-		path := yutil.Path(kyutil.SmarterPathSplitter(pathStr, "."))
+		path := yutil.NodePath(kyutil.SmarterPathSplitter(pathStr, "."))
 		rules = append(rules, &regexpRule{regexp.MustCompile(regexpStr), path})
 	}
 	return rules
@@ -56,7 +56,7 @@ func DefaultRules() Rules {
 
 type regexpRule struct {
 	regexp *regexp.Regexp
-	path   yutil.Path
+	path   yutil.NodePath
 }
 
 func (r *regexpRule) Apply(rn *yaml.RNode) error {

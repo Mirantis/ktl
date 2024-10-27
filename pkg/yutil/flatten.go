@@ -3,7 +3,6 @@ package yutil
 import (
 	"fmt"
 	"iter"
-	"slices"
 	"sort"
 
 	"sigs.k8s.io/kustomize/kyaml/openapi"
@@ -11,172 +10,111 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml/walk"
 )
 
-func Flatten(rn *yaml.RNode) iter.Seq2[Path, *yaml.RNode] {
-	// FIXME: incorrect parsing (e.g. containerPort)
-	visitor := &flatten{}
+func Flatten(rn *yaml.RNode) iter.Seq2[NodePath, *yaml.RNode] {
+	visitor := &flatten{
+		paths: map[*yaml.Node]NodePath{},
+	}
 	walker := walk.Walker{
 		InferAssociativeLists: false, // REVISIT: make configurable
-		VisitKeysAsScalars:    true,
-
-		Sources: walk.Sources{rn},
-		Visitor: visitor,
+		Sources:               walk.Sources{rn},
+		Visitor:               visitor,
 	}
 
 	if _, err := walker.Walk(); err != nil {
 		panic(err)
 	}
-	sort.Sort(visitor)
+	sort.Slice(visitor.entries, func(i, j int) bool {
+		return visitor.entries[i].YNode().Line < visitor.entries[j].YNode().Line
+	})
 
-	return visitor.entries()
-}
-
-var _ walk.Visitor = (*flatten)(nil)
-
-type rPathPart struct {
-	node           *yaml.RNode
-	schema         *openapi.ResourceSchema
-	associativeKey string
-}
-
-type rPath []rPathPart
-
-func (rpath rPath) path() Path {
-	path := Path{}
-	for i := 0; i < len(rpath); i++ {
-		rpp := rpath[i]
-		yn := rpp.node.YNode()
-		switch yn.Kind {
-		case yaml.ScalarNode:
-			path = append(path, yn.Value)
-		case yaml.SequenceNode:
-			key := rpp.associativeKey
-			mapNode := rpath[i+1].node
-			keyValue := mapNode.Field(key).Value.YNode().Value
-			path = append(path, fmt.Sprintf("[%v=%v]", key, keyValue))
-			i++
-		default:
-			continue
-		}
-	}
-	return path
-}
-
-type flatten struct {
-	rpath  rPath
-	rpaths []rPath
-	values []*yaml.RNode
-}
-
-func (v *flatten) Len() int {
-	return len(v.values)
-}
-
-func (v *flatten) Less(i, j int) bool {
-	return v.values[i].YNode().Line < v.values[j].YNode().Line
-}
-
-func (v *flatten) Swap(i, j int) {
-	v.values[i], v.values[j] = v.values[j], v.values[i]
-	v.rpaths[i], v.rpaths[j] = v.rpaths[j], v.rpaths[i]
-}
-
-func (v *flatten) entries() iter.Seq2[Path, *yaml.RNode] {
-	return func(yield func(Path, *yaml.RNode) bool) {
-		for i := 0; i < len(v.values); i++ {
-			path := v.rpaths[i].path()
-			if !yield(path, v.values[i]) {
+	return func(yield func(NodePath, *yaml.RNode) bool) {
+		for _, rn := range visitor.entries {
+			if !yield(rn.FieldPath(), rn) {
 				return
 			}
 		}
 	}
 }
 
-func (v *flatten) trim(column int, kinds ...yaml.Kind) {
-	for i := len(v.rpath) - 1; i >= 0; i-- {
-		end := v.rpath[i].node.YNode()
-		if end.Column < column {
-			break
-		}
-		if end.Column == column && !slices.Contains(kinds, end.Kind) {
-			break
-		}
-		v.rpath = v.rpath[:i]
-	}
+var _ walk.Visitor = (*flatten)(nil)
+
+type flatten struct {
+	paths   map[*yaml.Node]NodePath
+	entries []*yaml.RNode
 }
 
-func (v *flatten) pathKind() yaml.Kind {
-	if len(v.rpath) < 1 {
-		return 0
+func (v *flatten) path(rn *yaml.RNode) NodePath {
+	yn := rn.YNode()
+	if yn == nil {
+		panic(fmt.Errorf("Node is nil"))
 	}
-	rn := v.rpath[len(v.rpath)-1].node
-	return rn.YNode().Kind
+	path := v.paths[yn]
+	return path
 }
 
-func (v *flatten) pathColumn() int {
-
-	if len(v.rpath) < 1 {
-		return 0
+func (v *flatten) setPath(node *yaml.Node, path NodePath) {
+	if node == nil {
+		panic(fmt.Errorf("Node is nil"))
 	}
-	rn := v.rpath[len(v.rpath)-1].node
-	return rn.YNode().Column
+	v.paths[node] = path
 }
 
-func (v *flatten) popRPath() rPath {
-	rpath := slices.Clone(v.rpath)
-	if len(v.rpath) > 0 {
-		v.rpath = v.rpath[:len(v.rpath)-1]
-	}
-	return rpath
-}
-
-func (v *flatten) append(rpath rPath, rn *yaml.RNode) {
-	value := rn.Copy()
-	value.ShouldKeep = true
-	v.rpaths = append(v.rpaths, rpath)
-	v.values = append(v.values, value)
+func (v *flatten) add(path NodePath, node *yaml.RNode) {
+	rn := node.Copy()
+	rn.AppendToFieldPath(path...)
+	v.entries = append(v.entries, rn)
 }
 
 func (v *flatten) VisitMap(nodes walk.Sources, rs *openapi.ResourceSchema) (*yaml.RNode, error) {
 	rn := nodes.Dest()
-	v.trim(rn.YNode().Column, yaml.MappingNode, yaml.SequenceNode, yaml.ScalarNode)
-	if rn.IsNilOrEmpty() {
-		v.append(v.popRPath(), rn)
-		return nil, nil
+	content := rn.Content()
+	path := v.path(rn)
+	if len(content) == 0 {
+		v.add(path, rn)
+		return rn, nil
 	}
-	v.rpath = append(v.rpath, rPathPart{rn, rs, ""})
+	for i := 0; i < len(content); i += 2 {
+		key, node := content[i].Value, content[i+1]
+		v.setPath(node, append(append([]string{}, path...), key))
+	}
 	return rn, nil
 }
 
 func (v *flatten) VisitScalar(nodes walk.Sources, rs *openapi.ResourceSchema) (*yaml.RNode, error) {
 	rn := nodes.Dest()
-	v.trim(rn.YNode().Column, yaml.SequenceNode, yaml.ScalarNode)
-	if v.pathKind() != yaml.ScalarNode {
-		v.rpath = append(v.rpath, rPathPart{rn, rs, ""})
-		return rn, nil
-	}
-	v.append(v.popRPath(), rn)
+	path := v.path(rn)
+	v.add(path, rn)
 	return rn, nil
+}
+
+func (v *flatten) associativeKey(nodes walk.Sources, rs *openapi.ResourceSchema, lk walk.ListKind) string {
+	rn := nodes.Dest()
+	if lk != walk.AssociativeList || rs == nil {
+		return ""
+	}
+	if _, key := rs.PatchStrategyAndKey(); key != "" {
+		return key
+	}
+	return rn.GetAssociativeKey()
 }
 
 func (v *flatten) VisitList(nodes walk.Sources, rs *openapi.ResourceSchema, lk walk.ListKind) (*yaml.RNode, error) {
 	rn := nodes.Dest()
-	v.trim(rn.YNode().Column)
-	switch lk {
-	case walk.AssociativeList:
-		key := ""
-		if rs != nil {
-			_, key = rs.PatchStrategyAndKey()
+	path := v.path(rn)
+	if key := v.associativeKey(nodes, rs, lk); key != "" {
+		elements, err := rn.Elements()
+		if err != nil {
+			panic(err)
 		}
-		if key == "" {
-			key = rn.GetAssociativeKey()
+		for _, node := range elements {
+			keyNode := node.Field(key).Value
+			keyValue := keyNode.YNode().Value
+			epath := append(append([]string{}, path...), fmt.Sprintf("[%s=%s]", key, keyValue))
+			v.add(append(epath, key), keyNode)
+			v.setPath(node.YNode(), epath)
 		}
-		if key != "" {
-			v.rpath = append(v.rpath, rPathPart{rn, rs, key})
-			return rn, nil
-		}
-		fallthrough
-	case walk.NonAssociateList:
-		v.append(v.popRPath(), rn)
+		return rn, nil
 	}
+	v.add(path, rn)
 	return nil, nil
 }

@@ -80,7 +80,7 @@ type pathKey = string
 type valueKey = string
 type clusterKey = string
 type resourceEntry struct {
-	path  yutil.Path
+	path  yutil.NodePath
 	value *yaml.RNode
 	root  *yaml.RNode
 }
