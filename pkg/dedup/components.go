@@ -3,12 +3,16 @@ package dedup
 import (
 	"cmp"
 	"maps"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
 	"github.com/Mirantis/rekustomize/pkg/export"
 	"github.com/Mirantis/rekustomize/pkg/yutil"
+	"sigs.k8s.io/kustomize/api/konfig"
 	"sigs.k8s.io/kustomize/api/types"
+	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	"sigs.k8s.io/kustomize/kyaml/resid"
@@ -37,6 +41,34 @@ type Component struct {
 	entries       map[resid.ResId][]*resourceEntry
 	ResourceNodes []*yaml.RNode
 	PatchNodes    []*yaml.RNode
+}
+
+func (comp *Component) Save(fSys filesys.FileSystem, path string) error {
+	diskFs := filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()}
+	compWriter := &kio.LocalPackageWriter{
+		PackagePath: path,
+		FileSystem:  diskFs,
+	}
+	os.MkdirAll(compWriter.PackagePath, 0o755)
+	err := kio.Pipeline{
+		Inputs: []kio.Reader{
+			&kio.PackageBuffer{Nodes: comp.ResourceNodes},
+			&kio.PackageBuffer{Nodes: comp.PatchNodes},
+		},
+		Outputs: []kio.Writer{compWriter},
+	}.Execute()
+	if err != nil {
+		return err
+	}
+	kustBytes, err := yaml.Marshal(&comp.Kustomization)
+	if err != nil {
+		return err
+	}
+	kustPath := filepath.Join(compWriter.PackagePath, konfig.DefaultKustomizationFileName())
+	if err := os.WriteFile(kustPath, kustBytes, 0o644); err != nil {
+		return err
+	}
+	return nil
 }
 
 func Components(buffers map[string]*kio.PackageBuffer) ([]*Component, error) {

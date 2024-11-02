@@ -68,31 +68,11 @@ func (opts *exportOpts) runMulti(dir string) error {
 	if err != nil {
 		return err
 	}
-	diskFs := filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()}
 	clusterComponents := map[string]*types.Kustomization{}
+	diskFs := filesys.MakeFsOnDisk()
 	for _, comp := range components {
-		compWriter := &kio.LocalPackageWriter{
-			PackagePath: filepath.Join(dir, "components", comp.Name),
-			FileSystem:  diskFs,
-		}
-		os.MkdirAll(compWriter.PackagePath, 0o755)
-		err := kio.Pipeline{
-			Inputs: []kio.Reader{
-				&kio.PackageBuffer{Nodes: comp.ResourceNodes},
-				&kio.PackageBuffer{Nodes: comp.PatchNodes},
-			},
-			Outputs: []kio.Writer{compWriter},
-		}.Execute()
-		if err != nil {
-			panic(err)
-		}
-		kustBytes, err := yaml.Marshal(&comp.Kustomization)
-		if err != nil {
-			panic(err)
-		}
-		kustPath := filepath.Join(compWriter.PackagePath, "kustomization.yaml")
-		if err := os.WriteFile(kustPath, kustBytes, 0o644); err != nil {
-			panic(err)
+		if err := comp.Save(diskFs, filepath.Join(dir, "components", comp.Name)); err != nil {
+			return err
 		}
 		for _, cluster := range comp.Clusters {
 			clusterKust := clusterComponents[cluster]
