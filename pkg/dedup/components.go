@@ -77,7 +77,7 @@ func Components(buffers map[string]*kio.PackageBuffer, dir string) ([]*Component
 	for cluster, pkg := range buffers {
 		for _, rn := range pkg.Nodes {
 			id := resid.FromRNode(rn)
-			for path, value := range yutil.Flatten(rn) {
+			for path, value := range Flatten(rn) {
 				entry := resourceEntry{path: path, value: value, root: rn}
 				byPath, ok := index[id]
 				if !ok {

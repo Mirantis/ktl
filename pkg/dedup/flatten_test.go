@@ -1,4 +1,4 @@
-package yutil_test
+package dedup_test
 
 import (
 	_ "embed"
@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Mirantis/rekustomize/pkg/yutil"
+	"github.com/Mirantis/rekustomize/pkg/dedup"
 	"github.com/google/go-cmp/cmp"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
@@ -92,7 +92,7 @@ func TestFlatten(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			got := map[string]string{}
 			src, _ := kio.FromBytes(test.input)
-			for path, value := range yutil.Flatten(src[0]) {
+			for path, value := range dedup.Flatten(src[0]) {
 				s, _ := value.String()
 				got[path.String()] = strings.TrimRight(s, "\n")
 			}
@@ -116,7 +116,7 @@ func TestFlattenRebuild(t *testing.T) {
 			src, _ := kio.FromBytes(test.body)
 			want, _ := src[0].String()
 			dst := yaml.NewMapRNode(&map[string]string{})
-			for path, value := range yutil.Flatten(src[0]) {
+			for path, value := range dedup.Flatten(src[0]) {
 				rn, err := dst.Pipe(yaml.LookupCreate(value.YNode().Kind, path...))
 				if err != nil {
 					t.Fatal(err)

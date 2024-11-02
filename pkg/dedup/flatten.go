@@ -1,18 +1,19 @@
-package yutil
+package dedup
 
 import (
 	"fmt"
 	"iter"
 	"sort"
 
+	"github.com/Mirantis/rekustomize/pkg/yutil"
 	"sigs.k8s.io/kustomize/kyaml/openapi"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 	"sigs.k8s.io/kustomize/kyaml/yaml/walk"
 )
 
-func Flatten(rn *yaml.RNode) iter.Seq2[NodePath, *yaml.RNode] {
+func Flatten(rn *yaml.RNode) iter.Seq2[yutil.NodePath, *yaml.RNode] {
 	visitor := &flatten{
-		paths: map[*yaml.Node]NodePath{},
+		paths: map[*yaml.Node]yutil.NodePath{},
 	}
 	walker := walk.Walker{
 		InferAssociativeLists: false, // REVISIT: make configurable
@@ -27,7 +28,7 @@ func Flatten(rn *yaml.RNode) iter.Seq2[NodePath, *yaml.RNode] {
 		return visitor.entries[i].YNode().Line < visitor.entries[j].YNode().Line
 	})
 
-	return func(yield func(NodePath, *yaml.RNode) bool) {
+	return func(yield func(yutil.NodePath, *yaml.RNode) bool) {
 		for _, rn := range visitor.entries {
 			if !yield(rn.FieldPath(), rn) {
 				return
@@ -39,11 +40,11 @@ func Flatten(rn *yaml.RNode) iter.Seq2[NodePath, *yaml.RNode] {
 var _ walk.Visitor = (*flatten)(nil)
 
 type flatten struct {
-	paths   map[*yaml.Node]NodePath
+	paths   map[*yaml.Node]yutil.NodePath
 	entries []*yaml.RNode
 }
 
-func (v *flatten) path(rn *yaml.RNode) NodePath {
+func (v *flatten) path(rn *yaml.RNode) yutil.NodePath {
 	yn := rn.YNode()
 	if yn == nil {
 		panic(fmt.Errorf("Node is nil"))
@@ -52,14 +53,14 @@ func (v *flatten) path(rn *yaml.RNode) NodePath {
 	return path
 }
 
-func (v *flatten) setPath(node *yaml.Node, path NodePath) {
+func (v *flatten) setPath(node *yaml.Node, path yutil.NodePath) {
 	if node == nil {
 		panic(fmt.Errorf("Node is nil"))
 	}
 	v.paths[node] = path
 }
 
-func (v *flatten) add(path NodePath, node *yaml.RNode) {
+func (v *flatten) add(path yutil.NodePath, node *yaml.RNode) {
 	rn := node.Copy()
 	rn.AppendToFieldPath(path...)
 	v.entries = append(v.entries, rn)
