@@ -1,4 +1,4 @@
 kind: Component
 patches:
-- path: default/nginx-configmap.yaml
 - path: default/nginx-cde-deployment.yaml
+- path: default/nginx-configmap.yaml

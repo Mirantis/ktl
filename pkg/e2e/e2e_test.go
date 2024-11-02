@@ -28,7 +28,7 @@ func initServers(t *testing.T, clusters []string) map[string]string {
 	for _, cluster := range clusters {
 		go func(name string) {
 			url := e2e.K8sServer(t)
-			err := kctl.Server(url).ApplyKustomization("../testdata/" + name)
+			err := kctl.Server(url).ApplyKustomization("testdata/import/" + name)
 			if err != nil {
 				errs = append(errs, err)
 			}

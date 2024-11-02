@@ -248,6 +248,10 @@ func (opts *exportOpts) runMulti(dir string) error {
 	clusterComponents := map[string]*types.Kustomization{}
 	for _, compName := range compNames {
 		comp := components[compName]
+		slices.SortFunc(comp.Patches, func(a, b types.Patch) int {
+			return cmp.Compare(a.Path, b.Path)
+		})
+		slices.Sort(comp.Resources)
 		compWriter := &kio.LocalPackageWriter{
 			PackagePath: filepath.Join(dir, "components", compName),
 			FileSystem:  diskFs,
