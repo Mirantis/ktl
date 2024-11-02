@@ -3,7 +3,6 @@ package cmd
 import (
 	"cmp"
 	"errors"
-	"fmt"
 	"maps"
 	"os"
 	"path/filepath"
@@ -11,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Mirantis/rekustomize/pkg/cleanup"
+	"github.com/Mirantis/rekustomize/pkg/export"
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
 	"github.com/Mirantis/rekustomize/pkg/yutil"
 	"github.com/spf13/cobra"
@@ -51,24 +50,6 @@ type exportOpts struct {
 	clusters []string
 }
 
-func setObjectPath(obj *yaml.RNode, withNamespace bool) {
-	annotations := map[string]string{}
-	for k, v := range obj.GetAnnotations() {
-		annotations[k] = v
-	}
-	path := fmt.Sprintf(
-		"%s-%s.yaml",
-		obj.GetName(),
-		strings.ToLower(obj.GetKind()),
-	)
-	ns := obj.GetNamespace()
-	if withNamespace && ns != "" {
-		path = filepath.Join(ns, path)
-	}
-	annotations[kioutil.PathAnnotation] = path
-	obj.SetAnnotations(annotations)
-}
-
 func (opts *exportOpts) Run(dir string) error {
 	if len(opts.clusters) > 1 {
 		return opts.runMulti(dir)
@@ -103,7 +84,7 @@ func (opts *exportOpts) runMulti(dir string) error {
 		go func() {
 			defer wg.Done()
 			kctl := kubectl.DefaultCmd().Cluster(cluster)
-			err := opts.export(kctl, buf, false)
+			err := export.Cluster(kctl, buf, false)
 			errs = append(errs, err)
 		}()
 	}
@@ -182,9 +163,9 @@ func (opts *exportOpts) runMulti(dir string) error {
 			rn.SetKind(id.Kind)
 			if id.Namespace != "" {
 				rn.SetNamespace(id.Namespace)
-				setObjectPath(rn, true)
+				export.SetObjectPath(rn, true)
 			} else {
-				setObjectPath(rn, false)
+				export.SetObjectPath(rn, false)
 			}
 			meta, err := rn.GetMeta()
 			if err != nil {
@@ -228,9 +209,9 @@ func (opts *exportOpts) runMulti(dir string) error {
 			// FIXME: duplicate (annotations are cleared with "{}" value)
 			if id.Namespace != "" {
 				rn.SetNamespace(id.Namespace)
-				setObjectPath(rn, true)
+				export.SetObjectPath(rn, true)
 			} else {
-				setObjectPath(rn, false)
+				export.SetObjectPath(rn, false)
 			}
 
 			if seen[id] {
@@ -308,42 +289,5 @@ func (opts *exportOpts) runSingle(dir string) error {
 		FileSystem:  filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
 	}
 
-	return opts.export(kctl, out, true)
-}
-
-func (opts *exportOpts) export(kctl kubectl.Cmd, out kio.Writer, setPath bool) error {
-	resources, err := kctl.ApiResources()
-	if err != nil {
-		return err
-	}
-	inputs := []kio.Reader{}
-	for _, resource := range resources {
-		// TODO: add another 'skip' layer before the Get call
-		objects, err := kctl.Get(resource)
-		if err != nil {
-			return err
-		}
-		inputs = append(inputs, &kio.PackageBuffer{Nodes: objects})
-
-		if setPath {
-			for _, obj := range objects {
-				setObjectPath(obj, true)
-			}
-		}
-	}
-
-	pipeline := &kio.Pipeline{
-		Inputs: inputs,
-		Filters: []kio.Filter{
-			cleanup.DefaultRules(),
-			// REVISIT: FileSetter annotations are ignored - bug in kustomize?
-			// 1) cleared if no annotation is set before the filter is applied
-			// 2) reverted if path annotations was set before the filter is applied
-			// &filters.FileSetter{FilenamePattern: "%n_%k.yaml"},
-		},
-		Outputs: []kio.Writer{out},
-	}
-
-	err = pipeline.Execute()
-	return err
+	return export.Cluster(kctl, out, true)
 }
