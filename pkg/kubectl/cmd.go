@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"slices"
 	"strings"
 
 	"k8s.io/kubectl/pkg/cmd/version"
@@ -23,16 +24,15 @@ func (kc Cmd) String() string {
 }
 
 func (kc Cmd) Server(server string) Cmd {
-	return append(kc, "--server", server)
+	return slices.Concat(kc, []string{"--server", server})
 }
 
 func (kc Cmd) Cluster(cluster string) Cmd {
-	return append(kc, "--cluster", cluster)
+	return slices.Concat(kc, []string{"--cluster", cluster})
 }
 
 func (kc Cmd) output(args ...string) ([]byte, error) {
-	args = append(kc[1:], args...)
-	cmd := exec.Command(kc[0], args...)
+	cmd := exec.Command(kc[0], slices.Concat(kc[1:], args)...)
 	data, err := cmd.Output()
 
 	switch err := err.(type) {
