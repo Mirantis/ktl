@@ -37,16 +37,17 @@ type resourceEntry struct {
 type Component struct {
 	types.Kustomization
 	Name          string
+	Path          string
 	Clusters      []string
 	entries       map[resid.ResId][]*resourceEntry
 	ResourceNodes []*yaml.RNode
 	PatchNodes    []*yaml.RNode
 }
 
-func (comp *Component) Save(fSys filesys.FileSystem, path string) error {
+func (comp *Component) Save(fSys filesys.FileSystem) error {
 	diskFs := filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()}
 	compWriter := &kio.LocalPackageWriter{
-		PackagePath: path,
+		PackagePath: comp.Path,
 		FileSystem:  diskFs,
 	}
 	os.MkdirAll(compWriter.PackagePath, 0o755)
@@ -71,7 +72,7 @@ func (comp *Component) Save(fSys filesys.FileSystem, path string) error {
 	return nil
 }
 
-func Components(buffers map[string]*kio.PackageBuffer) ([]*Component, error) {
+func Components(buffers map[string]*kio.PackageBuffer, dir string) ([]*Component, error) {
 	index := map[resid.ResId]map[pathKey]map[valueKey]map[clusterKey]*resourceEntry{}
 	for cluster, pkg := range buffers {
 		for _, rn := range pkg.Nodes {
@@ -114,6 +115,7 @@ func Components(buffers map[string]*kio.PackageBuffer) ([]*Component, error) {
 				if nil == comp {
 					comp = &Component{
 						Name:     compKey,
+						Path:     filepath.Join(dir, compKey),
 						Clusters: clusters,
 						entries:  map[resid.ResId][]*resourceEntry{},
 					}
@@ -215,4 +217,36 @@ func Components(buffers map[string]*kio.PackageBuffer) ([]*Component, error) {
 	}
 
 	return result, nil
+}
+
+func SaveClusters(fSys filesys.FileSystem, dir string, components []*Component) error {
+	clusterComponents := map[string]*types.Kustomization{}
+	for _, comp := range components {
+		for _, cluster := range comp.Clusters {
+			kustPath := filepath.Join(dir, cluster, "kustomization.yaml")
+			clusterKust := clusterComponents[kustPath]
+			if clusterKust == nil {
+				clusterKust = &types.Kustomization{}
+				clusterKust.Kind = types.KustomizationKind
+				clusterComponents[kustPath] = clusterKust
+			}
+			compPath, err := filepath.Rel(filepath.Dir(kustPath), comp.Path)
+			if err != nil {
+				return err
+			}
+			clusterKust.Components = append(clusterKust.Components, compPath)
+		}
+	}
+	for kustPath, clusterKust := range clusterComponents {
+		data, err := yaml.Marshal(clusterKust)
+		if err != nil {
+			panic(err)
+		}
+		os.MkdirAll(filepath.Dir(kustPath), 0o755)
+		if err := os.WriteFile(kustPath, data, 0o644); err != nil {
+			panic(err)
+		}
+	}
+
+	return nil
 }

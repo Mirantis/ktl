@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"os"
 	"path/filepath"
 	"sync"
 
@@ -10,10 +9,8 @@ import (
 	"github.com/Mirantis/rekustomize/pkg/export"
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/kio"
-	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 func exportCommand() *cobra.Command {
@@ -64,37 +61,20 @@ func (opts *exportOpts) runMulti(dir string) error {
 		return err
 	}
 
-	components, err := dedup.Components(buffers)
+	components, err := dedup.Components(buffers, filepath.Join(dir, "components"))
 	if err != nil {
 		return err
 	}
-	clusterComponents := map[string]*types.Kustomization{}
+
 	diskFs := filesys.MakeFsOnDisk()
 	for _, comp := range components {
-		if err := comp.Save(diskFs, filepath.Join(dir, "components", comp.Name)); err != nil {
+		if err := comp.Save(diskFs); err != nil {
 			return err
 		}
-		for _, cluster := range comp.Clusters {
-			clusterKust := clusterComponents[cluster]
-			if clusterKust == nil {
-				clusterKust = &types.Kustomization{}
-				clusterKust.Kind = types.KustomizationKind
-				clusterComponents[cluster] = clusterKust
-			}
-			compPath := filepath.Join("..", "..", "components", comp.Name)
-			clusterKust.Components = append(clusterKust.Components, compPath)
-		}
 	}
-	for cluster, clusterKust := range clusterComponents {
-		data, err := yaml.Marshal(clusterKust)
-		if err != nil {
-			panic(err)
-		}
-		kustPath := filepath.Join(dir, "overlays", cluster, "kustomization.yaml")
-		os.MkdirAll(filepath.Dir(kustPath), 0o755)
-		if err := os.WriteFile(kustPath, data, 0o644); err != nil {
-			panic(err)
-		}
+	err = dedup.SaveClusters(diskFs, filepath.Join(dir, "overlays"), components)
+	if err != nil {
+		return err
 	}
 
 	return nil
