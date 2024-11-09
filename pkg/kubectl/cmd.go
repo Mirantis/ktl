@@ -71,7 +71,7 @@ func (kc Cmd) ApplyKustomization(path string) error {
 }
 
 func (kc Cmd) Get(resources, namespace string) ([]*yaml.RNode, error) {
-	args := []string{"get", "-oyaml", resources}
+	args := []string{"get", "-oyaml", resources, "-l", "!kubernetes.io/bootstrapping"}
 	if namespace != "" {
 		args = append(args, "-n", namespace)
 	}

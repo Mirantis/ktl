@@ -13,6 +13,26 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/kio"
 )
 
+var defaultResourceFilter = []string{
+	"!*.admissionregistration.k8s.io",
+	"!*.apiregistration.k8s.io",
+	"!*.coordination.k8s.io",
+	"!*.discovery.k8s.io",
+	"!*.events.k8s.io",
+	"!*.flowcontrol.apiserver.k8s.io",
+	"!*.scheduling.k8s.io",
+	"!componentstatuses",
+	"!csinodes.storage.k8s.io",
+	"!csistoragecapacities.storage.k8s.io",
+	"!events",
+	"!limitranges",
+	"!nodes",
+	"!persistentvolumes",
+	"!pods",
+	"!replicasets.apps",
+	"!volumeattachments.storage.k8s.io",
+}
+
 func exportCommand() *cobra.Command {
 	opts := &exportOpts{}
 	export := &cobra.Command{
@@ -21,6 +41,7 @@ func exportCommand() *cobra.Command {
 		Long:  "TODO: export (long)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			opts.resFilter = append(opts.resFilter, defaultResourceFilter...)
 			return opts.Run(args[0])
 		},
 	}

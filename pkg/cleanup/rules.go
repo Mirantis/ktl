@@ -25,13 +25,6 @@ func DefaultRules() Rules {
 		skipRule{
 			resid.NewResId(resid.NewGvk("", "v1", "ConfigMap"), "kube-root-ca.crt"),
 			resid.NewResId(resid.NewGvk("", "v1", "ServiceAccount"), "default"),
-			resid.NewResId(resid.NewGvk("admissionregistration.k8s.io", "v1", ""), ""),
-			resid.NewResId(resid.NewGvk("apiregistration.k8s.io", "v1", ""), ""),
-			resid.NewResId(resid.NewGvk("coordination.k8s.io", "v1", ""), ""),
-			resid.NewResId(resid.NewGvk("discovery.k8s.io", "v1", ""), ""),
-			resid.NewResId(resid.NewGvk("events.k8s.io", "v1", ""), ""),
-			resid.NewResId(resid.NewGvk("flowcontrol.apiserver.k8s.io", "v1", ""), ""),
-			resid.NewResId(resid.NewGvk("scheduling.k8s.io", "v1", ""), ""),
 			resid.NewResIdWithNamespace(resid.NewGvk("", "v1", "ConfigMap"), "kubernetes", "default"),
 			resid.NewResIdWithNamespace(resid.NewGvk("", "v1", "Endpoints"), "kubernetes", "default"),
 			resid.NewResIdWithNamespace(resid.NewGvk("", "v1", "Service"), "kubernetes", "default"),
