@@ -103,7 +103,11 @@ func testExport(t *testing.T) {
 		t.Fatal(err)
 	}
 	exportCmd := cmd.RootCommand()
-	exportCmd.SetArgs([]string{"export", outDir})
+	exportCmd.SetArgs([]string{
+		"export",
+		"-n", "default",
+		"-R", "*.apps,configmaps,!replicasets.apps",
+		outDir})
 
 	if err := exportCmd.Execute(); err != nil {
 		t.Fatal(err)
@@ -126,6 +130,8 @@ func testExportMultiCluster(t *testing.T) {
 	exportCmd.SetArgs([]string{
 		"export",
 		"--clusters", "cluster-a,cluster-b,cluster-c,cluster-d,cluster-e",
+		"-n", "default",
+		"-R", "*.apps,configmaps,!replicasets.apps",
 		outDir})
 
 	if err := exportCmd.Execute(); err != nil {

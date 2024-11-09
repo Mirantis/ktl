@@ -25,13 +25,15 @@ func exportCommand() *cobra.Command {
 		},
 	}
 	export.Flags().StringSliceVarP(&opts.nsFilter, "namespace-filter", "n", nil, "TODO: usage")
+	export.Flags().StringSliceVarP(&opts.resFilter, "resource-filter", "R", nil, "TODO: usage")
 	export.Flags().StringSliceVarP(&opts.clusters, "clusters", "c", nil, "TODO: usage")
 	return export
 }
 
 type exportOpts struct {
-	nsFilter []string
-	clusters []string
+	nsFilter  []string
+	resFilter []string
+	clusters  []string
 }
 
 func (opts *exportOpts) Run(dir string) error {
@@ -52,7 +54,7 @@ func (opts *exportOpts) runMulti(dir string) error {
 		go func() {
 			defer wg.Done()
 			kctl := kubectl.DefaultCmd().Cluster(cluster)
-			err := export.Cluster(kctl, buf, false)
+			err := export.Cluster(kctl, opts.nsFilter, opts.resFilter, buf, false)
 			errs = append(errs, err)
 		}()
 	}
@@ -87,5 +89,5 @@ func (opts *exportOpts) runSingle(dir string) error {
 		FileSystem:  filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
 	}
 
-	return export.Cluster(kctl, out, true)
+	return export.Cluster(kctl, opts.nsFilter, opts.resFilter, out, true)
 }

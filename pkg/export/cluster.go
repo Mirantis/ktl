@@ -6,20 +6,43 @@ import (
 	"strings"
 
 	"github.com/Mirantis/rekustomize/pkg/cleanup"
+	"github.com/Mirantis/rekustomize/pkg/filter"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func Cluster(client Client, out kio.Writer, setPath bool) error {
-	resources, err := client.ApiResources()
+func Cluster(client Client, nsFilter, resFilter []string, out kio.Writer, setPath bool) error {
+	allClusterResources, err := client.ApiResources(false)
 	if err != nil {
 		return err
 	}
+	clusterResources, err := filter.SelectNames(allClusterResources, resFilter)
+	if err != nil {
+		return err
+	}
+
+	allNamespacedResources, err := client.ApiResources(true)
+	if err != nil {
+		return err
+	}
+	namespacedResources, err := filter.SelectNames(allNamespacedResources, resFilter)
+	if err != nil {
+		return err
+	}
+
+	allNamespaces, err := client.Namespaces()
+	if err != nil {
+		return err
+	}
+	namespaces, err := filter.SelectNames(allNamespaces, nsFilter)
+	if err != nil {
+		return err
+	}
+
 	inputs := []kio.Reader{}
-	for _, resource := range resources {
-		// TODO: add another 'skip' layer before the Get call
-		objects, err := client.Get(resource)
+	for _, resource := range clusterResources {
+		objects, err := client.Get(resource, "")
 		if err != nil {
 			return err
 		}
@@ -28,6 +51,21 @@ func Cluster(client Client, out kio.Writer, setPath bool) error {
 		if setPath {
 			for _, obj := range objects {
 				SetObjectPath(obj, true)
+			}
+		}
+	}
+	for _, namespace := range namespaces {
+		for _, resource := range namespacedResources {
+			objects, err := client.Get(resource, namespace)
+			if err != nil {
+				return err
+			}
+			inputs = append(inputs, &kio.PackageBuffer{Nodes: objects})
+
+			if setPath {
+				for _, obj := range objects {
+					SetObjectPath(obj, true)
+				}
 			}
 		}
 	}

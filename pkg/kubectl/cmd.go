@@ -70,8 +70,12 @@ func (kc Cmd) ApplyKustomization(path string) error {
 	return err
 }
 
-func (kc Cmd) Get(resources string) ([]*yaml.RNode, error) {
-	response, err := kc.output("get", "-oyaml", resources)
+func (kc Cmd) Get(resources, namespace string) ([]*yaml.RNode, error) {
+	args := []string{"get", "-oyaml", resources}
+	if namespace != "" {
+		args = append(args, "-n", namespace)
+	}
+	response, err := kc.output(args...)
 	if err != nil {
 		return nil, err
 	}
@@ -90,8 +94,13 @@ func (kc Cmd) Get(resources string) ([]*yaml.RNode, error) {
 	return nodes, nil
 }
 
-func (kc Cmd) ApiResources() ([]string, error) {
-	response, err := kc.output("api-resources", "-oname", "--verbs", "get")
+func (kc Cmd) ApiResources(namespaced bool) ([]string, error) {
+	response, err := kc.output(
+		"api-resources",
+		"-o", "name",
+		"--verbs", "get",
+		"--namespaced="+fmt.Sprint(namespaced),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -101,4 +110,26 @@ func (kc Cmd) ApiResources() ([]string, error) {
 		resources = append(resources, s.Text())
 	}
 	return resources, nil
+}
+
+func (kc Cmd) Namespaces() ([]string, error) {
+	response, err := kc.output(
+		"get", "namespaces",
+		"-o", "name",
+		"--no-headers",
+	)
+	if err != nil {
+		return nil, err
+	}
+	s := bufio.NewScanner(bytes.NewBuffer(response))
+	namespaces := []string{}
+	for s.Scan() {
+		namespace, found := strings.CutPrefix(s.Text(), "namespace/")
+		if !found {
+			continue
+		}
+		namespaces = append(namespaces, namespace)
+	}
+	slices.Sort(namespaces)
+	return namespaces, nil
 }
