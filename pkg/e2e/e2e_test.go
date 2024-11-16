@@ -105,8 +105,8 @@ func testExport(t *testing.T) {
 	exportCmd := cmd.RootCommand()
 	exportCmd.SetArgs([]string{
 		"export",
-		"-n", "default",
-		"-R", "!namespaces",
+		"--namespaces", "default",
+		"--resources", "!namespaces",
 		outDir})
 
 	if err := exportCmd.Execute(); err != nil {
@@ -129,9 +129,9 @@ func testExportMultiCluster(t *testing.T) {
 	exportCmd := cmd.RootCommand()
 	exportCmd.SetArgs([]string{
 		"export",
-		"--clusters", "cluster-a,cluster-b,cluster-c,cluster-d,cluster-e",
-		"-n", "default",
-		"-R", "!namespaces",
+		"--clusters", "*",
+		"--namespaces", "default",
+		"--resources", "!namespaces",
 		outDir})
 
 	if err := exportCmd.Execute(); err != nil {

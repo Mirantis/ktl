@@ -133,3 +133,21 @@ func (kc Cmd) Namespaces() ([]string, error) {
 	slices.Sort(namespaces)
 	return namespaces, nil
 }
+
+func (kc Cmd) Clusters() ([]string, error) {
+	response, err := kc.output("config", "get-clusters")
+	if err != nil {
+		return nil, err
+	}
+	s := bufio.NewScanner(bytes.NewBuffer(response))
+	clusters := []string{}
+	for s.Scan() {
+		cluster := s.Text()
+		if "NAME" == cluster {
+			continue
+		}
+		clusters = append(clusters, cluster)
+	}
+	slices.Sort(clusters)
+	return clusters, nil
+}

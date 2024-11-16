@@ -7,6 +7,7 @@ import (
 
 	"github.com/Mirantis/rekustomize/pkg/dedup"
 	"github.com/Mirantis/rekustomize/pkg/export"
+	"github.com/Mirantis/rekustomize/pkg/filter"
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
@@ -45,19 +46,38 @@ func exportCommand() *cobra.Command {
 			return opts.Run(args[0])
 		},
 	}
-	export.Flags().StringSliceVarP(&opts.nsFilter, "namespace-filter", "n", nil, "TODO: usage")
-	export.Flags().StringSliceVarP(&opts.resFilter, "resource-filter", "R", nil, "TODO: usage")
-	export.Flags().StringSliceVarP(&opts.clusters, "clusters", "c", nil, "TODO: usage")
+	export.Flags().StringSliceVarP(&opts.nsFilter, "namespaces", "n", nil, "namespace filter (default: current kubeconfig context)")
+	export.Flags().StringSliceVarP(&opts.resFilter, "resources", "R", nil, "resource filter")
+	export.Flags().StringSliceVarP(&opts.clusterFilter, "clusters", "c", nil, "cluster filter (default: current kubeconfig context)")
 	return export
 }
 
 type exportOpts struct {
-	nsFilter  []string
-	resFilter []string
-	clusters  []string
+	nsFilter      []string
+	resFilter     []string
+	clusterFilter []string
+	clusters      []string
+}
+
+func (opts *exportOpts) parseClusterFilter() error {
+	if len(opts.clusterFilter) == 0 {
+		return nil
+	}
+	allClusters, err := kubectl.DefaultCmd().Clusters()
+	if err != nil {
+		return err
+	}
+	opts.clusters, err = filter.SelectNames(allClusters, opts.clusterFilter)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (opts *exportOpts) Run(dir string) error {
+	if err := opts.parseClusterFilter(); err != nil {
+		return err
+	}
 	if len(opts.clusters) > 1 {
 		return opts.runMulti(dir)
 	}
