@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	ServerVersion = "v1.30.2"
-	kwokImage     = "registry.k8s.io/kwok/cluster:v0.6.0-k8s." + ServerVersion
+	ServerVersion = "v1.30.4"
+	kwokImage     = "registry.k8s.io/kwok/cluster:v0.6.1-k8s." + ServerVersion
 )
 
 func init() {

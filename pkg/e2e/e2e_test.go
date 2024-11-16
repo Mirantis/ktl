@@ -17,30 +17,32 @@ import (
 type testServer struct {
 	name string
 	url  string
+	err  error
 }
 
 func initServers(t *testing.T, clusters []string) map[string]string {
 	kctl := kubectl.DefaultCmd()
 	result := map[string]string{}
 	ch := make(chan *testServer)
-	errs := []error{}
 	defer close(ch)
 	for _, cluster := range clusters {
 		go func(name string) {
 			url := e2e.K8sServer(t)
-			err := kctl.Server(url).ApplyKustomization("testdata/import/" + name)
-			if err != nil {
-				errs = append(errs, err)
-			}
-			ch <- &testServer{name: name, url: url}
+			errs := []error{}
+			errs = append(errs, kctl.Server(url).ApplyKustomization("testdata/import/common"))
+			errs = append(errs, kctl.Server(url).ApplyKustomization("testdata/import/"+name))
+			server := &testServer{name: name, url: url, err: errors.Join(errs...)}
+			ch <- server
 		}(cluster)
 	}
+	errs := []error{}
 	for range clusters {
 		entry := <-ch
 		result[entry.name] = entry.url
+		errs = append(errs, entry.err)
 	}
-	if len(errs) > 0 {
-		t.Fatal(errors.Join(errs...))
+	if err := errors.Join(errs...); err != nil {
+		t.Fatal(err)
 	}
 	return result
 }
