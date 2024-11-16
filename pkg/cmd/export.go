@@ -2,7 +2,10 @@ package cmd
 
 import (
 	"errors"
+	"maps"
 	"path/filepath"
+	"slices"
+	"strings"
 	"sync"
 
 	"github.com/Mirantis/rekustomize/pkg/dedup"
@@ -12,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/sets"
 )
 
 var defaultResourceFilter = []string{
@@ -57,6 +61,7 @@ type exportOpts struct {
 	resFilter     []string
 	clusterFilter []string
 	clusters      []string
+	clusterGroups map[string]sets.String
 }
 
 func (opts *exportOpts) parseClusterFilter() error {
@@ -67,10 +72,35 @@ func (opts *exportOpts) parseClusterFilter() error {
 	if err != nil {
 		return err
 	}
-	opts.clusters, err = filter.SelectNames(allClusters, opts.clusterFilter)
-	if err != nil {
-		return err
+
+	opts.clusterGroups = make(map[string]sets.String)
+	filteredClusters := sets.String{}
+	group := ""
+	for _, filterPart := range opts.clusterFilter {
+		var pattern string
+		parts := strings.Split(filterPart, "=")
+		if len(parts) == 1 {
+			pattern = parts[0]
+		} else {
+			group = parts[0]
+			pattern = parts[1]
+		}
+		matchingClusters, err := filter.SelectNames(allClusters, []string{pattern})
+		if err != nil {
+			return err
+		}
+		filteredClusters.Insert(matchingClusters...)
+		if group != "" {
+			groupSet, found := opts.clusterGroups[group]
+			if !found {
+				groupSet = sets.String{}
+				opts.clusterGroups[group] = groupSet
+			}
+			groupSet.Insert(matchingClusters...)
+		}
 	}
+	opts.clusters = slices.Collect(maps.Keys(filteredClusters))
+	opts.clusterGroups["all-clusters"] = filteredClusters
 	return nil
 }
 
@@ -104,7 +134,7 @@ func (opts *exportOpts) runMulti(dir string) error {
 		return err
 	}
 
-	components, err := dedup.Components(buffers, filepath.Join(dir, "components"))
+	components, err := dedup.Components(buffers, opts.clusterGroups, filepath.Join(dir, "components"))
 	if err != nil {
 		return err
 	}

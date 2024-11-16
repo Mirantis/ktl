@@ -16,6 +16,7 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	"sigs.k8s.io/kustomize/kyaml/resid"
+	"sigs.k8s.io/kustomize/kyaml/sets"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -72,7 +73,31 @@ func (comp *Component) Save(fSys filesys.FileSystem) error {
 	return nil
 }
 
-func Components(buffers map[string]*kio.PackageBuffer, dir string) ([]*Component, error) {
+func componentName(clusters []string, groups map[string]sets.String) string {
+	groupNames := slices.Collect(maps.Keys(groups))
+	slices.SortFunc(groupNames, func(a, b string) int {
+		if ret := len(groups[b]) - len(groups[a]); ret != 0 {
+			return ret
+		}
+		return cmp.Compare(a, b)
+	})
+	ungroupedClusters := sets.String{}
+	ungroupedClusters.Insert(clusters...)
+	parts := []string{}
+	for _, groupName := range groupNames {
+		groupClusters := groups[groupName]
+		if len(groupClusters.Difference(ungroupedClusters)) > 0 {
+			continue
+		}
+		ungroupedClusters = ungroupedClusters.Difference(groupClusters)
+		parts = append(parts, groupName)
+	}
+	parts = append(parts, slices.Collect(maps.Keys(ungroupedClusters))...)
+	slices.Sort(parts)
+	return strings.Join(parts, ",")
+}
+
+func Components(buffers map[string]*kio.PackageBuffer, groups map[string]sets.String, dir string) ([]*Component, error) {
 	index := map[resid.ResId]map[pathKey]map[valueKey]map[clusterKey]*resourceEntry{}
 	for cluster, pkg := range buffers {
 		for _, rn := range pkg.Nodes {
@@ -110,7 +135,7 @@ func Components(buffers map[string]*kio.PackageBuffer, dir string) ([]*Component
 		for _, byValue := range byPath {
 			for _, byCluster := range byValue {
 				clusters := slices.Sorted(maps.Keys(byCluster))
-				compKey := strings.Join(clusters, ",")
+				compKey := componentName(clusters, groups)
 				comp := components[compKey]
 				if nil == comp {
 					comp = &Component{

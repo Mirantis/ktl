@@ -129,7 +129,7 @@ func testExportMultiCluster(t *testing.T) {
 	exportCmd := cmd.RootCommand()
 	exportCmd.SetArgs([]string{
 		"export",
-		"--clusters", "*",
+		"--clusters", "prod=cluster-a,cluster-b,dev=cluster-c,stage=cluster-[de]",
 		"--namespaces", "default",
 		"--resources", "!namespaces",
 		outDir})

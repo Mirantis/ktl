@@ -1,4 +1,4 @@
 kind: Kustomization
 components:
-- ../../components/cluster-a,cluster-b,cluster-c,cluster-d,cluster-e
-- ../../components/cluster-a,cluster-b
+- ../../components/all-clusters
+- ../../components/prod
