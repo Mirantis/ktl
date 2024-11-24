@@ -42,7 +42,11 @@ func Cluster(client Client, nsFilter, resFilter []string, out kio.Writer, setPat
 
 	inputs := []kio.Reader{}
 	for _, resource := range clusterResources {
-		objects, err := client.Get(resource, "")
+		names := []string{}
+		if resource == "namespaces" {
+			names = namespaces
+		}
+		objects, err := client.Get(resource, "", names...)
 		if err != nil {
 			return err
 		}

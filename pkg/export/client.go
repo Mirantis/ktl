@@ -7,5 +7,5 @@ import "sigs.k8s.io/kustomize/kyaml/yaml"
 type Client interface {
 	ApiResources(namespaced bool) ([]string, error)
 	Namespaces() ([]string, error)
-	Get(kind, namespace string) ([]*yaml.RNode, error)
+	Get(kind, namespace string, names ...string) ([]*yaml.RNode, error)
 }
