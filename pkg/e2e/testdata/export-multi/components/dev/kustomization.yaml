@@ -1,6 +1,7 @@
 kind: Component
 patches:
-- path: default/nginx-cde-deployment.yaml
-- path: default/nginx-configmap.yaml
+- path: myapp/myapp-deployment.yaml
+- path: myapp/myapp-env-configmap.yaml
+- path: myapp/myapp-svc-service.yaml
 resources:
-- default/nginx-c-deployment.yaml
+- mynewapp/mynewapp-deployment.yaml

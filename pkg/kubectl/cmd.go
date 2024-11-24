@@ -66,7 +66,7 @@ func (kc Cmd) Version(server bool) (*version.Version, error) {
 }
 
 func (kc Cmd) ApplyKustomization(path string) error {
-	_, err := kc.output("apply", "-n", "default", "--kustomize", path)
+	_, err := kc.output("apply", "--kustomize", path)
 	return err
 }
 

@@ -49,13 +49,13 @@ func initServers(t *testing.T, clusters []string) map[string]string {
 
 func TestE2E(t *testing.T) {
 	testServers := initServers(t, []string{
-		"cluster-a",
-		"cluster-b",
-		"cluster-c",
-		"cluster-d",
-		"cluster-e",
+		"dev-cluster-a",
+		"test-cluster-a",
+		"test-cluster-b",
+		"prod-cluster-a",
+		"prod-cluster-b",
 	})
-	e2e.KubeConfig(t, testServers, "cluster-a")
+	e2e.KubeConfig(t, testServers, "dev-cluster-a")
 
 	t.Run("client-version", testClientVersion)
 	t.Run("server-version-error", testServerVersionError)
@@ -107,8 +107,7 @@ func testExport(t *testing.T) {
 	exportCmd := cmd.RootCommand()
 	exportCmd.SetArgs([]string{
 		"export",
-		"--namespaces", "default",
-		"--resources", "!namespaces",
+		"--namespaces", "my*app",
 		outDir})
 
 	if err := exportCmd.Execute(); err != nil {
@@ -131,9 +130,8 @@ func testExportMultiCluster(t *testing.T) {
 	exportCmd := cmd.RootCommand()
 	exportCmd.SetArgs([]string{
 		"export",
-		"--clusters", "prod=cluster-a,cluster-b,dev=cluster-c,stage=cluster-[de]",
-		"--namespaces", "default",
-		"--resources", "!namespaces",
+		"--clusters", "dev=dev-*,test=test-cluster-[ab],prod=prod-cluster-a,prod-cluster-b",
+		"--namespaces", "my*app",
 		outDir})
 
 	if err := exportCmd.Execute(); err != nil {

@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: myapp
+          image: myapp:v1.2-345
+          args: ["--debug"]
+          envFrom:
+            - configMapRef:
+                name: myapp-env

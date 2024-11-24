@@ -1,5 +1,0 @@
-kind: Kustomization
-components:
-- ../../components/all-clusters
-- ../../components/dev,stage
-- ../../components/dev

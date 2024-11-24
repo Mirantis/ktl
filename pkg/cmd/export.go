@@ -29,6 +29,7 @@ var defaultResourceFilter = []string{
 	"!componentstatuses",
 	"!csinodes.storage.k8s.io",
 	"!csistoragecapacities.storage.k8s.io",
+	"!endpoints",
 	"!events",
 	"!limitranges",
 	"!nodes",

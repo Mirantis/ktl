@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: myapp-env
+data:
+  MYAPP_VAR1: "value1"
+  MYAPP_VAR2: "value2-dev"

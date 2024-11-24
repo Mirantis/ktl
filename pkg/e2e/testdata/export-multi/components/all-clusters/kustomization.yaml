@@ -1,3 +1,7 @@
 kind: Component
 resources:
-- default/nginx-configmap.yaml
+- myapp-namespace.yaml
+- myapp/myapp-deployment.yaml
+- myapp/myapp-env-configmap.yaml
+- myapp/myapp-svc-service.yaml
+- mynewapp-namespace.yaml

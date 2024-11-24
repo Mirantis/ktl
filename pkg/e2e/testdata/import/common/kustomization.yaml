@@ -1,3 +1,4 @@
 resources:
-  - ns1.yaml
-  - ns2.yaml
+  - myapp-ns.yaml
+  - mynewapp-ns.yaml
+  - kwok-node-0.yaml

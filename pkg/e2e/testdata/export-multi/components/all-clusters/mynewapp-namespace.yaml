@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mynewapp
+  labels:
+    kubernetes.io/metadata.name: mynewapp
+spec:
+  finalizers:
+  - kubernetes

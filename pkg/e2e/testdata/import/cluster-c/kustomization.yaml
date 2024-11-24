@@ -1,4 +1,0 @@
-resources:
-  - deployment-c.yaml
-  - deployment-cde1.yaml
-  - cm-c.yaml

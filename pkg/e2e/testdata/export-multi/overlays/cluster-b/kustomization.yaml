@@ -1,4 +1,0 @@
-kind: Kustomization
-components:
-- ../../components/all-clusters
-- ../../components/prod

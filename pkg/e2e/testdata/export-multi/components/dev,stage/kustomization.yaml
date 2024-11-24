@@ -1,3 +1,0 @@
-kind: Component
-resources:
-- default/nginx-cde-deployment.yaml

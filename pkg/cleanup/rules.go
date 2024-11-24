@@ -19,12 +19,18 @@ func DefaultRules() Rules {
 		"metadata.creationTimestamp": `.*`,
 		"metadata.annotations.[kubectl.kubernetes.io/last-applied-configuration]": `.*`,
 		"metadata.annotations.[deployment.kubernetes.io/revision]":                `^Deployment\.v1\.apps/.*$`,
+		"spec.clusterIP":  `^Service\.v1\..*$`,
+		"spec.clusterIPs": `^Service\.v1\..*$`,
 	}
 	rules := []Rule{
 		&schemaRule{},
 		skipRule{
 			resid.NewResId(resid.NewGvk("", "v1", "ConfigMap"), "kube-root-ca.crt"),
 			resid.NewResId(resid.NewGvk("", "v1", "ServiceAccount"), "default"),
+			resid.NewResId(resid.NewGvk("", "v1", "Namespace"), "default"),
+			resid.NewResId(resid.NewGvk("", "v1", "Namespace"), "kube-system"),
+			resid.NewResId(resid.NewGvk("", "v1", "Namespace"), "kube-node-lease"),
+			resid.NewResId(resid.NewGvk("", "v1", "Namespace"), "kube-public"),
 			resid.NewResIdWithNamespace(resid.NewGvk("", "v1", "ConfigMap"), "kubernetes", "default"),
 			resid.NewResIdWithNamespace(resid.NewGvk("", "v1", "Endpoints"), "kubernetes", "default"),
 			resid.NewResIdWithNamespace(resid.NewGvk("", "v1", "Service"), "kubernetes", "default"),
