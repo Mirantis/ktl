@@ -1,0 +1,7 @@
+resources:
+- myapp-namespace.yaml
+- myapp/myapp-deployment.yaml
+- myapp/myapp-env-configmap.yaml
+- myapp/myapp-svc-service.yaml
+- mynewapp-namespace.yaml
+- mynewapp/mynewapp-deployment.yaml

@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"errors"
+	"io/fs"
 	"maps"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -13,9 +15,12 @@ import (
 	"github.com/Mirantis/rekustomize/pkg/filter"
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/kustomize/api/konfig"
+	"sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/sets"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 var defaultResourceFilter = []string{
@@ -161,5 +166,30 @@ func (opts *exportOpts) runSingle(dir string) error {
 		FileSystem:  filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
 	}
 
-	return export.Cluster(kctl, opts.nsFilter, opts.resFilter, out, true)
+	if err := export.Cluster(kctl, opts.nsFilter, opts.resFilter, out, true); err != nil {
+		return err
+	}
+	// REVISIT: overlaps with dedup.Component.Save()
+	kust := &types.Kustomization{}
+	filepath.Walk(dir, func(path string, info fs.FileInfo, err error) error {
+		if info.IsDir() {
+			return nil
+		}
+		resPath, err := filepath.Rel(dir, path)
+		if err != nil {
+			return err
+		}
+		kust.Resources = append(kust.Resources, resPath)
+		return nil
+	})
+	slices.Sort(kust.Resources)
+	kustBytes, err := yaml.Marshal(kust)
+	if err != nil {
+		return err
+	}
+	kustPath := filepath.Join(dir, konfig.DefaultKustomizationFileName())
+	if err := os.WriteFile(kustPath, kustBytes, 0o644); err != nil {
+		return err
+	}
+	return nil
 }
