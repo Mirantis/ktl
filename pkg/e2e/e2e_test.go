@@ -108,6 +108,7 @@ func testExport(t *testing.T) {
 	exportCmd.SetArgs([]string{
 		"export",
 		"--namespaces", "my*app",
+		"-R", "namespaces",
 		outDir})
 
 	if err := exportCmd.Execute(); err != nil {
@@ -132,6 +133,7 @@ func testExportMultiCluster(t *testing.T) {
 		"export",
 		"--clusters", "dev=dev-*,test=test-cluster-[ab],prod=prod-cluster-a,prod-cluster-b",
 		"--namespaces", "my*app",
+		"-R", "namespaces",
 		outDir})
 
 	if err := exportCmd.Execute(); err != nil {

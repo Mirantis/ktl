@@ -23,26 +23,30 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-var defaultResourceFilter = []string{
-	"!*.admissionregistration.k8s.io",
-	"!*.apiregistration.k8s.io",
-	"!*.coordination.k8s.io",
-	"!*.discovery.k8s.io",
-	"!*.events.k8s.io",
-	"!*.flowcontrol.apiserver.k8s.io",
-	"!*.scheduling.k8s.io",
-	"!componentstatuses",
-	"!csinodes.storage.k8s.io",
-	"!csistoragecapacities.storage.k8s.io",
-	"!endpoints",
-	"!events",
-	"!limitranges",
-	"!nodes",
-	"!persistentvolumes",
-	"!pods",
-	"!replicasets.apps",
-	"!volumeattachments.storage.k8s.io",
-}
+var (
+	defaultNsResFilter = []string{
+		"!*.coordination.k8s.io",
+		"!*.discovery.k8s.io",
+		"!*.events.k8s.io",
+		"!csistoragecapacities.storage.k8s.io",
+		"!endpoints",
+		"!events",
+		"!limitranges",
+		"!pods",
+		"!replicasets.apps",
+	}
+	defaultClusterResFilter = []string{
+		"!*.admissionregistration.k8s.io",
+		"!*.apiregistration.k8s.io",
+		"!*.flowcontrol.apiserver.k8s.io",
+		"!*.scheduling.k8s.io",
+		"!componentstatuses",
+		"!csinodes.storage.k8s.io",
+		"!nodes",
+		"!persistentvolumes",
+		"!volumeattachments.storage.k8s.io",
+	}
+)
 
 func exportCommand() *cobra.Command {
 	opts := &exportOpts{}
@@ -52,22 +56,25 @@ func exportCommand() *cobra.Command {
 		Long:  "TODO: export (long)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts.resFilter = append(opts.resFilter, defaultResourceFilter...)
+			opts.nsResFilter = append(opts.nsResFilter, defaultNsResFilter...)
+			opts.clusterResFilter = append(opts.clusterResFilter, defaultClusterResFilter...)
 			return opts.Run(args[0])
 		},
 	}
 	export.Flags().StringSliceVarP(&opts.nsFilter, "namespaces", "n", nil, "namespace filter (default: current kubeconfig context)")
-	export.Flags().StringSliceVarP(&opts.resFilter, "resources", "R", nil, "resource filter")
+	export.Flags().StringSliceVarP(&opts.nsResFilter, "namespaced-resources", "r", []string{"*"}, "filter for namespaced resources (default: '*')")
+	export.Flags().StringSliceVarP(&opts.clusterResFilter, "cluster-resources", "R", []string{"!*"}, "filter for cluster resources (default: '!*')")
 	export.Flags().StringSliceVarP(&opts.clusterFilter, "clusters", "c", nil, "cluster filter (default: current kubeconfig context)")
 	return export
 }
 
 type exportOpts struct {
-	nsFilter      []string
-	resFilter     []string
-	clusterFilter []string
-	clusters      []string
-	clusterGroups map[string]sets.String
+	nsFilter         []string
+	nsResFilter      []string
+	clusterResFilter []string
+	clusterFilter    []string
+	clusters         []string
+	clusterGroups    map[string]sets.String
 }
 
 func (opts *exportOpts) parseClusterFilter() error {
@@ -131,7 +138,7 @@ func (opts *exportOpts) runMulti(dir string) error {
 		go func() {
 			defer wg.Done()
 			kctl := kubectl.DefaultCmd().Cluster(cluster)
-			err := export.Cluster(kctl, opts.nsFilter, opts.resFilter, buf, false)
+			err := export.Cluster(kctl, opts.nsFilter, opts.nsResFilter, opts.clusterResFilter, buf, false)
 			errs = append(errs, err)
 		}()
 	}
@@ -166,7 +173,7 @@ func (opts *exportOpts) runSingle(dir string) error {
 		FileSystem:  filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
 	}
 
-	if err := export.Cluster(kctl, opts.nsFilter, opts.resFilter, out, true); err != nil {
+	if err := export.Cluster(kctl, opts.nsFilter, opts.nsResFilter, opts.clusterResFilter, out, true); err != nil {
 		return err
 	}
 	// REVISIT: overlaps with dedup.Component.Save()
