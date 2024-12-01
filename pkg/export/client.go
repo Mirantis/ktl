@@ -9,4 +9,5 @@ type Client interface {
 	Namespaces() ([]string, error)
 
 	Get(kind, namespace string, selectors []string, names ...string) ([]*yaml.RNode, error)
+	GetAll(namespace string, selectors []string, kinds ...string) ([]*yaml.RNode, error)
 }

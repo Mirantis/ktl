@@ -101,6 +101,38 @@ func (kc Cmd) Get(resources, namespace string, selectors []string, names ...stri
 	return nodes, nil
 }
 
+func (kc Cmd) GetAll(namespace string, selectors []string, kinds ...string) ([]*yaml.RNode, error) {
+	// REVISIT: extract common code for Get/GetAll
+	if len(kinds) < 1 {
+		kinds = []string{"all"}
+	}
+	args := []string{"get", "-oyaml", strings.Join(kinds, ",")}
+	if len(selectors) > 0 {
+		args = append(args, "-l", strings.Join(selectors, ","))
+	}
+	if namespace != "" {
+		args = append(args, "-n", namespace)
+	}
+	response, err := kc.output(args...)
+	if err != nil {
+		return nil, err
+	}
+	root, err := yaml.Parse(string(response))
+	if err != nil {
+		return nil, err
+	}
+	items, err := root.Pipe(yaml.Lookup("items"))
+	if err != nil {
+		return nil, err
+	}
+	nodes := []*yaml.RNode{}
+	for _, item := range items.Content() {
+		rn := yaml.NewRNode(item)
+		nodes = append(nodes, rn)
+	}
+	return nodes, nil
+}
+
 func (kc Cmd) ApiResources(namespaced bool) ([]string, error) {
 	response, err := kc.output(
 		"api-resources",

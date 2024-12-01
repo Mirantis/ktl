@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/Mirantis/rekustomize/pkg/cleanup"
@@ -49,12 +50,21 @@ func Cluster(name string, client Client, nsFilter, nsResFilter, clusterResFilter
 	)
 
 	inputs := []kio.Reader{}
-	for _, resource := range clusterResources {
-		names := []string{}
-		if resource == "namespaces" {
-			names = namespaces
+	if nsidx := slices.Index(clusterResources, "namespaces"); nsidx >= 0 {
+		clusterResources = slices.Delete(clusterResources, nsidx, nsidx+1)
+		objects, err := client.Get("namespaces", "", selectors, namespaces...)
+		if err != nil {
+			return err
 		}
-		objects, err := client.Get(resource, "", selectors, names...)
+		inputs = append(inputs, &kio.PackageBuffer{Nodes: objects})
+		if setPath {
+			for _, obj := range objects {
+				SetObjectPath(obj, true)
+			}
+		}
+	}
+	for resources := range slices.Chunk(clusterResources, 30) {
+		objects, err := client.GetAll("", selectors, resources...)
 		if err != nil {
 			return err
 		}
@@ -67,17 +77,15 @@ func Cluster(name string, client Client, nsFilter, nsResFilter, clusterResFilter
 		}
 	}
 	for _, namespace := range namespaces {
-		for _, resource := range namespacedResources {
-			objects, err := client.Get(resource, namespace, selectors)
-			if err != nil {
-				return err
-			}
-			inputs = append(inputs, &kio.PackageBuffer{Nodes: objects})
+		objects, err := client.GetAll(namespace, selectors, namespacedResources...)
+		if err != nil {
+			return err
+		}
+		inputs = append(inputs, &kio.PackageBuffer{Nodes: objects})
 
-			if setPath {
-				for _, obj := range objects {
-					SetObjectPath(obj, true)
-				}
+		if setPath {
+			for _, obj := range objects {
+				SetObjectPath(obj, true)
 			}
 		}
 	}
