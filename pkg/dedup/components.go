@@ -2,6 +2,9 @@ package dedup
 
 import (
 	"cmp"
+	"crypto/sha1"
+	"encoding/hex"
+	"log/slog"
 	"maps"
 	"os"
 	"path/filepath"
@@ -94,7 +97,13 @@ func componentName(clusters []string, groups map[string]sets.String) string {
 	}
 	parts = append(parts, slices.Collect(maps.Keys(ungroupedClusters))...)
 	slices.Sort(parts)
-	return strings.Join(parts, ",")
+	name := strings.Join(parts, ",")
+	if len(name) > 255 {
+		nameSha1 := sha1.Sum([]byte(name))
+		name = hex.EncodeToString(nameSha1[:])
+		slog.Warn("component name shortened", "new-name", name, "clusters", parts)
+	}
+	return name
 }
 
 func Components(buffers map[string]*kio.PackageBuffer, groups map[string]sets.String, dir string) ([]*Component, error) {
