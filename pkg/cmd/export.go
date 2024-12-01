@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"io/fs"
+	"log/slog"
 	"maps"
 	"os"
 	"path/filepath"
@@ -123,6 +124,14 @@ func (opts *exportOpts) parseClusterFilter() error {
 	}
 	opts.clusters = slices.Collect(maps.Keys(filteredClusters))
 	opts.clusterGroups["all-clusters"] = filteredClusters
+	skippedClusters := sets.String{}
+	skippedClusters.Insert(allClusters...)
+	skippedClusters = skippedClusters.Difference(filteredClusters)
+	slog.Info(
+		"clusters",
+		"selected", slices.Sorted(maps.Keys(filteredClusters)),
+		"skipped", slices.Sorted(maps.Keys(skippedClusters)),
+	)
 	return nil
 }
 
@@ -147,7 +156,7 @@ func (opts *exportOpts) runMulti(dir string) error {
 		go func() {
 			defer wg.Done()
 			kctl := kubectl.DefaultCmd().Cluster(cluster)
-			err := export.Cluster(kctl, opts.nsFilter, opts.nsResFilter, opts.clusterResFilter, opts.labelSelectors, buf, false)
+			err := export.Cluster(cluster, kctl, opts.nsFilter, opts.nsResFilter, opts.clusterResFilter, opts.labelSelectors, buf, false)
 			errs = append(errs, err)
 		}()
 	}
@@ -177,15 +186,17 @@ func (opts *exportOpts) runMulti(dir string) error {
 
 func (opts *exportOpts) runSingle(dir string) error {
 	kctl := kubectl.DefaultCmd()
+	cluster := "<current-context>"
 	if len(opts.clusters) == 1 {
-		kctl = kctl.Cluster(opts.clusters[0])
+		cluster = opts.clusters[0]
+		kctl = kctl.Cluster(cluster)
 	}
 	out := &kio.LocalPackageWriter{
 		PackagePath: dir,
 		FileSystem:  filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
 	}
 
-	if err := export.Cluster(kctl, opts.nsFilter, opts.nsResFilter, opts.clusterResFilter, opts.labelSelectors, out, true); err != nil {
+	if err := export.Cluster(cluster, kctl, opts.nsFilter, opts.nsResFilter, opts.clusterResFilter, opts.labelSelectors, out, true); err != nil {
 		return err
 	}
 	// REVISIT: overlaps with dedup.Component.Save()

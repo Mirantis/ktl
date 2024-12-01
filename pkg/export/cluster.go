@@ -2,6 +2,7 @@ package export
 
 import (
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"strings"
 
@@ -12,7 +13,7 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func Cluster(client Client, nsFilter, nsResFilter, clusterResFilter, selectors []string, out kio.Writer, setPath bool) error {
+func Cluster(name string, client Client, nsFilter, nsResFilter, clusterResFilter, selectors []string, out kio.Writer, setPath bool) error {
 	allClusterResources, err := client.ApiResources(false)
 	if err != nil {
 		return err
@@ -39,6 +40,13 @@ func Cluster(client Client, nsFilter, nsResFilter, clusterResFilter, selectors [
 	if err != nil {
 		return err
 	}
+	slog.Info(
+		"export",
+		"cluster", name,
+		"namespaces", strings.Join(namespaces, ","),
+		"namespaced-resources", strings.Join(namespacedResources, ","),
+		"cluster-resources", strings.Join(clusterResources, ","),
+	)
 
 	inputs := []kio.Reader{}
 	for _, resource := range clusterResources {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/Mirantis/rekustomize/pkg/cmd"
@@ -9,6 +10,7 @@ import (
 
 func main() {
 	root := cmd.RootCommand()
+	slog.SetLogLoggerLevel(slog.LevelInfo)
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
