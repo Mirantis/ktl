@@ -4,6 +4,7 @@ metadata:
   name: mynewapp
   labels:
     kubernetes.io/metadata.name: mynewapp
+    my.escaped/label: must-not-be-cleared
 spec:
   finalizers:
   - kubernetes

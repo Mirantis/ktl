@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/Mirantis/rekustomize/pkg/cmd"
@@ -98,6 +99,16 @@ func testServerVersion(t *testing.T) {
 	}
 }
 
+var commonExportFlags = []string{
+	"--namespaces", "my*app",
+	"-R", "namespaces,customresourcedefinitions.apiextensions.k8s.io",
+	"-l", "skip-me!=yes",
+	"--clear-fields", `metadata.annotations.ignored-annotation`,
+	"--clear-fields", `metadata.labels.ignored-label`,
+	// REVISIT: replace regex with a better syntax
+	"--clear-fields", `metadata.labels.[my.escaped/label]@^Namespace\.v1\.\[noGrp\]/myapp\.\[noNs\]$`,
+}
+
 func testExport(t *testing.T) {
 	diskFs := filesys.MakeFsOnDisk()
 	outDir := filepath.Join(t.TempDir(), "export")
@@ -105,13 +116,10 @@ func testExport(t *testing.T) {
 		t.Fatal(err)
 	}
 	exportCmd := cmd.RootCommand()
-	exportCmd.SetArgs([]string{
+	exportCmd.SetArgs(slices.Concat([]string{
 		"export",
 		"--clusters", "dev-cluster-a",
-		"--namespaces", "my*app",
-		"-R", "namespaces,customresourcedefinitions.apiextensions.k8s.io",
-		"-l", "skip-me!=yes",
-		outDir})
+	}, commonExportFlags, []string{outDir}))
 
 	if err := exportCmd.Execute(); err != nil {
 		t.Fatal(err)
@@ -131,13 +139,10 @@ func testExportMultiCluster(t *testing.T) {
 		t.Fatal(err)
 	}
 	exportCmd := cmd.RootCommand()
-	exportCmd.SetArgs([]string{
+	exportCmd.SetArgs(slices.Concat([]string{
 		"export",
 		"--clusters", "dev=dev-*,test=test-cluster-[ab],prod=prod-cluster-a,prod-cluster-b",
-		"--namespaces", "my*app",
-		"-R", "namespaces,customresourcedefinitions.apiextensions.k8s.io",
-		"-l", "skip-me!=yes",
-		outDir})
+	}, commonExportFlags, []string{outDir}))
 
 	if err := exportCmd.Execute(); err != nil {
 		t.Fatal(err)

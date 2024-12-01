@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func Cluster(name string, client Client, nsFilter, nsResFilter, clusterResFilter, selectors []string, out kio.Writer, setPath bool) error {
+func Cluster(name string, client Client, nsFilter, nsResFilter, clusterResFilter, selectors []string, cleanupRules cleanup.Rules, out kio.Writer, setPath bool) error {
 	allClusterResources, err := client.ApiResources(false)
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func Cluster(name string, client Client, nsFilter, nsResFilter, clusterResFilter
 	pipeline := &kio.Pipeline{
 		Inputs: inputs,
 		Filters: []kio.Filter{
-			cleanup.DefaultRules(),
+			cleanupRules,
 			// REVISIT: FileSetter annotations are ignored - bug in kustomize?
 			// 1) cleared if no annotation is set before the filter is applied
 			// 2) reverted if path annotations was set before the filter is applied

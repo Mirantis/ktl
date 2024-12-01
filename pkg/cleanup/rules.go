@@ -34,28 +34,28 @@ func DefaultRules() Rules {
 	}
 	for pathStr, regexpStr := range regexpRules {
 		path := yutil.NodePath(kyutil.SmarterPathSplitter(pathStr, "."))
-		rules = append(rules, &regexpRule{regexp.MustCompile(regexpStr), path})
+		rules = append(rules, &RegexpRule{regexp.MustCompile(regexpStr), path})
 	}
 	return rules
 }
 
-type regexpRule struct {
-	regexp *regexp.Regexp
-	path   yutil.NodePath
+type RegexpRule struct {
+	Regexp *regexp.Regexp
+	Path   yutil.NodePath
 }
 
-func (r *regexpRule) Apply(rn *yaml.RNode) error {
+func (r *RegexpRule) Apply(rn *yaml.RNode) error {
 	id := resid.FromRNode(rn).String()
-	if !r.regexp.MatchString(id) {
+	if !r.Regexp.MatchString(id) {
 		return nil
 	}
-	if len(r.path) < 1 {
+	if len(r.Path) < 1 {
 		return nil
 	}
 	filters := []yaml.Filter{}
-	path, name := r.path[:len(r.path)-1], r.path[len(r.path)-1]
+	path, name := r.Path[:len(r.Path)-1], r.Path[len(r.Path)-1]
 	if len(path) > 0 {
-		filters = append(filters, yaml.Lookup(r.path[:len(r.path)-1]...))
+		filters = append(filters, yaml.Lookup(r.Path[:len(r.Path)-1]...))
 	}
 	filters = append(filters, yaml.Clear(name))
 	rn.Pipe(filters...)

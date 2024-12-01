@@ -3,6 +3,7 @@ kind: Namespace
 metadata:
   labels:
     kubernetes.io/metadata.name: mynewapp
+    my.escaped/label: must-not-be-cleared
   name: mynewapp
 spec:
   finalizers:
