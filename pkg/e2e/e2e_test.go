@@ -55,7 +55,7 @@ func TestE2E(t *testing.T) {
 		"prod-cluster-a",
 		"prod-cluster-b",
 	})
-	e2e.KubeConfig(t, testServers, "dev-cluster-a")
+	e2e.KubeConfig(t, testServers, "test-cluster-b")
 
 	t.Run("client-version", testClientVersion)
 	t.Run("server-version-error", testServerVersionError)
@@ -107,6 +107,7 @@ func testExport(t *testing.T) {
 	exportCmd := cmd.RootCommand()
 	exportCmd.SetArgs([]string{
 		"export",
+		"--clusters", "dev-cluster-a",
 		"--namespaces", "my*app",
 		"-R", "namespaces",
 		outDir})

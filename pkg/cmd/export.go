@@ -168,6 +168,9 @@ func (opts *exportOpts) runMulti(dir string) error {
 
 func (opts *exportOpts) runSingle(dir string) error {
 	kctl := kubectl.DefaultCmd()
+	if len(opts.clusters) == 1 {
+		kctl = kctl.Cluster(opts.clusters[0])
+	}
 	out := &kio.LocalPackageWriter{
 		PackagePath: dir,
 		FileSystem:  filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
