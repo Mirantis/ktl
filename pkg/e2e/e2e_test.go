@@ -109,7 +109,8 @@ func testExport(t *testing.T) {
 		"export",
 		"--clusters", "dev-cluster-a",
 		"--namespaces", "my*app",
-		"-R", "namespaces",
+		"-R", "namespaces,customresourcedefinitions.apiextensions.k8s.io",
+		"-l", "skip-me!=yes",
 		outDir})
 
 	if err := exportCmd.Execute(); err != nil {
@@ -134,7 +135,8 @@ func testExportMultiCluster(t *testing.T) {
 		"export",
 		"--clusters", "dev=dev-*,test=test-cluster-[ab],prod=prod-cluster-a,prod-cluster-b",
 		"--namespaces", "my*app",
-		"-R", "namespaces",
+		"-R", "namespaces,customresourcedefinitions.apiextensions.k8s.io",
+		"-l", "skip-me!=yes",
 		outDir})
 
 	if err := exportCmd.Execute(); err != nil {

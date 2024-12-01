@@ -46,6 +46,9 @@ var (
 		"!persistentvolumes",
 		"!volumeattachments.storage.k8s.io",
 	}
+	defaultLabelSelectors = []string{
+		"!kubernetes.io/bootstrapping",
+	}
 )
 
 func exportCommand() *cobra.Command {
@@ -58,6 +61,7 @@ func exportCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.nsResFilter = append(opts.nsResFilter, defaultNsResFilter...)
 			opts.clusterResFilter = append(opts.clusterResFilter, defaultClusterResFilter...)
+			opts.labelSelectors = append(opts.labelSelectors, defaultLabelSelectors...)
 			return opts.Run(args[0])
 		},
 	}
@@ -65,6 +69,10 @@ func exportCommand() *cobra.Command {
 	export.Flags().StringSliceVarP(&opts.nsResFilter, "namespaced-resources", "r", []string{"*"}, "filter for namespaced resources (default: '*')")
 	export.Flags().StringSliceVarP(&opts.clusterResFilter, "cluster-resources", "R", []string{"!*"}, "filter for cluster resources (default: '!*')")
 	export.Flags().StringSliceVarP(&opts.clusterFilter, "clusters", "c", nil, "cluster filter (default: current kubeconfig context)")
+	export.Flags().StringSliceVarP(&opts.labelSelectors, "selector", "l", nil, ("" +
+		"Selector (label query) to filter on, " +
+		"supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2). " +
+		"Matching objects must satisfy all of the specified label constraints."))
 	return export
 }
 
@@ -75,6 +83,7 @@ type exportOpts struct {
 	clusterFilter    []string
 	clusters         []string
 	clusterGroups    map[string]sets.String
+	labelSelectors   []string
 }
 
 func (opts *exportOpts) parseClusterFilter() error {
@@ -138,7 +147,7 @@ func (opts *exportOpts) runMulti(dir string) error {
 		go func() {
 			defer wg.Done()
 			kctl := kubectl.DefaultCmd().Cluster(cluster)
-			err := export.Cluster(kctl, opts.nsFilter, opts.nsResFilter, opts.clusterResFilter, buf, false)
+			err := export.Cluster(kctl, opts.nsFilter, opts.nsResFilter, opts.clusterResFilter, opts.labelSelectors, buf, false)
 			errs = append(errs, err)
 		}()
 	}
@@ -176,7 +185,7 @@ func (opts *exportOpts) runSingle(dir string) error {
 		FileSystem:  filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
 	}
 
-	if err := export.Cluster(kctl, opts.nsFilter, opts.nsResFilter, opts.clusterResFilter, out, true); err != nil {
+	if err := export.Cluster(kctl, opts.nsFilter, opts.nsResFilter, opts.clusterResFilter, opts.labelSelectors, out, true); err != nil {
 		return err
 	}
 	// REVISIT: overlaps with dedup.Component.Save()

@@ -1,4 +1,7 @@
 resources:
+  - dummy-cm.yaml
+  - dummy-crd.yaml
+  - dummy-ns.yaml
   - myapp-ns.yaml
   - mynewapp-ns.yaml
   - kwok-node-0.yaml

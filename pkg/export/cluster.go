@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func Cluster(client Client, nsFilter, nsResFilter, clusterResFilter []string, out kio.Writer, setPath bool) error {
+func Cluster(client Client, nsFilter, nsResFilter, clusterResFilter, selectors []string, out kio.Writer, setPath bool) error {
 	allClusterResources, err := client.ApiResources(false)
 	if err != nil {
 		return err
@@ -46,7 +46,7 @@ func Cluster(client Client, nsFilter, nsResFilter, clusterResFilter []string, ou
 		if resource == "namespaces" {
 			names = namespaces
 		}
-		objects, err := client.Get(resource, "", names...)
+		objects, err := client.Get(resource, "", selectors, names...)
 		if err != nil {
 			return err
 		}
@@ -60,7 +60,7 @@ func Cluster(client Client, nsFilter, nsResFilter, clusterResFilter []string, ou
 	}
 	for _, namespace := range namespaces {
 		for _, resource := range namespacedResources {
-			objects, err := client.Get(resource, namespace)
+			objects, err := client.Get(resource, namespace, selectors)
 			if err != nil {
 				return err
 			}
