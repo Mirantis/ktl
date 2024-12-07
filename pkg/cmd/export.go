@@ -189,7 +189,17 @@ func (opts *exportOpts) runMulti(dir string) error {
 		go func() {
 			defer wg.Done()
 			kctl := kubectl.DefaultCmd().Cluster(cluster)
-			err := export.Cluster(cluster, kctl, opts.nsFilter, opts.nsResFilter, opts.clusterResFilter, opts.labelSelectors, opts.cleanupRules, buf, false)
+
+			exporter := export.Cluster{
+				Client:           kctl,
+				Name:             cluster,
+				NsFilter:         opts.nsFilter,
+				NsResFilter:      opts.nsResFilter,
+				ClusterResFilter: opts.clusterResFilter,
+				Selectors:        opts.labelSelectors,
+			}
+
+			err := exporter.Execute(buf, opts.cleanupRules)
 			errs = append(errs, err)
 		}()
 	}
@@ -229,7 +239,16 @@ func (opts *exportOpts) runSingle(dir string) error {
 		FileSystem:  filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
 	}
 
-	if err := export.Cluster(cluster, kctl, opts.nsFilter, opts.nsResFilter, opts.clusterResFilter, opts.labelSelectors, opts.cleanupRules, out, true); err != nil {
+	exporter := export.Cluster{
+		Client:           kctl,
+		Name:             cluster,
+		NsFilter:         opts.nsFilter,
+		NsResFilter:      opts.nsResFilter,
+		ClusterResFilter: opts.clusterResFilter,
+		Selectors:        opts.labelSelectors,
+	}
+
+	if err := exporter.Execute(out, opts.cleanupRules); err != nil {
 		return err
 	}
 	// REVISIT: overlaps with dedup.Component.Save()
