@@ -10,10 +10,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
-	"strings"
 	"sync"
 
 	"github.com/Mirantis/rekustomize/pkg/cleanup"
+	"github.com/Mirantis/rekustomize/pkg/config"
 	"github.com/Mirantis/rekustomize/pkg/dedup"
 	"github.com/Mirantis/rekustomize/pkg/export"
 	"github.com/Mirantis/rekustomize/pkg/filter"
@@ -58,11 +58,7 @@ var (
 )
 
 func exportCommand() *cobra.Command {
-	clustersFilters := []string{}
-	cleanupRules := []string{}
-	opts := &exportOpts{
-		cleanupRules: cleanup.DefaultRules(),
-	}
+	opts := &exportOpts{}
 
 	export := &cobra.Command{
 		Use:   "export PATH",
@@ -70,52 +66,46 @@ func exportCommand() *cobra.Command {
 		Long:  "TODO: export (long)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts.nsResFilter = append(opts.nsResFilter, defaultNsResFilter...)
-			opts.clusterResFilter = append(opts.clusterResFilter, defaultClusterResFilter...)
-			opts.labelSelectors = append(opts.labelSelectors, defaultLabelSelectors...)
-			if err := opts.parseClusterFilter(clustersFilters); err != nil {
+			dir := args[0]
+			cfgData, err := os.ReadFile(filepath.Join(dir, "rekustomization.yaml"))
+			if err != nil && !os.IsNotExist(err) {
 				return err
 			}
-			if err := opts.parseCleanupRules(cleanupRules); err != nil {
+			if err := yaml.Unmarshal(cfgData, &opts.Rekustomization); err != nil {
 				return err
 			}
-			return opts.Run(args[0])
+			opts.NamespacedResources = append(opts.NamespacedResources, defaultNsResFilter...)
+			opts.ClusterResources = append(opts.ClusterResources, defaultClusterResFilter...)
+			opts.LabelSelectors = append(opts.LabelSelectors, defaultLabelSelectors...)
+			if err := opts.parseClusterFilter(); err != nil {
+				return err
+			}
+			if err := opts.parseCleanupRules(); err != nil {
+				return err
+			}
+			opts.cleanupRules = append(opts.cleanupRules, cleanup.DefaultRules()...)
+			return opts.Run(dir)
 		},
 	}
-	export.Flags().StringSliceVarP(&opts.nsFilter, "namespaces", "n", nil, "namespace filter (default: current kubeconfig context)")
-	export.Flags().StringSliceVarP(&opts.nsResFilter, "namespaced-resources", "r", []string{"*"}, "filter for namespaced resources (default: '*')")
-	export.Flags().StringSliceVarP(&opts.clusterResFilter, "cluster-resources", "R", []string{"!*"}, "filter for cluster resources (default: '!*')")
-	export.Flags().StringSliceVarP(&clustersFilters, "clusters", "c", nil, "cluster filter (default: current kubeconfig context)")
-	export.Flags().StringSliceVar(&cleanupRules, "clear-fields", nil, "list of fields to clear (TODO: detailed explanation or move to config)")
-	export.Flags().StringSliceVarP(&opts.labelSelectors, "selector", "l", nil, ("" +
-		"Selector (label query) to filter on, " +
-		"supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2). " +
-		"Matching objects must satisfy all of the specified label constraints."))
 	return export
 }
 
 type exportOpts struct {
-	nsFilter         []string
-	nsResFilter      []string
-	clusterResFilter []string
-	clusters         []string
-	clusterGroups    map[string]sets.String
-	labelSelectors   []string
-	cleanupRules     cleanup.Rules
+	config.Rekustomization
+	clusters      []string
+	clusterGroups map[string]sets.String
+	cleanupRules  cleanup.Rules
 }
 
-func (opts *exportOpts) parseCleanupRules(cleanupRules []string) error {
-	for _, rawRule := range cleanupRules {
+func (opts *exportOpts) parseCleanupRules() error {
+	for _, rawRule := range opts.SkipRules {
 		rule := &cleanup.RegexpRule{}
-		// REVISIT: better syntax / refactor
-		parts := strings.SplitN(rawRule, "@", 2)
-		rule.Path = yutil.NodePath(kyutil.SmarterPathSplitter(parts[0], "."))
-		regexStr := `.*`
-		if len(parts) > 1 {
-			regexStr = parts[1]
+		rule.Path = yutil.NodePath(kyutil.SmarterPathSplitter(rawRule.Field, "."))
+		if rawRule.MatchResources == "" {
+			rawRule.MatchResources = ".*"
 		}
 		var err error
-		if rule.Regexp, err = regexp.Compile(regexStr); err != nil {
+		if rule.Regexp, err = regexp.Compile(rawRule.MatchResources); err != nil {
 			return fmt.Errorf("unable to parse rule %q: %v", rawRule, err)
 		}
 		opts.cleanupRules = append(opts.cleanupRules, rule)
@@ -123,8 +113,8 @@ func (opts *exportOpts) parseCleanupRules(cleanupRules []string) error {
 	return nil
 }
 
-func (opts *exportOpts) parseClusterFilter(clusterFilter []string) error {
-	if len(clusterFilter) == 0 {
+func (opts *exportOpts) parseClusterFilter() error {
+	if len(opts.Clusters) == 0 {
 		return nil
 	}
 	allClusters, err := kubectl.DefaultCmd().Clusters()
@@ -134,29 +124,18 @@ func (opts *exportOpts) parseClusterFilter(clusterFilter []string) error {
 
 	opts.clusterGroups = make(map[string]sets.String)
 	filteredClusters := sets.String{}
-	group := ""
-	for _, filterPart := range clusterFilter {
-		var pattern string
-		parts := strings.Split(filterPart, "=")
-		if len(parts) == 1 {
-			pattern = parts[0]
-		} else {
-			group = parts[0]
-			pattern = parts[1]
-		}
-		matchingClusters, err := filter.SelectNames(allClusters, []string{pattern})
+	for _, group := range opts.Clusters {
+		matchingClusters, err := filter.SelectNames(allClusters, group.Names)
 		if err != nil {
 			return err
 		}
 		filteredClusters.Insert(matchingClusters...)
-		if group != "" {
-			groupSet, found := opts.clusterGroups[group]
-			if !found {
-				groupSet = sets.String{}
-				opts.clusterGroups[group] = groupSet
-			}
-			groupSet.Insert(matchingClusters...)
+		groupSet, found := opts.clusterGroups[group.Group]
+		if !found {
+			groupSet = sets.String{}
+			opts.clusterGroups[group.Group] = groupSet
 		}
+		groupSet.Insert(matchingClusters...)
 	}
 	opts.clusters = slices.Collect(maps.Keys(filteredClusters))
 	opts.clusterGroups["all-clusters"] = filteredClusters
@@ -193,10 +172,10 @@ func (opts *exportOpts) runMulti(dir string) error {
 			exporter := export.Cluster{
 				Client:           kctl,
 				Name:             cluster,
-				NsFilter:         opts.nsFilter,
-				NsResFilter:      opts.nsResFilter,
-				ClusterResFilter: opts.clusterResFilter,
-				Selectors:        opts.labelSelectors,
+				NsFilter:         opts.Namespaces,
+				NsResFilter:      opts.NamespacedResources,
+				ClusterResFilter: opts.ClusterResources,
+				Selectors:        opts.LabelSelectors,
 			}
 
 			err := exporter.Execute(buf, opts.cleanupRules)
@@ -242,10 +221,10 @@ func (opts *exportOpts) runSingle(dir string) error {
 	exporter := export.Cluster{
 		Client:           kctl,
 		Name:             cluster,
-		NsFilter:         opts.nsFilter,
-		NsResFilter:      opts.nsResFilter,
-		ClusterResFilter: opts.clusterResFilter,
-		Selectors:        opts.labelSelectors,
+		NsFilter:         opts.Namespaces,
+		NsResFilter:      opts.NamespacedResources,
+		ClusterResFilter: opts.ClusterResources,
+		Selectors:        opts.LabelSelectors,
 	}
 
 	if err := exporter.Execute(out, opts.cleanupRules); err != nil {
@@ -260,6 +239,9 @@ func (opts *exportOpts) runSingle(dir string) error {
 		resPath, err := filepath.Rel(dir, path)
 		if err != nil {
 			return err
+		}
+		if resPath == config.DefaultFileName {
+			return nil
 		}
 		kust.Resources = append(kust.Resources, resPath)
 		return nil

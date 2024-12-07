@@ -5,10 +5,10 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"slices"
 	"testing"
 
 	"github.com/Mirantis/rekustomize/pkg/cmd"
+	"github.com/Mirantis/rekustomize/pkg/config"
 	"github.com/Mirantis/rekustomize/pkg/e2e"
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
 	"github.com/google/go-cmp/cmp"
@@ -99,27 +99,30 @@ func testServerVersion(t *testing.T) {
 	}
 }
 
-var commonExportFlags = []string{
-	"--namespaces", "my*app",
-	"-R", "namespaces,customresourcedefinitions.apiextensions.k8s.io",
-	"-l", "skip-me!=yes",
-	"--clear-fields", `metadata.annotations.ignored-annotation`,
-	"--clear-fields", `metadata.labels.ignored-label`,
-	// REVISIT: replace regex with a better syntax
-	"--clear-fields", `metadata.labels.[my.escaped/label]@^Namespace\.v1\.\[noGrp\]/myapp\.\[noNs\]$`,
-}
-
 func testExport(t *testing.T) {
 	diskFs := filesys.MakeFsOnDisk()
 	outDir := filepath.Join(t.TempDir(), "export")
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	cfg := `
+clusters:
+- names: [ "dev-cluster-a" ]
+namespaces: [ "my*app" ]
+clusterResources: [ "namespaces", "customresourcedefinitions.apiextensions.k8s.io" ]
+labelSelectors: [ "skip-me!=yes" ]
+skip:
+- field: "metadata.annotations.ignored-annotation"
+- field: "metadata.labels.ignored-label"
+- field: "metadata.labels.[my.escaped/label]"
+  matchResources: "^Namespace\\.v1\\.\\[noGrp\\]/myapp\\.\\[noNs\\]$"
+`
+
+	if err := os.WriteFile(filepath.Join(outDir, config.DefaultFileName), []byte(cfg), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	exportCmd := cmd.RootCommand()
-	exportCmd.SetArgs(slices.Concat([]string{
-		"export",
-		"--clusters", "dev-cluster-a",
-	}, commonExportFlags, []string{outDir}))
+	exportCmd.SetArgs([]string{"export", outDir})
 
 	if err := exportCmd.Execute(); err != nil {
 		t.Fatal(err)
@@ -127,6 +130,7 @@ func testExport(t *testing.T) {
 
 	got := e2e.ReadFiles(diskFs, outDir)
 	want := e2e.ReadFiles(diskFs, "testdata/export")
+	delete(got, "/"+config.DefaultFileName)
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("unexpected result, +got -want:\n%v", diff)
 	}
@@ -138,11 +142,30 @@ func testExportMultiCluster(t *testing.T) {
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	cfg := `
+clusters:
+- group: dev
+  names: [ "dev-*" ]
+- group: test
+  names: [ "test-cluster-[ab]" ]
+- group: prod
+  names: [ "prod-cluster-a", "prod-cluster-b" ]
+namespaces: [ "my*app" ]
+clusterResources: [ "namespaces", "customresourcedefinitions.apiextensions.k8s.io" ]
+labelSelectors: [ "skip-me!=yes" ]
+skip:
+- field: "metadata.annotations.ignored-annotation"
+- field: "metadata.labels.ignored-label"
+- field: "metadata.labels.[my.escaped/label]"
+  matchResources: "^Namespace\\.v1\\.\\[noGrp\\]/myapp\\.\\[noNs\\]$"
+`
+
+	if err := os.WriteFile(filepath.Join(outDir, config.DefaultFileName), []byte(cfg), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
 	exportCmd := cmd.RootCommand()
-	exportCmd.SetArgs(slices.Concat([]string{
-		"export",
-		"--clusters", "dev=dev-*,test=test-cluster-[ab],prod=prod-cluster-a,prod-cluster-b",
-	}, commonExportFlags, []string{outDir}))
+	exportCmd.SetArgs([]string{"export", outDir})
 
 	if err := exportCmd.Execute(); err != nil {
 		t.Fatal(err)
@@ -150,6 +173,7 @@ func testExportMultiCluster(t *testing.T) {
 
 	got := e2e.ReadFiles(diskFs, outDir)
 	want := e2e.ReadFiles(diskFs, "testdata/export-multi")
+	delete(got, "/"+config.DefaultFileName)
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("unexpected result, +got -want:\n%v", diff)
 	}
