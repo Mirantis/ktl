@@ -112,10 +112,14 @@ namespaces: [ "my*app" ]
 clusterResources: [ "namespaces", "customresourcedefinitions.apiextensions.k8s.io" ]
 labelSelectors: [ "skip-me!=yes" ]
 skip:
-- field: "metadata.annotations.ignored-annotation"
-- field: "metadata.labels.ignored-label"
-- field: "metadata.labels.[my.escaped/label]"
-  matchResources: "^Namespace\\.v1\\.\\[noGrp\\]/myapp\\.\\[noNs\\]$"
+- resources:
+  - kind: Namespace
+    name: myapp
+  fields:
+  - "metadata.labels.[my.escaped/label]"
+- fields:
+  - "metadata.annotations.ignored-annotation"
+  - "metadata.labels.ignored-label"
 `
 
 	if err := os.WriteFile(filepath.Join(outDir, config.DefaultFileName), []byte(cfg), 0o644); err != nil {
@@ -154,10 +158,14 @@ namespaces: [ "my*app" ]
 clusterResources: [ "namespaces", "customresourcedefinitions.apiextensions.k8s.io" ]
 labelSelectors: [ "skip-me!=yes" ]
 skip:
-- field: "metadata.annotations.ignored-annotation"
-- field: "metadata.labels.ignored-label"
-- field: "metadata.labels.[my.escaped/label]"
-  matchResources: "^Namespace\\.v1\\.\\[noGrp\\]/myapp\\.\\[noNs\\]$"
+- resources:
+  - kind: Namespace
+    name: myapp
+  fields:
+  - "metadata.labels.[my.escaped/label]"
+- fields:
+  - "metadata.annotations.ignored-annotation"
+  - "metadata.labels.ignored-label"
 `
 
 	if err := os.WriteFile(filepath.Join(outDir, config.DefaultFileName), []byte(cfg), 0o644); err != nil {

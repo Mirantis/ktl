@@ -8,7 +8,6 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"sync"
 
@@ -18,14 +17,12 @@ import (
 	"github.com/Mirantis/rekustomize/pkg/export"
 	"github.com/Mirantis/rekustomize/pkg/filter"
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
-	"github.com/Mirantis/rekustomize/pkg/yutil"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/api/konfig"
 	"sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/sets"
-	kyutil "sigs.k8s.io/kustomize/kyaml/utils"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -55,6 +52,47 @@ var (
 	defaultLabelSelectors = []string{
 		"!kubernetes.io/bootstrapping",
 	}
+	defaultSkipRulesYaml = `
+- fields:
+  - "status"
+  - "metadata.uid"
+  - "metadata.selfLink"
+  - "metadata.resourceVersion"
+  - "metadata.generation"
+  - "metadata.creationTimestamp"
+  - "metadata.annotations.[kubectl.kubernetes.io/last-applied-configuration]"
+- resources:
+  - kind: Deployment
+    group: apps
+    version: v1
+  fields:
+  - "metadata.annotations.[deployment.kubernetes.io/revision]"
+- resources:
+  - kind: Service
+    version: v1
+  fields:
+  - "spec.clusterIP"
+  - "spec.clusterIPs"
+- resources:
+  - kind: ConfigMap
+    version: v1
+    name: "kube-root-ca.crt"
+  - kind: ServiceAccount
+    version: v1
+    name: default
+  - kind: ConfigMap
+    version: v1
+    name: kubernetes
+    namespace: default
+  - kind: Endpoints
+    version: v1
+    name: kubernetes
+    namespace: default
+  - kind: Service
+    version: v1
+    name: kubernetes
+    namespace: default
+`
 )
 
 func exportCommand() *cobra.Command {
@@ -66,6 +104,10 @@ func exportCommand() *cobra.Command {
 		Long:  "TODO: export (long)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			defaultSkipRules := []*config.SkipRule{}
+			if err := yaml.Unmarshal([]byte(defaultSkipRulesYaml), &defaultSkipRules); err != nil {
+				return fmt.Errorf("broken defaultSkipRules: %v", err)
+			}
 			dir := args[0]
 			cfgData, err := os.ReadFile(filepath.Join(dir, "rekustomization.yaml"))
 			if err != nil && !os.IsNotExist(err) {
@@ -77,6 +119,7 @@ func exportCommand() *cobra.Command {
 			opts.NamespacedResources = append(opts.NamespacedResources, defaultNsResFilter...)
 			opts.ClusterResources = append(opts.ClusterResources, defaultClusterResFilter...)
 			opts.LabelSelectors = append(opts.LabelSelectors, defaultLabelSelectors...)
+			opts.SkipRules = append(opts.SkipRules, defaultSkipRules...)
 			if err := opts.parseClusterFilter(); err != nil {
 				return err
 			}
@@ -98,15 +141,14 @@ type exportOpts struct {
 }
 
 func (opts *exportOpts) parseCleanupRules() error {
-	for _, rawRule := range opts.SkipRules {
-		rule := &cleanup.RegexpRule{}
-		rule.Path = yutil.NodePath(kyutil.SmarterPathSplitter(rawRule.Field, "."))
-		if rawRule.MatchResources == "" {
-			rawRule.MatchResources = ".*"
-		}
-		var err error
-		if rule.Regexp, err = regexp.Compile(rawRule.MatchResources); err != nil {
-			return fmt.Errorf("unable to parse rule %q: %v", rawRule, err)
+	for _, ruleCfg := range opts.SkipRules {
+		rule, err := cleanup.NewSkipRule(
+			ruleCfg.Resources,
+			ruleCfg.Excluding,
+			ruleCfg.Fields,
+		)
+		if err != nil {
+			return err
 		}
 		opts.cleanupRules = append(opts.cleanupRules, rule)
 	}
