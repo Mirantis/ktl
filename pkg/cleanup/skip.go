@@ -1,8 +1,6 @@
 package cleanup
 
 import (
-	"fmt"
-
 	"github.com/Mirantis/rekustomize/pkg/yutil"
 	"sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/kustomize/kyaml/resid"
@@ -11,30 +9,22 @@ import (
 )
 
 func NewSkipRule(resources, excluding []*types.Selector, fields []string) (Rule, error) {
-	rsr, err := newSelectorsRegex(resources)
-	if err != nil {
-		return nil, err
-	}
-	esr, err := newSelectorsRegex(excluding)
-	if err != nil {
-		return nil, err
-	}
 	paths := []yutil.NodePath{}
 	for _, field := range fields {
 		path := yutil.NodePath(kyutil.SmarterPathSplitter(field, "."))
 		paths = append(paths, path)
 	}
 	rule := &skipRule{
-		resources: rsr,
-		excluding: esr,
+		resources: resources,
+		excluding: excluding,
 		paths:     paths,
 	}
 	return rule, nil
 }
 
 type skipRule struct {
-	resources selectorsRegex
-	excluding selectorsRegex
+	resources []*types.Selector
+	excluding []*types.Selector
 	paths     []yutil.NodePath
 }
 
@@ -66,41 +56,26 @@ func (rule *skipRule) Apply(rn *yaml.RNode) error {
 }
 
 func (rule *skipRule) match(rn *yaml.RNode) bool {
-	if len(rule.resources) > 0 && !rule.resources.match(rn) {
+	if len(rule.resources) > 0 && !matchSelectors(rn, rule.resources) {
 		return false
 	}
-	if len(rule.excluding) > 0 && rule.excluding.match(rn) {
+	if len(rule.excluding) > 0 && matchSelectors(rn, rule.excluding) {
 		return false
 	}
 	return true
 }
 
-type selectorsRegex []*types.SelectorRegex
-
-func newSelectorsRegex(selectors []*types.Selector) (selectorsRegex, error) {
-	ret := selectorsRegex{}
+func matchSelectors(rn *yaml.RNode, selectors []*types.Selector) bool {
+	id := resid.FromRNode(rn)
 	for _, selector := range selectors {
-		sr, err := types.NewSelectorRegex(selector)
-		if err != nil {
-			return nil, fmt.Errorf("invalid selector %+v: %v", selector, err)
-		}
-		ret = append(ret, sr)
-	}
-	return ret, nil
-}
-
-func (sr selectorsRegex) match(rn *yaml.RNode) bool {
-	for _, selector := range sr {
-		id := resid.FromRNode(rn)
-		if !selector.MatchGvk(id.Gvk) {
+		if !id.IsSelectedBy(selector.ResId) {
 			continue
 		}
-		if !selector.MatchNamespace(id.Namespace) {
-			continue
-		}
-		if !selector.MatchName(id.Name) {
-			continue
-		}
+		// TODO: add optimized version for label/annotation selectors:
+		// - rn.MatchesAnnotationSelector(selector.AnnotationSelector)
+		// - rn.MatchesLabelSelector(selector.LabelSelector)
+		// Using these methods directly requires redundant parsing
+		// and error handling
 		return true
 	}
 	return false
