@@ -1,0 +1,33 @@
+{{ if .Values.mynewapp_mynewapp_deployment_enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mynewapp
+  namespace: mynewapp
+  labels:
+    app: mynewapp
+    env: dev
+spec:
+  progressDeadlineSeconds: 600
+  selector:
+    matchLabels:
+      app: mynewapp
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: mynewapp
+    spec:
+      containers:
+      - name: mynewapp
+        image: mynewapp:v0.0.1
+        imagePullPolicy: IfNotPresent
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+      schedulerName: default-scheduler
+      securityContext: {}
+{{ end }}

@@ -1,0 +1,15 @@
+kind: Kustomization
+
+helmGlobals:
+  chartHome: ../../charts
+
+helmCharts:
+  - name: myapp
+    valuesInline:
+      myapp_myapp_configmap_metadata_labels_env: prod
+      myapp_myapp_configmap_data_MYAPP_VAR2: value2-prod
+      myapp_myapp_service_metadata_labels_env: prod
+      myapp_myapp_deployment_metadata_labels_env: prod
+      myapp_myapp_deployment_spec_template_spec_containers_myapp_image: myapp:v1.1
+      myapp_myapp_deployment_spec_replicas: 5
+  - name: mynewapp
