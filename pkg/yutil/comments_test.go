@@ -81,13 +81,16 @@ root2: {}
 	)
 
 	rn := yaml.MustParse(input)
-	yn := rn.YNode()
-	yn.Content[1].Content[0].HeadComment = "head0"
-	yn.Content[1].Content[0].Content[4].HeadComment = "head1"
-	yn.Content[1].Content[0].Content[4].FootComment = "foot1"
-	yn.Content[1].Content[0].Content[4].LineComment = "line1"
-	yn.Content[1].Content[1].HeadComment = "foot0\nhead2"
-	yn.Content[0].FootComment = "foot2"
+	if err := rn.PipeE(yaml.Lookup("root1", "[node=a]"), SetComments("head0", "foot0")); err != nil {
+		t.Fatal(err)
+	}
+	if err := rn.PipeE(yaml.Lookup("root1", "[node=a]", "opt"), SetComments("head1", "line1", "foot1")); err != nil {
+		t.Fatal(err)
+	}
+	if err := rn.PipeE(yaml.Lookup("root1", "[node=b]"), SetComments("head2", "foot2")); err != nil {
+		t.Fatal(err)
+	}
+	FixComments(rn.YNode())
 	got, err := rn.String()
 	if err != nil {
 		t.Fatal(err)
