@@ -14,10 +14,11 @@ type SkipRule struct {
 }
 
 type Rekustomization struct {
-	Clusters            []*ClusterGroup `json:"clusters" yaml:"clusters"`
-	Namespaces          []string        `json:"namespaces" yaml:"namespaces"`
-	NamespacedResources []string        `json:"namespacedResources" yaml:"namespacedResources"`
-	ClusterResources    []string        `json:"clusterResources" yaml:"clusterResources"`
-	LabelSelectors      []string        `json:"labelSelectors" yaml:"labelSelectors"`
-	SkipRules           []*SkipRule     `json:"skip" yaml:"skip"`
+	Clusters            []ClusterGroup `json:"clusters" yaml:"clusters"`
+	Namespaces          []string       `json:"namespaces" yaml:"namespaces"`
+	NamespacedResources []string       `json:"namespacedResources" yaml:"namespacedResources"`
+	ClusterResources    []string       `json:"clusterResources" yaml:"clusterResources"`
+	LabelSelectors      []string       `json:"labelSelectors" yaml:"labelSelectors"`
+	SkipRules           []SkipRule     `json:"skip" yaml:"skip"`
+	HelmCharts          []HelmChart    `json:"helmCharts" yaml:"helmCharts"`
 }

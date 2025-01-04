@@ -1,15 +1,38 @@
+{{- include "merge_presets" . -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: myapp
   namespace: myapp
   labels:
+    env: {{ index .Values.global "myapp/Deployment/myapp/metadata/labels/env" }}
     app: myapp
-    env: {{ .Values.myapp_myapp_deployment_metadata_labels_env }}
 spec:
-  {{ if .Values.myapp_myapp_deployment_spec_replicas }}
-  replicas: {{ .Values.myapp_myapp_deployment_spec_replicas }}
-  {{ end }}
+  template:
+    spec:
+      containers:
+      - name: myapp
+        image: {{ index .Values.global "myapp/Deployment/myapp/spec/template/spec/containers/[name=myapp]/image" }}
+        {{- if index .Values.global "myapp/Deployment/myapp/spec/template/spec/containers/[name=myapp]/args" }}
+        args:
+        - --debug
+        {{- end }}
+
+        envFrom:
+        - configMapRef:
+            name: myapp-env
+        imagePullPolicy: IfNotPresent
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+      schedulerName: default-scheduler
+      securityContext: {}
+    metadata:
+      labels:
+        app: myapp
+  {{- if index .Values.global "myapp/Deployment/myapp/spec/replicas" }}
+  replicas: {{ index .Values.global "myapp/Deployment/myapp/spec/replicas" }}
+  {{- end }}
+
   progressDeadlineSeconds: 600
   selector:
     matchLabels:
@@ -19,23 +42,3 @@ spec:
       maxSurge: 25%
       maxUnavailable: 25%
     type: RollingUpdate
-  template:
-    metadata:
-      labels:
-        app: myapp
-    spec:
-      containers:
-      - name: myapp
-        image: {{ .Values.myapp_myapp_deployment_spec_template_spec_containers_myapp_image }}
-        {{ if .Values.myapp_myapp_deployment_spec_template_spec_containers_myapp_args_enabled }}
-        args:
-        - --debug
-        {{ end }}
-        envFrom:
-        - configMapRef:
-            name: myapp-env
-        imagePullPolicy: IfNotPresent
-        resources: {}
-        terminationMessagePath: /dev/termination-log
-      schedulerName: default-scheduler
-      securityContext: {}

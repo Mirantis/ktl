@@ -103,7 +103,7 @@ func exportCommand() *cobra.Command {
 		Long:  "TODO: export (long)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			defaultSkipRules := []*types.SkipRule{}
+			defaultSkipRules := []types.SkipRule{}
 			if err := yaml.Unmarshal([]byte(defaultSkipRulesYaml), &defaultSkipRules); err != nil {
 				return fmt.Errorf("broken defaultSkipRules: %v", err)
 			}
@@ -227,7 +227,32 @@ func (opts *exportOpts) runMulti(dir string) error {
 	if err := errors.Join(errs...); err != nil {
 		return err
 	}
+	if len(opts.HelmCharts) > 0 {
+		return opts.exportCharts(buffers, dir)
+	}
 
+	return opts.exportComponents(buffers, dir)
+}
+
+func (opts *exportOpts) exportCharts(buffers map[string]*kio.PackageBuffer, dir string) error {
+	chart, err := dedup.BuildHelmChart(&opts.HelmCharts[0], buffers, opts.clusterGroups, filepath.Join(dir, "charts"))
+	if err != nil {
+		return err
+	}
+
+	diskFs := filesys.MakeFsOnDisk()
+	if err := chart.Save(diskFs); err != nil {
+		return err
+	}
+	err = dedup.SaveClusterCharts(diskFs, filepath.Join(dir, "overlays"), chart)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (opts *exportOpts) exportComponents(buffers map[string]*kio.PackageBuffer, dir string) error {
 	components, err := dedup.Components(buffers, opts.clusterGroups, filepath.Join(dir, "components"))
 	if err != nil {
 		return err

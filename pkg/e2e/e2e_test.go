@@ -63,6 +63,7 @@ func TestE2E(t *testing.T) {
 	t.Run("server-version", testServerVersion)
 	t.Run("export", testExport)
 	t.Run("export-multi-cluster", testExportMultiCluster)
+	t.Run("export-helm", testExportHelm)
 }
 
 func testClientVersion(t *testing.T) {
@@ -181,6 +182,56 @@ skip:
 
 	got := e2e.ReadFiles(diskFs, outDir)
 	want := e2e.ReadFiles(diskFs, "testdata/export-multi")
+	delete(got, "/"+types.DefaultFileName)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("unexpected result, +got -want:\n%v", diff)
+	}
+}
+
+func testExportHelm(t *testing.T) {
+	diskFs := filesys.MakeFsOnDisk()
+	outDir := filepath.Join(t.TempDir(), "export-helm")
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	cfg := `
+clusters:
+- group: dev
+  names: [ "dev-*" ]
+- group: test
+  names: [ "test-cluster-[ab]" ]
+- group: prod
+  names: [ "prod-cluster-a", "prod-cluster-b" ]
+namespaces: [ "my*app" ]
+clusterResources: [ "namespaces", "customresourcedefinitions.apiextensions.k8s.io" ]
+labelSelectors: [ "skip-me!=yes" ]
+helmCharts:
+- name: "myapp"
+  version: "v0.1"
+skip:
+- resources:
+  - kind: Namespace
+    name: myapp
+  fields:
+  - "metadata.labels.[my.escaped/label]"
+- fields:
+  - "metadata.annotations.ignored-annotation"
+  - "metadata.labels.ignored-label"
+`
+
+	if err := os.WriteFile(filepath.Join(outDir, types.DefaultFileName), []byte(cfg), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	exportCmd := cmd.RootCommand()
+	exportCmd.SetArgs([]string{"export", outDir})
+
+	if err := exportCmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	got := e2e.ReadFiles(diskFs, outDir)
+	want := e2e.ReadFiles(diskFs, "testdata/export-helm")
 	delete(got, "/"+types.DefaultFileName)
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("unexpected result, +got -want:\n%v", diff)

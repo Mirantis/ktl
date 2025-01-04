@@ -1,11 +1,12 @@
+{{- include "merge_presets" . -}}
 apiVersion: v1
 kind: Service
 metadata:
   name: myapp-svc
   namespace: myapp
   labels:
+    env: {{ index .Values.global "myapp/Service/myapp-svc/metadata/labels/env" }}
     app: myapp
-    env: {{ .Values.myapp_myapp_service_metadata_labels_env }}
 spec:
   internalTrafficPolicy: Cluster
   ipFamilies:

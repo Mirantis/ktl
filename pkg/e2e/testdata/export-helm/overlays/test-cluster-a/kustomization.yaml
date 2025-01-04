@@ -1,14 +1,10 @@
 kind: Kustomization
-
 helmGlobals:
   chartHome: ../../charts
-
 helmCharts:
-  - name: myapp
-    valuesInline:
-      myapp_myapp_configmap_metadata_labels_env: test
-      myapp_myapp_configmap_data_MYAPP_VAR2: value2-test
-      myapp_myapp_service_metadata_labels_env: test
-      myapp_myapp_deployment_metadata_labels_env: test
-      myapp_myapp_deployment_spec_template_spec_containers_myapp_image: myapp:v1.1
-  - name: mynewapp
+- name: myapp
+  version: v0.1
+  valuesInline:
+    presets:
+    - prod,test
+    - test

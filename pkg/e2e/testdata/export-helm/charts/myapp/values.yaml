@@ -1,7 +1,22 @@
-myapp_myapp_configmap_metadata_labels_env: null
-myapp_myapp_configmap_data_MYAPP_VAR2: null
-myapp_myapp_service_metadata_labels_env: null
-myapp_myapp_deployment_metadata_labels_env: null
-myapp_myapp_deployment_spec_template_spec_containers_myapp_image: null
-myapp_myapp_deployment_spec_template_spec_containers_myapp_args_enabled: false
-myapp_myapp_deployment_spec_replicas: null
+global: {}
+preset_values:
+  dev:
+    myapp/ConfigMap/myapp-env/data/MYAPP_VAR2: value2-dev
+    myapp/ConfigMap/myapp-env/metadata/labels/env: dev
+    myapp/Deployment/myapp/metadata/labels/env: dev
+    myapp/Deployment/myapp/spec/template/spec/containers/[name=myapp]/args: "true"
+    myapp/Deployment/myapp/spec/template/spec/containers/[name=myapp]/image: myapp:v1.2-345
+    myapp/Service/myapp-svc/metadata/labels/env: dev
+    mynewapp/Deployment/mynewapp: "true"
+  prod:
+    myapp/ConfigMap/myapp-env/data/MYAPP_VAR2: value2-prod
+    myapp/ConfigMap/myapp-env/metadata/labels/env: prod
+    myapp/Deployment/myapp/metadata/labels/env: prod
+    myapp/Service/myapp-svc/metadata/labels/env: prod
+  prod,test:
+    myapp/Deployment/myapp/spec/template/spec/containers/[name=myapp]/image: myapp:v1.1
+  test:
+    myapp/ConfigMap/myapp-env/data/MYAPP_VAR2: value2-test
+    myapp/ConfigMap/myapp-env/metadata/labels/env: test
+    myapp/Deployment/myapp/metadata/labels/env: test
+    myapp/Service/myapp-svc/metadata/labels/env: test

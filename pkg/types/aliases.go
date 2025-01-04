@@ -7,6 +7,8 @@ import (
 type Selector = types.Selector
 type Kustomization = types.Kustomization
 type Patch = types.Patch
+type HelmChart = types.HelmChart
+type HelmGlobals = types.HelmGlobals
 
 const (
 	ComponentKind     = types.ComponentKind

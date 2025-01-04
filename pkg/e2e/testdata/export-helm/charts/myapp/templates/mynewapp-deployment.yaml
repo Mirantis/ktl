@@ -1,4 +1,5 @@
-{{ if .Values.mynewapp_mynewapp_deployment_enabled }}
+{{- include "merge_presets" . -}}
+{{- if index .Values.global "mynewapp/Deployment/mynewapp" }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -30,4 +31,5 @@ spec:
         terminationMessagePath: /dev/termination-log
       schedulerName: default-scheduler
       securityContext: {}
-{{ end }}
+
+{{- end }}
