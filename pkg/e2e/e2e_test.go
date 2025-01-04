@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/Mirantis/rekustomize/pkg/cmd"
-	"github.com/Mirantis/rekustomize/pkg/config"
 	"github.com/Mirantis/rekustomize/pkg/e2e"
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
+	"github.com/Mirantis/rekustomize/pkg/types"
 	"github.com/google/go-cmp/cmp"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 )
@@ -122,7 +122,7 @@ skip:
   - "metadata.labels.ignored-label"
 `
 
-	if err := os.WriteFile(filepath.Join(outDir, config.DefaultFileName), []byte(cfg), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(outDir, types.DefaultFileName), []byte(cfg), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	exportCmd := cmd.RootCommand()
@@ -134,7 +134,7 @@ skip:
 
 	got := e2e.ReadFiles(diskFs, outDir)
 	want := e2e.ReadFiles(diskFs, "testdata/export")
-	delete(got, "/"+config.DefaultFileName)
+	delete(got, "/"+types.DefaultFileName)
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("unexpected result, +got -want:\n%v", diff)
 	}
@@ -168,7 +168,7 @@ skip:
   - "metadata.labels.ignored-label"
 `
 
-	if err := os.WriteFile(filepath.Join(outDir, config.DefaultFileName), []byte(cfg), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(outDir, types.DefaultFileName), []byte(cfg), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -181,7 +181,7 @@ skip:
 
 	got := e2e.ReadFiles(diskFs, outDir)
 	want := e2e.ReadFiles(diskFs, "testdata/export-multi")
-	delete(got, "/"+config.DefaultFileName)
+	delete(got, "/"+types.DefaultFileName)
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("unexpected result, +got -want:\n%v", diff)
 	}

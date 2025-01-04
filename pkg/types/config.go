@@ -1,8 +1,4 @@
-package config
-
-import (
-	"sigs.k8s.io/kustomize/api/types"
-)
+package types
 
 const DefaultFileName = "rekustomization.yaml"
 
@@ -12,9 +8,9 @@ type ClusterGroup struct {
 }
 
 type SkipRule struct {
-	Resources []*types.Selector `json:"resources" yaml:"resources"`
-	Excluding []*types.Selector `json:"excluding" yaml:"excluding"`
-	Fields    []string          `json:"fields" yaml:"fields"`
+	Resources []*Selector `json:"resources" yaml:"resources"`
+	Excluding []*Selector `json:"excluding" yaml:"excluding"`
+	Fields    []string    `json:"fields" yaml:"fields"`
 }
 
 type Rekustomization struct {

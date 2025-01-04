@@ -1,4 +1,4 @@
-package yutil
+package types
 
 import "strings"
 

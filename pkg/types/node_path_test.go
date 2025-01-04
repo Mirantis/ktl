@@ -1,14 +1,14 @@
-package yutil_test
+package types_test
 
 import (
 	"testing"
 
-	"github.com/Mirantis/rekustomize/pkg/yutil"
+	"github.com/Mirantis/rekustomize/pkg/types"
 )
 
 func TestPathString(t *testing.T) {
 	tests := map[string]struct {
-		input yutil.NodePath
+		input types.NodePath
 		want  string
 	}{
 		`nil`: {
@@ -16,23 +16,23 @@ func TestPathString(t *testing.T) {
 			"/",
 		},
 		`empty`: {
-			yutil.NodePath{},
+			types.NodePath{},
 			"/",
 		},
 		`simple`: {
-			yutil.NodePath{"a", "b", "c"},
+			types.NodePath{"a", "b", "c"},
 			"/a/b/c",
 		},
 		`escaped "/"`: {
-			yutil.NodePath{"a/b", "c"},
+			types.NodePath{"a/b", "c"},
 			"/a~1b/c",
 		},
 		`escaped "~"`: {
-			yutil.NodePath{"a~b", "c"},
+			types.NodePath{"a~b", "c"},
 			"/a~0b/c",
 		},
 		`escaped "~" and "/"`: {
-			yutil.NodePath{"a~b", "c/d", "e~/~f", "g/~/h"},
+			types.NodePath{"a~b", "c/d", "e~/~f", "g/~/h"},
 			"/a~0b/c~1d/e~0~1~0f/g~1~0~1h",
 		},
 	}

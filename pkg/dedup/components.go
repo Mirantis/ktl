@@ -12,9 +12,8 @@ import (
 	"strings"
 
 	"github.com/Mirantis/rekustomize/pkg/export"
-	"github.com/Mirantis/rekustomize/pkg/yutil"
+	"github.com/Mirantis/rekustomize/pkg/types"
 	"sigs.k8s.io/kustomize/api/konfig"
-	"sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
@@ -34,7 +33,7 @@ type pathKey = string
 type valueKey = string
 type clusterKey = string
 type resourceEntry struct {
-	path  yutil.NodePath
+	path  types.NodePath
 	value *yaml.RNode
 	root  *yaml.RNode
 }

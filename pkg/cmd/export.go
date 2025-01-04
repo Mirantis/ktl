@@ -12,14 +12,13 @@ import (
 	"sync"
 
 	"github.com/Mirantis/rekustomize/pkg/cleanup"
-	"github.com/Mirantis/rekustomize/pkg/config"
 	"github.com/Mirantis/rekustomize/pkg/dedup"
 	"github.com/Mirantis/rekustomize/pkg/export"
 	"github.com/Mirantis/rekustomize/pkg/filter"
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
+	"github.com/Mirantis/rekustomize/pkg/types"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/api/konfig"
-	"sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/sets"
@@ -104,7 +103,7 @@ func exportCommand() *cobra.Command {
 		Long:  "TODO: export (long)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			defaultSkipRules := []*config.SkipRule{}
+			defaultSkipRules := []*types.SkipRule{}
 			if err := yaml.Unmarshal([]byte(defaultSkipRulesYaml), &defaultSkipRules); err != nil {
 				return fmt.Errorf("broken defaultSkipRules: %v", err)
 			}
@@ -134,7 +133,7 @@ func exportCommand() *cobra.Command {
 }
 
 type exportOpts struct {
-	config.Rekustomization
+	types.Rekustomization
 	clusters      []string
 	clusterGroups map[string]sets.String
 	cleanupRules  cleanup.Rules
@@ -282,7 +281,7 @@ func (opts *exportOpts) runSingle(dir string) error {
 		if err != nil {
 			return err
 		}
-		if resPath == config.DefaultFileName {
+		if resPath == types.DefaultFileName {
 			return nil
 		}
 		kust.Resources = append(kust.Resources, resPath)
