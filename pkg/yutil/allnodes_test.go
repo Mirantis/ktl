@@ -2,6 +2,7 @@ package yutil_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/Mirantis/rekustomize/pkg/yutil"
@@ -21,19 +22,24 @@ sequence:
 func TestAllNodes(t *testing.T) {
 	want := []string{
 		"!!map:",
-		"!!str:m", "!!str:v",
-		"!!str:sequence",
-		"!!seq:",
-		"!!map:",
-		"!!str:a", "!!int:1",
-		"!!str:b", "!!int:2",
-		"!!map:",
-		"!!str:c", "!!int:3",
-		"!!str:d", "!!int:4",
+		"..!!str:m",
+		"....!!str:v",
+		"..!!str:sequence",
+		"....!!seq:",
+		"......!!map:",
+		"........!!str:a",
+		"..........!!int:1",
+		"........!!str:b",
+		"..........!!int:2",
+		"......!!map:",
+		"........!!str:c",
+		"..........!!int:3",
+		"........!!str:d",
+		"..........!!int:4",
 	}
 	got := []string{}
-	for yn := range yutil.AllNodes(testNode.YNode()) {
-		got = append(got, fmt.Sprintf("%v:%v", yn.Tag, yn.Value))
+	for yn, depth := range yutil.AllNodes(testNode.YNode()) {
+		got = append(got, fmt.Sprintf("%v%v:%v", strings.Repeat(".", depth*2), yn.Tag, yn.Value))
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("-want +got:\n%v", diff)
