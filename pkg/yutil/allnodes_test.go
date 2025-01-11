@@ -38,8 +38,8 @@ func TestAllNodes(t *testing.T) {
 		"..........!!int:4",
 	}
 	got := []string{}
-	for yn, depth := range yutil.AllNodes(testNode.YNode()) {
-		got = append(got, fmt.Sprintf("%v%v:%v", strings.Repeat(".", depth*2), yn.Tag, yn.Value))
+	for yn, meta := range yutil.AllNodes(testNode.YNode()) {
+		got = append(got, fmt.Sprintf("%v%v:%v", strings.Repeat(".", meta.Depth*2), yn.Tag, yn.Value))
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("-want +got:\n%v", diff)

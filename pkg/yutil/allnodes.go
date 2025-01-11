@@ -6,29 +6,43 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func AllNodes(yn *yaml.Node) iter.Seq2[*yaml.Node, int] {
-	return func(yield func(*yaml.Node, int) bool) {
+type NodeMeta struct {
+	Depth      int
+	Parent     *yaml.Node
+	ParentMeta *NodeMeta
+}
+
+func AllNodes(yn *yaml.Node) iter.Seq2[*yaml.Node, *NodeMeta] {
+	return func(yield func(*yaml.Node, *NodeMeta) bool) {
 		nodes := []*yaml.Node{yn}
-		depths := []int{0}
+		metas := []*NodeMeta{{Depth: 0}}
 		for len(nodes) > 0 {
 			node := nodes[len(nodes)-1]
 			nodes = nodes[:len(nodes)-1]
-			depth := depths[len(depths)-1]
-			depths = depths[:len(depths)-1]
+			meta := metas[len(metas)-1]
+			metas = metas[:len(metas)-1]
 			if node == nil {
 				continue
 			}
-			if !yield(node, depth) {
+			if !yield(node, meta) {
 				return
 			}
-			elementSize := 1
-			if node.Kind == yaml.MappingNode || node.Kind == yaml.DocumentNode {
-				elementSize = 2
-			}
+			isKVNode := node.Kind == yaml.MappingNode || node.Kind == yaml.DocumentNode
 			for i := len(node.Content) - 1; i >= 0; i-- {
 				next := node.Content[i]
+				nextMeta := &NodeMeta{
+					Depth:      meta.Depth + 1,
+					Parent:     node,
+					ParentMeta: meta,
+				}
+				if isKVNode && i%2 == 0 {
+					valueMeta := metas[len(metas)-1]
+					valueMeta.Parent = next
+					valueMeta.ParentMeta = nextMeta
+					valueMeta.Depth = nextMeta.Depth + 1
+				}
 				nodes = append(nodes, next)
-				depths = append(depths, depth+(i%elementSize)+1)
+				metas = append(metas, nextMeta)
 			}
 		}
 	}
