@@ -22,11 +22,11 @@ func AllNodes(yn *yaml.Node) iter.Seq2[*yaml.Node, *NodeMeta] {
 			nodeStack = nodeStack[:len(nodeStack)-1]
 			meta := metaStack[len(metaStack)-1]
 			metaStack = metaStack[:len(metaStack)-1]
-			if node == nil {
-				continue
-			}
 			if !yield(node, meta) {
 				return
+			}
+			if node == nil {
+				continue
 			}
 
 			switch node.Kind {
