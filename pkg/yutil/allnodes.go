@@ -1,6 +1,7 @@
 package yutil
 
 import (
+	"fmt"
 	"iter"
 
 	"sigs.k8s.io/kustomize/kyaml/yaml"
@@ -14,35 +15,51 @@ type NodeMeta struct {
 
 func AllNodes(yn *yaml.Node) iter.Seq2[*yaml.Node, *NodeMeta] {
 	return func(yield func(*yaml.Node, *NodeMeta) bool) {
-		nodes := []*yaml.Node{yn}
-		metas := []*NodeMeta{{Depth: 0}}
-		for len(nodes) > 0 {
-			node := nodes[len(nodes)-1]
-			nodes = nodes[:len(nodes)-1]
-			meta := metas[len(metas)-1]
-			metas = metas[:len(metas)-1]
+		nodeStack := []*yaml.Node{yn}
+		metaStack := []*NodeMeta{{Depth: 0}}
+		for len(nodeStack) > 0 {
+			node := nodeStack[len(nodeStack)-1]
+			nodeStack = nodeStack[:len(nodeStack)-1]
+			meta := metaStack[len(metaStack)-1]
+			metaStack = metaStack[:len(metaStack)-1]
 			if node == nil {
 				continue
 			}
 			if !yield(node, meta) {
 				return
 			}
-			isKVNode := node.Kind == yaml.MappingNode || node.Kind == yaml.DocumentNode
-			for i := len(node.Content) - 1; i >= 0; i-- {
-				next := node.Content[i]
-				nextMeta := &NodeMeta{
-					Depth:      meta.Depth + 1,
-					Parent:     node,
-					ParentMeta: meta,
+
+			switch node.Kind {
+			case yaml.MappingNode, yaml.DocumentNode:
+				if len(node.Content)%2 != 0 {
+					panic(fmt.Errorf("invalid yaml node: %+v", node))
 				}
-				if isKVNode && i%2 == 0 {
-					valueMeta := metas[len(metas)-1]
-					valueMeta.Parent = next
-					valueMeta.ParentMeta = nextMeta
-					valueMeta.Depth = nextMeta.Depth + 1
+				for i := len(node.Content) - 2; i >= 0; i -= 2 {
+					key, value := node.Content[i], node.Content[i+1]
+					keyMeta := &NodeMeta{
+						Depth:      meta.Depth + 1,
+						Parent:     node,
+						ParentMeta: meta,
+					}
+					valueMeta := &NodeMeta{
+						Depth:      keyMeta.Depth + 1,
+						Parent:     key,
+						ParentMeta: keyMeta,
+					}
+					nodeStack = append(nodeStack, value, key)
+					metaStack = append(metaStack, valueMeta, keyMeta)
 				}
-				nodes = append(nodes, next)
-				metas = append(metas, nextMeta)
+			default:
+				for i := len(node.Content) - 1; i >= 0; i-- {
+					child := node.Content[i]
+					childMeta := &NodeMeta{
+						Depth:      meta.Depth + 1,
+						Parent:     node,
+						ParentMeta: meta,
+					}
+					nodeStack = append(nodeStack, child)
+					metaStack = append(metaStack, childMeta)
+				}
 			}
 		}
 	}
