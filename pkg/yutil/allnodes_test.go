@@ -2,7 +2,6 @@ package yutil_test
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/Mirantis/rekustomize/pkg/yutil"
@@ -11,35 +10,37 @@ import (
 )
 
 var testNode = yaml.MustParse(`
-m: v
-sequence:
-- a: 1
-  b: 2
-- c: 3
-  d: 4
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+      - name: c1
+        args: [ a, b ]
+      - name: c2
 `)
 
 func TestAllNodes(t *testing.T) {
 	want := []string{
-		"!!map:",
-		"..!!str:m",
-		"....!!str:v",
-		"..!!str:sequence",
-		"....!!seq:",
-		"......!!map:",
-		"........!!str:a",
-		"..........!!int:1",
-		"........!!str:b",
-		"..........!!int:2",
-		"......!!map:",
-		"........!!str:c",
-		"..........!!int:3",
-		"........!!str:d",
-		"..........!!int:4",
+		"/: !!map:",
+		"/apiVersion: !!str:apps/v1",
+		"/kind: !!str:Deployment",
+		"/spec: !!map:",
+		"/spec/template: !!map:",
+		"/spec/template/spec: !!map:",
+		"/spec/template/spec/containers: !!seq:",
+		"/spec/template/spec/containers/[name=c1]: !!map:",
+		"/spec/template/spec/containers/[name=c1]/name: !!str:c1",
+		"/spec/template/spec/containers/[name=c1]/args: !!seq:",
+		"/spec/template/spec/containers/[name=c1]/args/[0]: !!str:a",
+		"/spec/template/spec/containers/[name=c1]/args/[1]: !!str:b",
+		"/spec/template/spec/containers/[name=c2]: !!map:",
+		"/spec/template/spec/containers/[name=c2]/name: !!str:c2",
 	}
 	got := []string{}
 	for yn, meta := range yutil.AllNodes(testNode.YNode()) {
-		got = append(got, fmt.Sprintf("%v%v:%v", strings.Repeat(".", meta.Depth*2), yn.Tag, yn.Value))
+		got = append(got, fmt.Sprintf("%v: %v:%v", meta.Path(), yn.Tag, yn.Value))
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("-want +got:\n%v", diff)
