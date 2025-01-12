@@ -33,8 +33,8 @@ func TestAllNodes(t *testing.T) {
 		"/spec/template/spec/containers/[name=c1]: !!map:",
 		"/spec/template/spec/containers/[name=c1]/name: !!str:c1",
 		"/spec/template/spec/containers/[name=c1]/args: !!seq:",
-		"/spec/template/spec/containers/[name=c1]/args/[0]: !!str:a",
-		"/spec/template/spec/containers/[name=c1]/args/[1]: !!str:b",
+		"/spec/template/spec/containers/[name=c1]/args/0: !!str:a",
+		"/spec/template/spec/containers/[name=c1]/args/1: !!str:b",
 		"/spec/template/spec/containers/[name=c2]: !!map:",
 		"/spec/template/spec/containers/[name=c2]/name: !!str:c2",
 	}

@@ -20,50 +20,57 @@ type NodeMeta struct {
 	Schema *openapi.ResourceSchema
 	Index  int
 
-	path types.NodePath
+	path      types.NodePath
+	mergeKeys []string
+}
+
+func (nm *NodeMeta) MergeKeys() []string {
+	if nm.mergeKeys == nil && nm.Schema != nil {
+		_, nm.mergeKeys = nm.Schema.PatchStrategyAndKeyList()
+	}
+	return nm.mergeKeys
 }
 
 func (nm *NodeMeta) Path() types.NodePath {
-	if nm.Parent == nil || len(nm.path) > 0 {
+	parent := nm.Parent
+	if parent == nil || len(nm.path) > 0 {
 		return nm.path
 	}
-	switch nm.Parent.Node.Kind {
+	parentPath := parent.Path()
+
+	switch parent.Node.Kind {
 	case yaml.MappingNode:
-		nm.path = append(slices.Clone(nm.Parent.Path()), nm.Node.Value)
+		nm.path = append(slices.Clone(parentPath), nm.Node.Value)
 	case yaml.ScalarNode:
-		nm.path = nm.Parent.Path()
+		nm.path = parentPath
 	case yaml.SequenceNode:
-		builder := strings.Builder{}
-		builder.WriteString(`[`)
-		var keys []string
-		values := map[string]string{}
-		if nm.Parent.Schema != nil {
-			_, keys = nm.Parent.Schema.PatchStrategyAndKeyList()
-		}
+		keys := parent.MergeKeys()
 		if len(keys) < 1 {
-			builder.WriteString(strconv.FormatInt(int64(nm.Index), 10))
-		} else {
-			for _, key := range keys {
-				values[key] = ""
+			nm.path = append(slices.Clone(parentPath), strconv.FormatInt(int64(nm.Index), 10))
+			break
+		}
+
+		values := map[string]string{}
+		for _, key := range keys {
+			values[key] = ""
+		}
+
+		for i := 0; i < len(nm.Node.Content); i += 2 {
+			key, value := nm.Node.Content[i], nm.Node.Content[i+1]
+			if _, isKey := values[key.Value]; !isKey {
+				continue
 			}
-			for i := 0; i < len(nm.Node.Content); i += 2 {
-				key, value := nm.Node.Content[i], nm.Node.Content[i+1]
-				if _, isKey := values[key.Value]; !isKey {
-					continue
-				}
-				if value != nil {
-					values[key.Value] = value.Value
-				}
-			}
-			for i, key := range keys {
-				builder.WriteString(key + `=` + values[key])
-				if i < len(keys)-1 {
-					builder.WriteString(`,`)
-				}
+			if value != nil {
+				values[key.Value] = value.Value
 			}
 		}
-		builder.WriteString(`]`)
-		nm.path = append(slices.Clone(nm.Parent.Path()), builder.String())
+
+		parts := []string{}
+		for _, key := range keys {
+			parts = append(parts, fmt.Sprintf("%v=%v", key, values[key]))
+		}
+		part := fmt.Sprintf("[%s]", strings.Join(parts, ","))
+		nm.path = append(slices.Clone(parentPath), part)
 	}
 	return nm.path
 }
