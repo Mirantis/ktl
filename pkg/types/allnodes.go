@@ -111,8 +111,8 @@ func AllNodes(yn *yaml.Node) iter.Seq2[*yaml.Node, *NodeMeta] {
 				if len(node.Content)%2 != 0 {
 					panic(fmt.Errorf("invalid yaml node: %+v", node))
 				}
-				for i := len(node.Content) - 2; i >= 0; i -= 2 {
-					key, value := node.Content[i], node.Content[i+1]
+				for i := len(node.Content)/2 - 1; i >= 0; i-- {
+					key, value := node.Content[2*i], node.Content[2*i+1]
 					var fieldSchema *openapi.ResourceSchema
 					if meta.Schema != nil {
 						fieldSchema = meta.Schema.Field(key.Value)
@@ -121,14 +121,14 @@ func AllNodes(yn *yaml.Node) iter.Seq2[*yaml.Node, *NodeMeta] {
 						Node:   key,
 						Depth:  meta.Depth + 1,
 						Parent: meta,
-						Index:  i / 2,
+						Index:  i,
 						Schema: fieldSchema,
 					}
 					valueMeta := &NodeMeta{
 						Node:   value,
 						Depth:  keyMeta.Depth + 1,
 						Parent: keyMeta,
-						Index:  i / 2,
+						Index:  i,
 						Schema: fieldSchema,
 					}
 					metaStack = append(metaStack, valueMeta)
