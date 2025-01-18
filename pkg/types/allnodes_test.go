@@ -1,10 +1,10 @@
-package yutil_test
+package types_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/Mirantis/rekustomize/pkg/yutil"
+	"github.com/Mirantis/rekustomize/pkg/types"
 	"github.com/google/go-cmp/cmp"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -39,7 +39,7 @@ func TestAllNodes(t *testing.T) {
 		"/spec/template/spec/containers/[name=c2]/name: !!str:c2",
 	}
 	got := []string{}
-	for yn, meta := range yutil.AllNodes(testNode.YNode()) {
+	for yn, meta := range types.AllNodes(testNode.YNode()) {
 		got = append(got, fmt.Sprintf("%v: %v:%v", meta.Path(), yn.Tag, yn.Value))
 	}
 	if diff := cmp.Diff(want, got); diff != "" {

@@ -1,4 +1,4 @@
-package yutil
+package types
 
 import (
 	"fmt"
@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Mirantis/rekustomize/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/openapi"
 	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
@@ -20,7 +19,7 @@ type NodeMeta struct {
 	Schema *openapi.ResourceSchema
 	Index  int
 
-	path      types.NodePath
+	path      NodePath
 	mergeKeys []string
 }
 
@@ -31,7 +30,7 @@ func (nm *NodeMeta) MergeKeys() []string {
 	return nm.mergeKeys
 }
 
-func (nm *NodeMeta) Path() types.NodePath {
+func (nm *NodeMeta) Path() NodePath {
 	parent := nm.Parent
 	if parent == nil || len(nm.path) > 0 {
 		return nm.path
