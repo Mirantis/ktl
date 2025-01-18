@@ -21,7 +21,7 @@ spec:
       - name: c2
 `)
 
-func TestAllNodes(t *testing.T) {
+func TestWalkNode(t *testing.T) {
 	want := []string{
 		"/: !!map:",
 		"/apiVersion: !!str:apps/v1",
@@ -37,7 +37,7 @@ func TestAllNodes(t *testing.T) {
 		"/spec/template/spec/containers/[name=c2]/name: !!str:c2",
 	}
 	got := []string{}
-	for yn, meta := range types.AllNodes(testNode.YNode()) {
+	for yn, meta := range types.WalkNode(testNode.YNode()) {
 		got = append(got, fmt.Sprintf("%v: %v:%v", meta.Path(), yn.Tag, yn.Value))
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
