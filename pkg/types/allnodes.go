@@ -23,6 +23,19 @@ type NodeMeta struct {
 	mergeKeys []string
 }
 
+func (nm *NodeMeta) IsLeaf() bool {
+	switch nm.Node.Kind {
+	case yaml.SequenceNode:
+		isNonAssociativeList := (len(nm.MergeKeys()) == 0)
+		return isNonAssociativeList
+	case yaml.ScalarNode:
+		parentIsScalar := (nm.Parent != nil && nm.Parent.Node.Kind == yaml.ScalarNode)
+		return parentIsScalar
+	default:
+		return false
+	}
+}
+
 func (nm *NodeMeta) MergeKeys() []string {
 	if nm.mergeKeys == nil && nm.Schema != nil {
 		_, nm.mergeKeys = nm.Schema.PatchStrategyAndKeyList()
@@ -89,7 +102,7 @@ func AllNodes(yn *yaml.Node) iter.Seq2[*yaml.Node, *NodeMeta] {
 			if !yield(node, meta) {
 				return
 			}
-			if node == nil {
+			if node == nil || meta.IsLeaf() {
 				continue
 			}
 
