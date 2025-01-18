@@ -1,6 +1,8 @@
 package types
 
 import (
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"slices"
 	"strconv"
@@ -19,6 +21,23 @@ type NodeMeta struct {
 
 	path      NodePath
 	mergeKeys []string
+	hash      string
+}
+
+func (nm *NodeMeta) Hash() string {
+	if !nm.IsLeaf() {
+		return ""
+	}
+
+	if nm.hash == "" {
+		data, err := json.Marshal(nm.Node)
+		if err != nil {
+			panic(err)
+		}
+		nm.hash = fmt.Sprintf("%x", sha256.Sum256(data))
+	}
+
+	return nm.hash
 }
 
 func (nm *NodeMeta) IsLeaf() bool {

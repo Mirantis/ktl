@@ -2,6 +2,10 @@ package types
 
 const DefaultFileName = "rekustomization.yaml"
 
+type Cluster struct {
+	Name string
+}
+
 type ClusterGroup struct {
 	Group string   `json:"group" yaml:"group"`
 	Names []string `json:"names" yaml:"names"`
