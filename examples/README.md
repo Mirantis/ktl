@@ -33,7 +33,8 @@ a working Docker or Podman CLI. Use `stop-clusters.sh` to cleanup.
     ```
 
 5. If you would like to experiment with a different `rekustomization.yaml`,
-create a new empty directory with the desired `rekustomization.yaml`:
+    create a new empty directory with the desired `rekustomization.yaml`.
+    Then you can run `rekustomize`:
     ```
     rekustomize export your/custom/export-directory
     ```
