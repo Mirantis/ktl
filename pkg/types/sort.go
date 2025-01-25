@@ -5,11 +5,14 @@ import (
 	"slices"
 	"sort"
 	"strings"
+
+	"github.com/RoaringBitmap/roaring/v2"
 )
 
 var (
 	_ sort.Interface = (*orderVariantsByFrequencyAndClusterName)(nil)
 	_ sort.Interface = (*orderMValueByDepthAndIndex)(nil)
+	_ sort.Interface = (*orderTagsBySizeAndName)(nil)
 )
 
 type orderVariantsByFrequencyAndClusterName struct {
@@ -17,15 +20,15 @@ type orderVariantsByFrequencyAndClusterName struct {
 	clusters *ClusterIndex
 }
 
-func (o orderVariantsByFrequencyAndClusterName) Len() int {
+func (o *orderVariantsByFrequencyAndClusterName) Len() int {
 	return len(o.items)
 }
 
-func (o orderVariantsByFrequencyAndClusterName) Swap(a, b int) {
+func (o *orderVariantsByFrequencyAndClusterName) Swap(a, b int) {
 	o.items[a], o.items[b] = o.items[b], o.items[a]
 }
 
-func (o orderVariantsByFrequencyAndClusterName) Less(a, b int) bool {
+func (o *orderVariantsByFrequencyAndClusterName) Less(a, b int) bool {
 	va, vb := o.items[a], o.items[b]
 	if byFrequency := len(va) - len(vb); byFrequency != 0 {
 		return byFrequency < 0
@@ -49,4 +52,26 @@ func (o orderMValueByDepthAndIndex) Less(a, b int) bool {
 		return byIndex < 0
 	}
 	return strings.Compare(o[a].Path.String(), o[b].Path.String()) < 0
+}
+
+type orderTagsBySizeAndName struct {
+	tags    []string
+	bitmaps []*roaring.Bitmap
+}
+
+func (o *orderTagsBySizeAndName) Len() int {
+	return len(o.tags)
+}
+
+func (o *orderTagsBySizeAndName) Swap(a, b int) {
+	o.tags[a], o.tags[b] = o.tags[b], o.tags[a]
+	o.bitmaps[a], o.bitmaps[b] = o.bitmaps[b], o.bitmaps[a]
+}
+
+func (o *orderTagsBySizeAndName) Less(a, b int) bool {
+	delta := o.bitmaps[a].GetCardinality() - o.bitmaps[b].GetCardinality()
+	if delta != 0 {
+		return delta > 0
+	}
+	return strings.Compare(o.tags[a], o.tags[b]) < 0
 }

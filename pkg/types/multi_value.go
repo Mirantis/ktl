@@ -50,10 +50,7 @@ func (mv *MValue) String() string {
 		clusters := slices.Collect(maps.Keys(variant))
 		names := []string{}
 		for _, id := range clusters {
-			cluster, err := mv.multiNode.clusters.Cluster(id)
-			if err != nil {
-				panic(err)
-			}
+			cluster := mv.multiNode.clusters.Cluster(id)
 			names = append(names, cluster.Name)
 		}
 		sort.Strings(names)
