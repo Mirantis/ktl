@@ -12,30 +12,34 @@ type MValue struct {
 	Key  string
 	Path NodePath
 
-	variants       map[string]map[*Cluster]*NodeMeta
-	cachedVariants []map[*Cluster]*NodeMeta
+	multiNode      *MNode
+	variants       map[string]map[ClusterId]*NodeMeta
+	cachedVariants []map[ClusterId]*NodeMeta
 	cachedIndex    int
 }
 
-func (mv *MValue) Add(cluster *Cluster, meta *NodeMeta) {
+func (mv *MValue) Add(cluster ClusterId, meta *NodeMeta) {
 	mv.cachedVariants = nil
 	mv.cachedIndex = -1
 	if mv.variants == nil {
-		mv.variants = make(map[string]map[*Cluster]*NodeMeta)
+		mv.variants = make(map[string]map[ClusterId]*NodeMeta)
 	}
 	valueHash := meta.Hash()
 	byCluster := mv.variants[valueHash]
 	if byCluster == nil {
-		byCluster = make(map[*Cluster]*NodeMeta)
+		byCluster = make(map[ClusterId]*NodeMeta)
 		mv.variants[valueHash] = byCluster
 	}
 	byCluster[cluster] = meta
 }
 
-func (mv *MValue) Variants() []map[*Cluster]*NodeMeta {
+func (mv *MValue) Variants() []map[ClusterId]*NodeMeta {
 	if mv.cachedVariants == nil {
 		mv.cachedVariants = slices.Collect(maps.Values(mv.variants))
-		sort.Sort(orderVariantsByFrequencyAndClusterName(mv.cachedVariants))
+		sort.Sort(&orderVariantsByFrequencyAndClusterName{
+			items:    mv.cachedVariants,
+			clusters: mv.multiNode.clusters,
+		})
 	}
 	return mv.cachedVariants
 }
@@ -45,7 +49,11 @@ func (mv *MValue) String() string {
 	for _, variant := range mv.Variants() {
 		clusters := slices.Collect(maps.Keys(variant))
 		names := []string{}
-		for _, cluster := range clusters {
+		for _, id := range clusters {
+			cluster, err := mv.multiNode.clusters.Cluster(id)
+			if err != nil {
+				panic(err)
+			}
 			names = append(names, cluster.Name)
 		}
 		sort.Strings(names)

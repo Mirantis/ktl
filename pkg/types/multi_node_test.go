@@ -54,10 +54,14 @@ spec:
       - name: sidecar3
         image: sidecar3:v1
 `)
-	mn := &types.MNode{}
-	mn.Add(&types.Cluster{Name: "c1"}, n1)
-	mn.Add(&types.Cluster{Name: "c2"}, n2)
-	mn.Add(&types.Cluster{Name: "c3"}, n3)
+	idx := &types.ClusterIndex{}
+	c1 := idx.Add(types.Cluster{Name: "c1"})
+	c2 := idx.Add(types.Cluster{Name: "c2"})
+	c3 := idx.Add(types.Cluster{Name: "c3"})
+	mn := types.NewMNode(idx)
+	mn.Add(c1, n1)
+	mn.Add(c2, n2)
+	mn.Add(c3, n3)
 
 	got := []string{}
 	for _, v := range mn.Values() {

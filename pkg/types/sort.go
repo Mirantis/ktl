@@ -1,6 +1,8 @@
 package types
 
 import (
+	"maps"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -10,27 +12,28 @@ var (
 	_ sort.Interface = (*orderMValueByDepthAndIndex)(nil)
 )
 
-type orderVariantsByFrequencyAndClusterName []map[*Cluster]*NodeMeta
+type orderVariantsByFrequencyAndClusterName struct {
+	items    []map[ClusterId]*NodeMeta
+	clusters *ClusterIndex
+}
 
-func (o orderVariantsByFrequencyAndClusterName) Len() int      { return len(o) }
-func (o orderVariantsByFrequencyAndClusterName) Swap(a, b int) { o[a], o[b] = o[b], o[a] }
+func (o orderVariantsByFrequencyAndClusterName) Len() int {
+	return len(o.items)
+}
+
+func (o orderVariantsByFrequencyAndClusterName) Swap(a, b int) {
+	o.items[a], o.items[b] = o.items[b], o.items[a]
+}
+
 func (o orderVariantsByFrequencyAndClusterName) Less(a, b int) bool {
-	va, vb := o[a], o[b]
+	va, vb := o.items[a], o.items[b]
 	if byFrequency := len(va) - len(vb); byFrequency != 0 {
 		return byFrequency < 0
 	}
-	nameA := ""
-	nameB := ""
-	for clusterA := range va {
-		if nameA == "" || strings.Compare(nameA, clusterA.Name) > 0 {
-			nameA = clusterA.Name
-		}
-	}
-	for clusterB := range vb {
-		if nameB == "" || strings.Compare(nameB, clusterB.Name) > 0 {
-			nameB = clusterB.Name
-		}
-	}
+	idsA := slices.Collect(maps.Keys(va))
+	idsB := slices.Collect(maps.Keys(vb))
+	nameA := slices.Sorted(o.clusters.Names(idsA...))[0]
+	nameB := slices.Sorted(o.clusters.Names(idsB...))[0]
 	return strings.Compare(nameA, nameB) < 0
 }
 

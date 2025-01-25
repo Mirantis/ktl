@@ -14,24 +14,28 @@ type valueKey = string
 type MNode struct {
 	index        map[valueKey]*MValue
 	cachedValues []*MValue
+	clusters     *ClusterIndex
 }
 
-func (mn *MNode) Add(cluster *Cluster, rn *yaml.RNode) error {
+func NewMNode(clusters *ClusterIndex) *MNode {
+	return &MNode{
+		index:    map[valueKey]*MValue{},
+		clusters: clusters,
+	}
+}
+
+func (mn *MNode) Add(cluster ClusterId, rn *yaml.RNode) error {
 	if rn.IsNilOrEmpty() {
 		return fmt.Errorf("unable to add nil/empty RNode")
 	}
 
 	mn.cachedValues = nil
-	if mn.index == nil {
-		mn.index = make(map[valueKey]*MValue)
-	}
-
 	for _, meta := range WalkNode(rn.YNode()) {
 		path := meta.Path()
 		key := path.String()
 		value, found := mn.index[key]
 		if !found {
-			value = &MValue{Key: key, Path: path}
+			value = &MValue{Key: key, Path: path, multiNode: mn}
 			mn.index[key] = value
 		}
 		value.Add(cluster, meta)
