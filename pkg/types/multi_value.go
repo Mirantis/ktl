@@ -35,24 +35,7 @@ func (mv *MValue) Add(cluster *Cluster, meta *NodeMeta) {
 func (mv *MValue) Variants() []map[*Cluster]*NodeMeta {
 	if mv.cachedVariants == nil {
 		mv.cachedVariants = slices.Collect(maps.Values(mv.variants))
-		slices.SortFunc(mv.cachedVariants, func(a, b map[*Cluster]*NodeMeta) int {
-			if byLen := len(a) - len(b); byLen != 0 {
-				return byLen
-			}
-			minAName := ""
-			minBName := ""
-			for ca := range a {
-				if minAName == "" || strings.Compare(minAName, ca.Name) > 0 {
-					minAName = ca.Name
-				}
-			}
-			for cb := range b {
-				if minBName == "" || strings.Compare(minBName, cb.Name) > 0 {
-					minBName = cb.Name
-				}
-			}
-			return strings.Compare(minAName, minBName)
-		})
+		sort.Sort(orderVariantsByFrequencyAndClusterName(mv.cachedVariants))
 	}
 	return mv.cachedVariants
 }
@@ -89,18 +72,4 @@ func (mv *MValue) avgIndex() int {
 		mv.cachedIndex = total / count
 	}
 	return mv.cachedIndex
-}
-
-type orderMValueByDepthAndIndex []*MValue
-
-func (o orderMValueByDepthAndIndex) Len() int      { return len(o) }
-func (o orderMValueByDepthAndIndex) Swap(a, b int) { o[a], o[b] = o[b], o[a] }
-func (o orderMValueByDepthAndIndex) Less(a, b int) bool {
-	if byDepth := o[a].depth() - o[b].depth(); byDepth != 0 {
-		return byDepth < 0
-	}
-	if byIndex := o[a].avgIndex() - o[b].avgIndex(); byIndex != 0 {
-		return byIndex < 0
-	}
-	return strings.Compare(o[a].Path.String(), o[b].Path.String()) < 0
 }
