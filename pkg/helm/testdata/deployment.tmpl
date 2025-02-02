@@ -5,11 +5,11 @@ metadata:
   namespace: myapp
   labels:
     app: myapp
-    env: {{ .Values.myapp_myapp_deployment_metadata_labels_env }}
+    env: {{ index .Values.global "myapp_myapp_deployment_metadata_labels_env" }}
 spec:
-  {{ if .Values.myapp_myapp_deployment_spec_replicas }}
-  replicas: {{ .Values.myapp_myapp_deployment_spec_replicas }}
-  {{ end }}
+  {{- if index .Values.global "myapp_myapp_deployment_spec_replicas" }}
+  replicas: {{ index .Values.global "myapp_myapp_deployment_spec_replicas" }}
+  {{- end }}
 
   progressDeadlineSeconds: 600
   selector:
@@ -27,11 +27,11 @@ spec:
     spec:
       containers:
       - name: myapp
-        image: {{ .Values.myapp_myapp_deployment_spec_template_spec_containers_myapp_image }}
-        {{ if .Values.myapp_myapp_deployment_spec_template_spec_containers_myapp_args_enabled }}
+        image: {{ index .Values.global "myapp_myapp_deployment_spec_template_spec_containers_myapp_image" }}
+        {{- if index .Values.global "myapp_myapp_deployment_spec_template_spec_containers_myapp_args_enabled" }}
         args:
         - --debug
-        {{ end }}
+        {{- end }}
 
         envFrom:
         - configMapRef:

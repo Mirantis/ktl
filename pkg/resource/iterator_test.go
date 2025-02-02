@@ -6,6 +6,7 @@ import (
 	"github.com/Mirantis/rekustomize/pkg/resource"
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"github.com/google/go-cmp/cmp"
+	"sigs.k8s.io/kustomize/kyaml/openapi"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -59,14 +60,12 @@ spec:
 	c1 := idx.Add(types.Cluster{Name: "c1"})
 	c2 := idx.Add(types.Cluster{Name: "c2"})
 	c3 := idx.Add(types.Cluster{Name: "c3"})
-	it, err := resource.NewIterator(map[types.ClusterId]*yaml.RNode{
+	schema := openapi.SchemaForResourceType(yaml.TypeMeta{APIVersion: "apps/v1", Kind: "Deployment"})
+	it := resource.NewIterator(map[types.ClusterId]*yaml.RNode{
 		c1: n1,
 		c2: n2,
 		c3: n3,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	}, schema)
 
 	got := []string{}
 	for it.Next() {

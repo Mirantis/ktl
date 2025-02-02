@@ -2,7 +2,6 @@ package resource
 
 import (
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"iter"
 	"maps"
@@ -23,11 +22,12 @@ func GroupByValue(values iter.Seq2[types.ClusterId, *yaml.Node]) []*ValueGroup {
 	groups := map[string]*ValueGroup{}
 
 	for cluster, node := range values {
-		data, err := json.Marshal(node)
+		// TODO: use Encoder/bytes to avoid bytes->string->bytes
+		data, err := yaml.String(node, yaml.Flow)
 		if err != nil {
 			panic(fmt.Errorf("corrupted yaml"))
 		}
-		hash := fmt.Sprintf("%x", sha256.Sum256(data))
+		hash := fmt.Sprintf("%x", sha256.Sum256([]byte(data)))
 		group, exists := groups[hash]
 		if !exists {
 			group = &ValueGroup{

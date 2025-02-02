@@ -133,11 +133,8 @@ func (idx *ClusterIndex) tags() iter.Seq2[string, *roaring.Bitmap] {
 }
 
 func (idx *ClusterIndex) Group(ids ...ClusterId) string {
-	switch len(ids) {
-	case 0:
+	if len(ids) == 0 {
 		return ""
-	case 1:
-		return idx.items[ids[0]].Name
 	}
 	key := idx.groupKey(ids)
 	if group, cached := idx.cachedGroups[key]; cached {

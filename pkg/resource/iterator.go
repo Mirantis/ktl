@@ -10,7 +10,6 @@ import (
 
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/openapi"
-	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 	"sigs.k8s.io/kustomize/kyaml/yaml/schema"
 )
@@ -22,27 +21,15 @@ type Iterator struct {
 	err      error
 }
 
-func NewIterator(resources map[types.ClusterId]*yaml.RNode) (*Iterator, error) {
+func NewIterator(resources map[types.ClusterId]*yaml.RNode, schema *openapi.ResourceSchema) *Iterator {
 	it := &Iterator{}
 	if len(resources) == 0 {
-		return it, nil
-	}
-
-	typeMeta := yaml.TypeMeta{}
-	for _, rn := range resources {
-		tm := resid.FromRNode(rn).AsTypeMeta()
-		if typeMeta.APIVersion == tm.APIVersion && typeMeta.Kind == tm.Kind {
-			continue
-		}
-		if typeMeta.Kind != "" {
-			return nil, fmt.Errorf("TypeMeta mismatch: %+#v, %+#v", tm, typeMeta)
-		}
-		typeMeta = tm
+		return it
 	}
 
 	it.clusters = slices.Sorted(maps.Keys(resources))
 	state := &iteratorState{
-		schema:  openapi.SchemaForResourceType(typeMeta),
+		schema:  schema,
 		values:  make([]*yaml.Node, len(it.clusters)),
 		indices: make([]int, len(it.clusters)),
 	}
@@ -51,7 +38,7 @@ func NewIterator(resources map[types.ClusterId]*yaml.RNode) (*Iterator, error) {
 	}
 	it.states.push(state)
 
-	return it, nil
+	return it
 }
 
 func (it *Iterator) Error() error {
@@ -66,10 +53,26 @@ func (it *Iterator) Schema() *openapi.ResourceSchema {
 	return it.current.schema
 }
 
+func (it *Iterator) Clusters() []types.ClusterId {
+	clusters := make([]types.ClusterId, 0, len(it.clusters))
+	for cluster := range it.Values() {
+		clusters = append(clusters, cluster)
+	}
+	return clusters
+}
+
 func (it *Iterator) Values() iter.Seq2[types.ClusterId, *yaml.Node] {
 	return func(yield func(types.ClusterId, *yaml.Node) bool) {
+		placeholder := &yaml.Node{Kind: it.current.kind}
 		for i := range it.clusters {
-			if !yield(it.clusters[i], it.current.values[i]) {
+			value := it.current.values[i]
+			if value == nil {
+				continue
+			}
+			if !it.current.isValue {
+				value = placeholder
+			}
+			if !yield(it.clusters[i], value) {
 				return
 			}
 		}

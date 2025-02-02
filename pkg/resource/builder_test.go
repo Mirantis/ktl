@@ -54,7 +54,7 @@ func TestBuilder(t *testing.T) {
 			yaml.NewStringRNode("out-of-order").YNode(),
 		},
 	}
-	builder := NewBuilder(yaml.NewMapRNode(nil))
+	builder := NewNodeBuilder(yaml.NewMapRNode(nil))
 	for _, item := range items {
 		var err error
 		if item.value == nil {

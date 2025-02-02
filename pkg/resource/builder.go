@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	"github.com/Mirantis/rekustomize/pkg/types"
+	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -14,8 +15,19 @@ type Builder struct {
 	hit, miss int
 }
 
-func NewBuilder(root *yaml.RNode) *Builder {
+func NewNodeBuilder(root *yaml.RNode) *Builder {
 	return &Builder{nodes: []*yaml.RNode{root}}
+}
+
+func NewBuilder(id resid.ResId) *Builder {
+	rn := yaml.NewMapRNode(nil)
+	rn.SetApiVersion(id.ApiVersion())
+	rn.SetKind(id.Kind)
+	rn.SetName(id.Name)
+	if id.Namespace != "" {
+		rn.SetNamespace(id.Namespace)
+	}
+	return NewNodeBuilder(rn)
 }
 
 func (b *Builder) Build() *yaml.RNode {

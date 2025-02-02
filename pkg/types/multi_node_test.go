@@ -54,7 +54,7 @@ spec:
       - name: sidecar3
         image: sidecar3:v1
 `)
-	idx := &types.ClusterIndex{}
+	idx := types.NewClusterIndex()
 	c1 := idx.Add(types.Cluster{Name: "c1"})
 	c2 := idx.Add(types.Cluster{Name: "c2"})
 	c3 := idx.Add(types.Cluster{Name: "c3"})
