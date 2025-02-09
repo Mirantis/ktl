@@ -69,6 +69,8 @@ func (comp *component) store(fileSys filesys.FileSystem, dir string) error {
 	if err := patchStore.WriteAll(maps.All(comp.patches)); err != nil {
 		return err
 	}
+
+	slices.Sort(kust.Resources)
 	slices.Sort(patches)
 	for _, patch := range patches {
 		kust.Patches = append(kust.Patches, types.Patch{Path: patch})

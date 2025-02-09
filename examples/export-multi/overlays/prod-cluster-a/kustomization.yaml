@@ -1,6 +1,6 @@
 kind: Kustomization
 components:
 - ../../components/all-clusters
-- ../../components/prod,test
+- ../../components/prod_test
 - ../../components/prod
 - ../../components/prod-cluster-a

@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: myapp
-  namespace: myapp
   labels:
     app: myapp
+  name: myapp
+  namespace: myapp
 spec:
   progressDeadlineSeconds: 600
   selector:
@@ -21,11 +21,11 @@ spec:
         app: myapp
     spec:
       containers:
-      - name: myapp
-        envFrom:
+      - envFrom:
         - configMapRef:
             name: myapp-env
         imagePullPolicy: IfNotPresent
+        name: myapp
         resources: {}
         terminationMessagePath: /dev/termination-log
       schedulerName: default-scheduler

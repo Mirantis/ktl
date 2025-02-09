@@ -12,11 +12,11 @@ import (
 	"sync"
 
 	"github.com/Mirantis/rekustomize/pkg/cleanup"
-	"github.com/Mirantis/rekustomize/pkg/dedup"
 	"github.com/Mirantis/rekustomize/pkg/export"
 	"github.com/Mirantis/rekustomize/pkg/filter"
 	"github.com/Mirantis/rekustomize/pkg/helm"
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
+	"github.com/Mirantis/rekustomize/pkg/kustomize"
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/api/konfig"
@@ -320,20 +320,48 @@ func (opts *exportOpts) exportCharts(buffers map[string]*kio.PackageBuffer, dir 
 }
 
 func (opts *exportOpts) exportComponents(buffers map[string]*kio.PackageBuffer, dir string) error {
-	components, err := dedup.Components(buffers, opts.clusterGroups, filepath.Join(dir, "components"))
+	comps := kustomize.NewComponents(opts.clustersIndex)
+	compsDir := filepath.Join(dir, "components")
+	resources, err := opts.convertBuffers(buffers)
 	if err != nil {
 		return err
 	}
 
-	diskFs := filesys.MakeFsOnDisk()
-	for _, comp := range components {
-		if err := comp.Save(diskFs); err != nil {
+	for id, byCluster := range resources {
+		if err := comps.Add(id, byCluster); err != nil {
 			return err
 		}
 	}
-	err = dedup.SaveClusters(diskFs, filepath.Join(dir, "overlays"), components)
-	if err != nil {
+
+	diskFs := filesys.MakeFsOnDisk()
+	if err := comps.Store(diskFs, compsDir); err != nil {
 		return err
+	}
+	for id, cluster := range opts.clustersIndex.All() {
+		path := filepath.Join(dir, "overlays", cluster.Name, "kustomization.yaml")
+		kust := &types.Kustomization{}
+		kust.Kind = types.KustomizationKind
+		compNames, err := comps.Cluster(id)
+		if err != nil {
+			panic(err)
+		}
+		for _, compName := range compNames {
+			relPath, err := filepath.Rel(filepath.Dir(path), filepath.Join(compsDir, compName))
+			if err != nil {
+				panic(err)
+			}
+			kust.Components = append(kust.Components, relPath)
+		}
+		kustBody, err := yaml.Marshal(kust)
+		if err != nil {
+			return fmt.Errorf("unable to serialize %v: %w", path, err)
+		}
+		if err := os.MkdirAll(filepath.Dir(path), 0o777); err != nil {
+			return fmt.Errorf("unable to create %v: %w", path, err)
+		}
+		if err := os.WriteFile(path, kustBody, 0o666); err != nil {
+			return fmt.Errorf("unable to write %v: %w", path, err)
+		}
 	}
 
 	return nil
