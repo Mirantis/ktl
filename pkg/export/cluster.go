@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/Mirantis/rekustomize/pkg/filter"
+	"github.com/Mirantis/rekustomize/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
@@ -15,81 +15,40 @@ import (
 
 type Cluster struct {
 	Client
-	Name             string
-	NsFilter         []string
-	NsResFilter      []string
-	ClusterResFilter []string
-	Selectors        []string
+	Name  string
+	Rules []types.ExportRule
+
+	clusterResources    []string
+	namespacedResources []string
+	namespaces          []string
+}
+
+func (c *Cluster) init() error {
+	var err error
+	if c.clusterResources, err = c.Client.ApiResources(false); err != nil {
+		return err
+	}
+	if c.namespacedResources, err = c.Client.ApiResources(true); err != nil {
+		return err
+	}
+	if c.namespaces, err = c.Client.Namespaces(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Cluster) Execute(out kio.Writer, filters ...kio.Filter) error {
-	allClusterResources, err := c.Client.ApiResources(false)
-	if err != nil {
+	if err := c.init(); err != nil {
 		return err
 	}
-	clusterResources, err := filter.SelectNames(allClusterResources, c.ClusterResFilter)
-	if err != nil {
-		return err
-	}
-
-	allNamespacedResources, err := c.Client.ApiResources(true)
-	if err != nil {
-		return err
-	}
-	namespacedResources, err := filter.SelectNames(allNamespacedResources, c.NsResFilter)
-	if err != nil {
-		return err
-	}
-
-	allNamespaces, err := c.Client.Namespaces()
-	if err != nil {
-		return err
-	}
-	namespaces, err := filter.SelectNames(allNamespaces, c.NsFilter)
-	if err != nil {
-		return err
-	}
-	slog.Info(
-		"export",
-		"cluster", c.Name,
-		"namespaces", strings.Join(namespaces, ","),
-		"namespaced-resources", strings.Join(namespacedResources, ","),
-		"cluster-resources", strings.Join(clusterResources, ","),
-	)
 
 	inputs := []kio.Reader{}
-	if nsidx := slices.Index(clusterResources, "namespaces"); nsidx >= 0 {
-		clusterResources = slices.Delete(clusterResources, nsidx, nsidx+1)
-		objects, err := c.Client.Get("namespaces", "", c.Selectors, namespaces...)
-		if err != nil {
+	for _, rule := range c.Rules {
+		pkg := &kio.PackageBuffer{}
+		if err := c.export(rule, pkg); err != nil {
 			return err
 		}
-		inputs = append(inputs, &kio.PackageBuffer{Nodes: objects})
-		for _, obj := range objects {
-			SetObjectPath(obj, true)
-		}
-	}
-	for resources := range slices.Chunk(clusterResources, 30) {
-		objects, err := c.Client.GetAll("", c.Selectors, resources...)
-		if err != nil {
-			return err
-		}
-		inputs = append(inputs, &kio.PackageBuffer{Nodes: objects})
-
-		for _, obj := range objects {
-			SetObjectPath(obj, true)
-		}
-	}
-	for _, namespace := range namespaces {
-		objects, err := c.Client.GetAll(namespace, c.Selectors, namespacedResources...)
-		if err != nil {
-			return err
-		}
-		inputs = append(inputs, &kio.PackageBuffer{Nodes: objects})
-
-		for _, obj := range objects {
-			SetObjectPath(obj, true)
-		}
+		inputs = append(inputs, pkg)
 	}
 
 	pipeline := &kio.Pipeline{
@@ -102,8 +61,32 @@ func (c *Cluster) Execute(out kio.Writer, filters ...kio.Filter) error {
 		Outputs: []kio.Writer{out},
 	}
 
-	err = pipeline.Execute()
-	return err
+	return pipeline.Execute()
+}
+
+func (c *Cluster) export(rule types.ExportRule, out kio.Writer) error {
+	slog.Info("exporting", "rule", rule)
+	namespaces := slices.Clone(c.namespaces)
+	resources := slices.Clone(c.namespacedResources)
+	if 0 == max(len(rule.Namespaces.Include), len(rule.Namespaces.Exclude)) {
+		namespaces = []string{""}
+		resources = append(resources, c.clusterResources...)
+	}
+	namespaces = rule.Namespaces.Select(namespaces)
+	resources = rule.Resources.Select(resources)
+
+	result := []*yaml.RNode{}
+	for _, ns := range namespaces {
+		nodes, err := c.Client.GetAll(ns, rule.LabelSelectors, resources...)
+		if err != nil {
+			return err
+		}
+		result = append(result, nodes...)
+	}
+	for _, rn := range result {
+		SetObjectPath(rn, true)
+	}
+	return out.Write(result)
 }
 
 func SetObjectPath(obj *yaml.RNode, withNamespace bool) {

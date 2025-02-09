@@ -1,0 +1,66 @@
+# yaml-language-server: $schema=https://json.schemastore.org/any.json
+export:
+- labelSelectors:
+  - "!kubernetes.io/bootstrapping"
+  apiResources:
+    exclude:
+    # namespaced
+    - "*.coordination.k8s.io"
+    - "*.discovery.k8s.io"
+    - "*.events.k8s.io"
+    - "csistoragecapacities.storage.k8s.io"
+    - "endpoints"
+    - "events"
+    - "limitranges"
+    - "pods"
+    - "replicasets.apps"
+    # cluster
+    - "*.admissionregistration.k8s.io"
+    - "*.apiregistration.k8s.io"
+    - "*.flowcontrol.apiserver.k8s.io"
+    - "*.scheduling.k8s.io"
+    - "componentstatuses"
+    - "csinodes.storage.k8s.io"
+    - "nodes"
+    - "persistentvolumes"
+    - "volumeattachments.storage.k8s.io"
+skip:
+- fields:
+  - "status"
+  - "metadata.uid"
+  - "metadata.selfLink"
+  - "metadata.resourceVersion"
+  - "metadata.generation"
+  - "metadata.creationTimestamp"
+  - "metadata.annotations.[kubectl.kubernetes.io/last-applied-configuration]"
+- resources:
+  - kind: Deployment
+    group: apps
+    version: v1
+  fields:
+  - "metadata.annotations.[deployment.kubernetes.io/revision]"
+- resources:
+  - kind: Service
+    version: v1
+  fields:
+  - "spec.clusterIP"
+  - "spec.clusterIPs"
+- resources:
+  - kind: ConfigMap
+    version: v1
+    name: "kube-root-ca.crt"
+  - kind: ServiceAccount
+    version: v1
+    name: default
+  - kind: ConfigMap
+    version: v1
+    name: kubernetes
+    namespace: default
+  - kind: Endpoints
+    version: v1
+    name: kubernetes
+    namespace: default
+  - kind: Service
+    version: v1
+    name: kubernetes
+    namespace: default

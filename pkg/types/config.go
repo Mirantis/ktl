@@ -13,12 +13,15 @@ type SkipRule struct {
 	Fields    []string    `json:"fields" yaml:"fields"`
 }
 
+type ExportRule struct {
+	Namespaces     PatternSelector `json:"namespaces" yaml:"namespaces"`
+	Resources      PatternSelector `json:"apiResources" yaml:"apiResources"`
+	LabelSelectors []string        `json:"labelSelectors" yaml:"labelSelectors"`
+}
+
 type Rekustomization struct {
-	Clusters            []ClusterGroup `json:"clusters" yaml:"clusters"`
-	Namespaces          []string       `json:"namespaces" yaml:"namespaces"`
-	NamespacedResources []string       `json:"namespacedResources" yaml:"namespacedResources"`
-	ClusterResources    []string       `json:"clusterResources" yaml:"clusterResources"`
-	LabelSelectors      []string       `json:"labelSelectors" yaml:"labelSelectors"`
-	SkipRules           []SkipRule     `json:"skip" yaml:"skip"`
-	HelmCharts          []HelmChart    `json:"helmCharts" yaml:"helmCharts"`
+	Clusters    []ClusterGroup `json:"clusters" yaml:"clusters"`
+	ExportRules []ExportRule   `json:"export" yaml:"export"`
+	SkipRules   []SkipRule     `json:"skip" yaml:"skip"`
+	HelmCharts  []HelmChart    `json:"helmCharts" yaml:"helmCharts"`
 }

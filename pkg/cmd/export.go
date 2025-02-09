@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -28,72 +29,8 @@ import (
 )
 
 var (
-	defaultNsResFilter = []string{
-		"!*.coordination.k8s.io",
-		"!*.discovery.k8s.io",
-		"!*.events.k8s.io",
-		"!csistoragecapacities.storage.k8s.io",
-		"!endpoints",
-		"!events",
-		"!limitranges",
-		"!pods",
-		"!replicasets.apps",
-	}
-	defaultClusterResFilter = []string{
-		"!*.admissionregistration.k8s.io",
-		"!*.apiregistration.k8s.io",
-		"!*.flowcontrol.apiserver.k8s.io",
-		"!*.scheduling.k8s.io",
-		"!componentstatuses",
-		"!csinodes.storage.k8s.io",
-		"!nodes",
-		"!persistentvolumes",
-		"!volumeattachments.storage.k8s.io",
-	}
-	defaultLabelSelectors = []string{
-		"!kubernetes.io/bootstrapping",
-	}
-	defaultSkipRulesYaml = `
-- fields:
-  - "status"
-  - "metadata.uid"
-  - "metadata.selfLink"
-  - "metadata.resourceVersion"
-  - "metadata.generation"
-  - "metadata.creationTimestamp"
-  - "metadata.annotations.[kubectl.kubernetes.io/last-applied-configuration]"
-- resources:
-  - kind: Deployment
-    group: apps
-    version: v1
-  fields:
-  - "metadata.annotations.[deployment.kubernetes.io/revision]"
-- resources:
-  - kind: Service
-    version: v1
-  fields:
-  - "spec.clusterIP"
-  - "spec.clusterIPs"
-- resources:
-  - kind: ConfigMap
-    version: v1
-    name: "kube-root-ca.crt"
-  - kind: ServiceAccount
-    version: v1
-    name: default
-  - kind: ConfigMap
-    version: v1
-    name: kubernetes
-    namespace: default
-  - kind: Endpoints
-    version: v1
-    name: kubernetes
-    namespace: default
-  - kind: Service
-    version: v1
-    name: kubernetes
-    namespace: default
-`
+	//go:embed defaults.yaml
+	defaultsYaml []byte
 )
 
 func exportCommand() *cobra.Command {
@@ -105,9 +42,9 @@ func exportCommand() *cobra.Command {
 		Long:  "TODO: export (long)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			defaultSkipRules := []types.SkipRule{}
-			if err := yaml.Unmarshal([]byte(defaultSkipRulesYaml), &defaultSkipRules); err != nil {
-				return fmt.Errorf("broken defaultSkipRules: %v", err)
+			defaults := &types.Rekustomization{}
+			if err := yaml.Unmarshal(defaultsYaml, &defaults); err != nil {
+				panic(fmt.Errorf("broken defaultSkipRules: %w", err))
 			}
 			dir := args[0]
 			cfgData, err := os.ReadFile(filepath.Join(dir, "rekustomization.yaml"))
@@ -117,10 +54,7 @@ func exportCommand() *cobra.Command {
 			if err := yaml.Unmarshal(cfgData, &opts.Rekustomization); err != nil {
 				return err
 			}
-			opts.NamespacedResources = append(opts.NamespacedResources, defaultNsResFilter...)
-			opts.ClusterResources = append(opts.ClusterResources, defaultClusterResFilter...)
-			opts.LabelSelectors = append(opts.LabelSelectors, defaultLabelSelectors...)
-			opts.SkipRules = append(opts.SkipRules, defaultSkipRules...)
+			opts.setDefaults(defaults)
 			if err := opts.parseClusterFilter(); err != nil {
 				return err
 			}
@@ -140,6 +74,20 @@ type exportOpts struct {
 	clusterGroups map[string]sets.String
 	cleanupRules  cleanup.Rules
 	clustersIndex *types.ClusterIndex
+}
+
+func (opts *exportOpts) setDefaults(defaults *types.Rekustomization) {
+	if len(opts.ExportRules) == 0 {
+		opts.ExportRules = []types.ExportRule{{}}
+	}
+
+	labelSelectors := defaults.ExportRules[0].LabelSelectors
+	excludeResources := defaults.ExportRules[0].Resources.Exclude
+	for i := range opts.ExportRules {
+		opts.ExportRules[i].Resources.Exclude = append(opts.ExportRules[i].Resources.Exclude, excludeResources...)
+		opts.ExportRules[i].LabelSelectors = append(opts.ExportRules[i].LabelSelectors, labelSelectors...)
+	}
+	opts.SkipRules = append(opts.SkipRules, defaults.SkipRules...)
 }
 
 func (opts *exportOpts) parseCleanupRules() error {
@@ -230,12 +178,9 @@ func (opts *exportOpts) runMulti(dir string) error {
 			kctl := kubectl.DefaultCmd().Cluster(cluster)
 
 			exporter := export.Cluster{
-				Client:           kctl,
-				Name:             cluster,
-				NsFilter:         opts.Namespaces,
-				NsResFilter:      opts.NamespacedResources,
-				ClusterResFilter: opts.ClusterResources,
-				Selectors:        opts.LabelSelectors,
+				Client: kctl,
+				Name:   cluster,
+				Rules:  opts.ExportRules,
 			}
 
 			err := exporter.Execute(buf, opts.cleanupRules)
@@ -380,12 +325,9 @@ func (opts *exportOpts) runSingle(dir string) error {
 	}
 
 	exporter := export.Cluster{
-		Client:           kctl,
-		Name:             cluster,
-		NsFilter:         opts.Namespaces,
-		NsResFilter:      opts.NamespacedResources,
-		ClusterResFilter: opts.ClusterResources,
-		Selectors:        opts.LabelSelectors,
+		Client: kctl,
+		Name:   cluster,
+		Rules:  opts.ExportRules,
 	}
 
 	if err := exporter.Execute(out, opts.cleanupRules); err != nil {

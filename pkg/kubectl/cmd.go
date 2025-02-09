@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os/exec"
 	"slices"
 	"strings"
@@ -33,6 +34,7 @@ func (kc Cmd) Cluster(cluster string) Cmd {
 
 func (kc Cmd) output(args ...string) ([]byte, error) {
 	cmd := exec.Command(kc[0], slices.Concat(kc[1:], args)...)
+	slog.Info("exec", "cmd", cmd.Args)
 	data, err := cmd.Output()
 
 	switch err := err.(type) {
@@ -110,7 +112,9 @@ func (kc Cmd) GetAll(namespace string, selectors []string, kinds ...string) ([]*
 	if len(selectors) > 0 {
 		args = append(args, "-l", strings.Join(selectors, ","))
 	}
-	if namespace != "" {
+	if namespace == "" {
+		args = append(args, "-A")
+	} else {
 		args = append(args, "-n", namespace)
 	}
 	response, err := kc.output(args...)

@@ -40,6 +40,10 @@ type PatternSelector struct {
 }
 
 func (sel *PatternSelector) Select(names []string) []string {
+	if 0 == max(len(sel.Include), len(sel.Exclude)) {
+		return names
+	}
+
 	selected := map[string]struct{}{}
 	for _, name := range names {
 		if len(sel.Include) == 0 || sel.Include.Match(name) {
