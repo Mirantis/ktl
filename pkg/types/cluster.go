@@ -200,3 +200,25 @@ func (idx *ClusterIndex) Group(ids ...ClusterId) string {
 	idx.cachedGroups[key] = group
 	return group
 }
+
+type orderTagsBySizeAndName struct {
+	tags    []string
+	bitmaps []*roaring.Bitmap
+}
+
+func (o *orderTagsBySizeAndName) Len() int {
+	return len(o.tags)
+}
+
+func (o *orderTagsBySizeAndName) Swap(a, b int) {
+	o.tags[a], o.tags[b] = o.tags[b], o.tags[a]
+	o.bitmaps[a], o.bitmaps[b] = o.bitmaps[b], o.bitmaps[a]
+}
+
+func (o *orderTagsBySizeAndName) Less(a, b int) bool {
+	delta := o.bitmaps[a].GetCardinality() - o.bitmaps[b].GetCardinality()
+	if delta != 0 {
+		return delta > 0
+	}
+	return strings.Compare(o.tags[a], o.tags[b]) < 0
+}
