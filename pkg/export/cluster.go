@@ -3,6 +3,7 @@ package export
 import (
 	"fmt"
 	"log/slog"
+	"maps"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
+	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -42,15 +44,18 @@ func (c *Cluster) Execute(out kio.Writer, filters ...kio.Filter) error {
 		return err
 	}
 
-	inputs := []kio.Reader{}
+	nodes := map[resid.ResId]*yaml.RNode{}
 	for _, rule := range c.Rules {
-		pkg := &kio.PackageBuffer{}
-		if err := c.export(rule, pkg); err != nil {
+		batch, err := c.export(rule)
+		if err != nil {
 			return err
 		}
-		inputs = append(inputs, pkg)
+		maps.Insert(nodes, maps.All(batch))
 	}
 
+	inputs := []kio.Reader{&kio.PackageBuffer{
+		Nodes: slices.Collect(maps.Values(nodes)),
+	}}
 	pipeline := &kio.Pipeline{
 		Inputs: inputs,
 		// REVISIT: FileSetter annotations are ignored - bug in kustomize?
@@ -64,7 +69,7 @@ func (c *Cluster) Execute(out kio.Writer, filters ...kio.Filter) error {
 	return pipeline.Execute()
 }
 
-func (c *Cluster) export(rule types.ExportRule, out kio.Writer) error {
+func (c *Cluster) export(rule types.ExportRule) (map[resid.ResId]*yaml.RNode, error) {
 	slog.Info("exporting", "rule", rule)
 	namespaces := slices.Clone(c.namespaces)
 	resources := slices.Clone(c.namespacedResources)
@@ -75,18 +80,20 @@ func (c *Cluster) export(rule types.ExportRule, out kio.Writer) error {
 	namespaces = rule.Namespaces.Select(namespaces)
 	resources = rule.Resources.Select(resources)
 
-	result := []*yaml.RNode{}
+	nodes := []*yaml.RNode{}
 	for _, ns := range namespaces {
-		nodes, err := c.Client.GetAll(ns, rule.LabelSelectors, resources...)
+		batch, err := c.Client.GetAll(ns, rule.LabelSelectors, resources...)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		result = append(result, nodes...)
+		nodes = append(nodes, batch...)
 	}
-	for _, rn := range result {
+	byResId := map[resid.ResId]*yaml.RNode{}
+	for _, rn := range nodes {
+		byResId[resid.FromRNode(rn)] = rn
 		SetObjectPath(rn, true)
 	}
-	return out.Write(result)
+	return byResId, nil
 }
 
 func SetObjectPath(obj *yaml.RNode, withNamespace bool) {
