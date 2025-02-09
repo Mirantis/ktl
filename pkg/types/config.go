@@ -3,8 +3,8 @@ package types
 const DefaultFileName = "rekustomization.yaml"
 
 type ClusterGroup struct {
-	Group string   `json:"group" yaml:"group"`
-	Names []string `json:"names" yaml:"names"`
+	Names PatternSelector `json:"names" yaml:"names"`
+	Tags  StrList         `json:"tags" yaml:"tags"`
 }
 
 type SkipRule struct {
@@ -21,8 +21,8 @@ type ExportRule struct {
 }
 
 type Rekustomization struct {
-	Clusters    []ClusterGroup `json:"clusters" yaml:"clusters"`
-	ExportRules []ExportRule   `json:"export" yaml:"export"`
-	SkipRules   []SkipRule     `json:"skip" yaml:"skip"`
-	HelmCharts  []HelmChart    `json:"helmCharts" yaml:"helmCharts"`
+	ClusterGroups []ClusterGroup `json:"clusters" yaml:"clusters"`
+	ExportRules   []ExportRule   `json:"export" yaml:"export"`
+	SkipRules     []SkipRule     `json:"skip" yaml:"skip"`
+	HelmCharts    []HelmChart    `json:"helmCharts" yaml:"helmCharts"`
 }

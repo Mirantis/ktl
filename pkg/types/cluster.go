@@ -37,6 +37,29 @@ func NewClusterIndex() *ClusterIndex {
 	}
 }
 
+func BuildClusterIndex(names []string, groups []ClusterGroup) *ClusterIndex {
+	index := NewClusterIndex()
+	clusterTags := map[string]sets.String{}
+	for _, group := range groups {
+		for _, name := range group.Names.Select(names) {
+			tags, exists := clusterTags[name]
+			if !exists {
+				tags = sets.String{}
+				clusterTags[name] = tags
+			}
+			tags.Insert(group.Tags...)
+		}
+	}
+	sortedNames := slices.Sorted(maps.Keys(clusterTags))
+	for _, name := range sortedNames {
+		index.Add(Cluster{
+			Name: name,
+			Tags: slices.Sorted(maps.Keys(clusterTags[name])),
+		})
+	}
+	return index
+}
+
 func (idx *ClusterIndex) All() iter.Seq2[ClusterId, Cluster] {
 	if len(idx.items) != len(idx.ids) {
 		panic(fmt.Errorf("corrupted cluster index"))

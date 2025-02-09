@@ -10,24 +10,25 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-type Patterns []string
+type StrList []string
 
-func (p *Patterns) UnmarshalYAML(node *yaml.Node) error {
+func (l *StrList) UnmarshalYAML(node *yaml.Node) error {
 	if node == nil {
-		*p = nil
+		*l = nil
 		return nil
 	}
 	if node.Kind == yaml.ScalarNode {
-		return p.unmarshalScalar(node)
+		return l.unmarshalScalar(node)
 	}
 	items := []string{}
 	if err := node.Decode(&items); err != nil {
 		return err
 	}
-	return p.unmarshalList(items)
+	*l = items
+	return nil
 }
 
-func (p *Patterns) unmarshalScalar(node *yaml.Node) error {
+func (l *StrList) unmarshalScalar(node *yaml.Node) error {
 	var raw string
 	if err := node.Decode(&raw); err != nil {
 		return err
@@ -44,17 +45,24 @@ func (p *Patterns) unmarshalScalar(node *yaml.Node) error {
 	for i, part := range parts {
 		parts[i] = strings.TrimSpace(part)
 	}
-
-	return p.unmarshalList(parts)
+	*l = parts
+	return nil
 }
 
-func (p *Patterns) unmarshalList(parts []string) error {
+type Patterns StrList
+
+func (p *Patterns) UnmarshalYAML(node *yaml.Node) error {
+	var parts StrList
+	if err := node.Decode(&parts); err != nil {
+		return err
+	}
+
 	for _, pattern := range parts {
 		if _, err := path.Match(pattern, ""); err != nil {
 			return err
 		}
 	}
-	*p = parts
+	*p = (Patterns)(parts)
 	return nil
 }
 

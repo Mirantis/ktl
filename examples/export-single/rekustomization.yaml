@@ -3,7 +3,7 @@
 clusters:
   # if only one cluster is specified, all resources will be put at the root
   # folder instead of the per-cluster "overlays" directories.
-  - names: ["dev-cluster-a"]
+  - names: dev-cluster-a
 # "export" defines
 export:
 - namespaces:

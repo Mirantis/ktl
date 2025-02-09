@@ -16,14 +16,14 @@ clusters:
   # subject to change: instead of cluster-specific components, patches and
   # resources will be put directly into cluster's "overlays" (configurable
   # default).
-  - group: dev
+  - tags: dev
     # "names" use shell-like patterns that will match against the cluster names
     # from your KUBECONFIG.
-    names: ["dev-*"]
-  - group: test
-    names: ["test-cluster-[ab]"]
-  - group: prod
-    names: ["prod-cluster-a", "prod-cluster-b"]
+    names: dev-*
+  - tags: test
+    names: test-cluster-[ab]
+  - tags: prod
+    names: prod-cluster-a, prod-cluster-b
 export:
 - namespaces: my*app
   labelSelectors: ["skip-me!=yes"]

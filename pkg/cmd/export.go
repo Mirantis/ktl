@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log/slog"
-	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -14,7 +12,6 @@ import (
 
 	"github.com/Mirantis/rekustomize/pkg/cleanup"
 	"github.com/Mirantis/rekustomize/pkg/export"
-	"github.com/Mirantis/rekustomize/pkg/filter"
 	"github.com/Mirantis/rekustomize/pkg/helm"
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
 	"github.com/Mirantis/rekustomize/pkg/kustomize"
@@ -24,7 +21,6 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/resid"
-	"sigs.k8s.io/kustomize/kyaml/sets"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -71,7 +67,6 @@ func exportCommand() *cobra.Command {
 type exportOpts struct {
 	types.Rekustomization
 	clusters      []string
-	clusterGroups map[string]sets.String
 	cleanupRules  cleanup.Rules
 	clustersIndex *types.ClusterIndex
 }
@@ -108,55 +103,15 @@ func (opts *exportOpts) parseCleanupRules() error {
 }
 
 func (opts *exportOpts) parseClusterFilter() error {
-	if len(opts.Clusters) == 0 {
+	if len(opts.ClusterGroups) == 0 {
 		return nil
 	}
 	allClusters, err := kubectl.DefaultCmd().Clusters()
 	if err != nil {
 		return err
 	}
-
-	opts.clusterGroups = make(map[string]sets.String)
-	filteredClusters := sets.String{}
-	for _, group := range opts.Clusters {
-		matchingClusters, err := filter.SelectNames(allClusters, group.Names)
-		if err != nil {
-			return err
-		}
-		filteredClusters.Insert(matchingClusters...)
-		groupSet, found := opts.clusterGroups[group.Group]
-		if !found {
-			groupSet = sets.String{}
-			opts.clusterGroups[group.Group] = groupSet
-		}
-		groupSet.Insert(matchingClusters...)
-	}
-	opts.clusters = slices.Collect(maps.Keys(filteredClusters))
-	opts.clusterGroups["all-clusters"] = filteredClusters
-	skippedClusters := sets.String{}
-	skippedClusters.Insert(allClusters...)
-	skippedClusters = skippedClusters.Difference(filteredClusters)
-	slog.Info(
-		"clusters",
-		"selected", slices.Sorted(maps.Keys(filteredClusters)),
-		"skipped", slices.Sorted(maps.Keys(skippedClusters)),
-	)
-	opts.clustersIndex = types.NewClusterIndex()
-	clusters := map[string]*types.Cluster{}
-	for _, group := range slices.Sorted(maps.Keys(opts.clusterGroups)) {
-		names := opts.clusterGroups[group]
-		for name := range names {
-			cluster, found := clusters[name]
-			if !found {
-				cluster = &types.Cluster{Name: name}
-				clusters[name] = cluster
-			}
-			cluster.Tags = append(cluster.Tags, group)
-		}
-	}
-	for _, name := range slices.Sorted(maps.Keys(clusters)) {
-		opts.clustersIndex.Add(*clusters[name])
-	}
+	opts.clustersIndex = types.BuildClusterIndex(allClusters, opts.ClusterGroups)
+	opts.clusters = slices.Collect(opts.clustersIndex.Names(opts.clustersIndex.Ids()...))
 	return nil
 }
 

@@ -3,12 +3,12 @@
 # Please refer to the "export-single" and "export-multi" examples for non-helm
 # parameters.
 clusters:
-  - group: dev
-    names: ["dev-*"]
-  - group: test
-    names: ["test-cluster-[ab]"]
-  - group: prod
-    names: ["prod-cluster-a", "prod-cluster-b"]
+  - tags: dev
+    names: dev-*
+  - tags: test
+    names: test-cluster-[ab]
+  - tags: prod
+    names: prod-cluster-a, prod-cluster-b
 export:
 - namespaces: my*app
   labelSelectors: ["skip-me!=yes"]
