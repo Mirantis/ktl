@@ -6,7 +6,7 @@ import (
 
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"github.com/google/go-cmp/cmp"
-	"k8s.io/apimachinery/pkg/util/yaml"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 func TestPatternsUnmarshal(t *testing.T) {
@@ -27,9 +27,9 @@ func TestPatternsUnmarshal(t *testing.T) {
 			want:  types.Patterns{"[a-z0-9]", "*b*", "c?d"},
 		},
 		{
-			name:    `json-error`,
-			input:   `a,b,c`,
-			wantErr: true,
+			name:  `csv`,
+			input: ` a , b , c `,
+			want:  types.Patterns{"a", "b", "c"},
 		},
 		{
 			name:    `syntax-error`,
@@ -40,6 +40,78 @@ func TestPatternsUnmarshal(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var got types.Patterns
+			err := yaml.Unmarshal([]byte(test.input), &got)
+			if test.wantErr && err == nil {
+				t.Fatalf("want err, got none")
+			}
+			if !test.wantErr && err != nil {
+				t.Fatalf("want no err, got: %v", err)
+			}
+			if diff := cmp.Diff(test.want, got); diff != "" {
+				t.Fatalf("-want +got:\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestPatternSelectorUnmarshal(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    types.PatternSelector
+		wantErr bool
+	}{
+		{
+			name:  `include`,
+			input: `include: [ a, b, c ]`,
+			want:  types.PatternSelector{Include: types.Patterns{"a", "b", "c"}},
+		},
+		{
+			name:  `exclude`,
+			input: `exclude: [ a, b, c ]`,
+			want:  types.PatternSelector{Exclude: types.Patterns{"a", "b", "c"}},
+		},
+		{
+			name:  `include+exclude`,
+			input: `{ include: [ a, b ], exclude: [ c, d ] }`,
+			want: types.PatternSelector{
+				Include: types.Patterns{"a", "b"},
+				Exclude: types.Patterns{"c", "d"},
+			},
+		},
+		{
+			name:  `list`,
+			input: `[ a, b, c ]`,
+			want:  types.PatternSelector{Include: types.Patterns{"a", "b", "c"}},
+		},
+		{
+			name:  `list-with-exclude`,
+			input: `[ a, -b, -c, d ]`,
+			want: types.PatternSelector{
+				Include: types.Patterns{"a", "d"},
+				Exclude: types.Patterns{"b", "c"},
+			},
+		},
+		{
+			name:  `string`,
+			input: `"a , -b , -c , d"`,
+			want: types.PatternSelector{
+				Include: types.Patterns{"a", "d"},
+				Exclude: types.Patterns{"b", "c"},
+			},
+		},
+		{
+			name:  `multi-line`,
+			input: "- a\n- -b\n- -c\n- d",
+			want: types.PatternSelector{
+				Include: types.Patterns{"a", "d"},
+				Exclude: types.Patterns{"b", "c"},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var got types.PatternSelector
 			err := yaml.Unmarshal([]byte(test.input), &got)
 			if test.wantErr && err == nil {
 				t.Fatalf("want err, got none")

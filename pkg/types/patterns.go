@@ -1,23 +1,60 @@
 package types
 
 import (
-	"encoding/json"
+	"bytes"
+	"encoding/csv"
 	"path"
+	"slices"
+	"strings"
+
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 type Patterns []string
 
-func (p *Patterns) UnmarshalJSON(data []byte) error {
-	raw := []string{}
-	if err := json.Unmarshal(data, &raw); err != nil {
+func (p *Patterns) UnmarshalYAML(node *yaml.Node) error {
+	if node == nil {
+		*p = nil
+		return nil
+	}
+	if node.Kind == yaml.ScalarNode {
+		return p.unmarshalScalar(node)
+	}
+	items := []string{}
+	if err := node.Decode(&items); err != nil {
 		return err
 	}
-	for _, pattern := range raw {
+	return p.unmarshalList(items)
+}
+
+func (p *Patterns) unmarshalScalar(node *yaml.Node) error {
+	var raw string
+	if err := node.Decode(&raw); err != nil {
+		return err
+	}
+
+	buf := bytes.NewBufferString(raw)
+	r := csv.NewReader(buf)
+	rawParts, err := r.ReadAll()
+	if err != nil {
+		return err
+	}
+
+	parts := slices.Concat(rawParts...)
+	for i, part := range parts {
+		parts[i] = strings.TrimSpace(part)
+	}
+
+	return p.unmarshalList(parts)
+}
+
+func (p *Patterns) unmarshalList(parts []string) error {
+	for _, pattern := range parts {
 		if _, err := path.Match(pattern, ""); err != nil {
 			return err
 		}
 	}
-	*p = raw
+	*p = parts
 	return nil
 }
 
@@ -62,4 +99,38 @@ func (sel *PatternSelector) Select(names []string) []string {
 		}
 	}
 	return result
+}
+
+func (sel *PatternSelector) UnmarshalYAML(node *yaml.Node) error {
+	if node == nil {
+		*sel = PatternSelector{}
+		return nil
+	}
+	if node.Kind != yaml.MappingNode {
+		return sel.unmarshalPattern(node)
+	}
+
+	type selStruct PatternSelector
+	var plain selStruct
+	if err := node.Decode(&plain); err != nil {
+		return err
+	}
+	*sel = (PatternSelector)(plain)
+	return nil
+}
+
+func (sel *PatternSelector) unmarshalPattern(node *yaml.Node) error {
+	var patterns Patterns
+	if err := node.Decode(&patterns); err != nil {
+		return err
+	}
+	for _, part := range patterns {
+		part, not := strings.CutPrefix(part, "-")
+		if not {
+			sel.Exclude = append(sel.Exclude, part)
+		} else {
+			sel.Include = append(sel.Include, part)
+		}
+	}
+	return nil
 }
