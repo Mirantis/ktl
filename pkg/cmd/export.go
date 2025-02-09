@@ -84,7 +84,9 @@ func (opts *exportOpts) setDefaults(defaults *types.Rekustomization) {
 	labelSelectors := defaults.ExportRules[0].LabelSelectors
 	excludeResources := defaults.ExportRules[0].Resources.Exclude
 	for i := range opts.ExportRules {
-		opts.ExportRules[i].Resources.Exclude = append(opts.ExportRules[i].Resources.Exclude, excludeResources...)
+		if len(opts.ExportRules[i].Resources.Include) == 0 {
+			opts.ExportRules[i].Resources.Exclude = append(opts.ExportRules[i].Resources.Exclude, excludeResources...)
+		}
 		opts.ExportRules[i].LabelSelectors = append(opts.ExportRules[i].LabelSelectors, labelSelectors...)
 	}
 	opts.SkipRules = append(opts.SkipRules, defaults.SkipRules...)

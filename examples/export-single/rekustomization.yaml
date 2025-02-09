@@ -24,6 +24,12 @@ export:
     include: ["namespaces"]
   names:
     include: ["my*app"]
+- namespaces:
+    include: ["default"]
+  apiResources:
+    include: ["jobs"]
+  names:
+    include: ["static-task"]
 skip:
   # "skip" can be used to remove specific fields or resources.
   #
