@@ -196,7 +196,7 @@ func (idx *ClusterIndex) Group(ids ...ClusterId) string {
 	slices.Sort(names)
 	parts = append(parts, names...)
 
-	group := strings.Join(parts, "+")
+	group := strings.Join(parts, "_")
 	idx.cachedGroups[key] = group
 	return group
 }

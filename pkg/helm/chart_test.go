@@ -59,22 +59,22 @@ func TestChart(t *testing.T) {
 		"presets": []string{"dev"},
 	}
 	wantInstances[1].ValuesInline = map[string]any{
-		"presets": []string{"prod", "prod+test"},
+		"presets": []string{"prod", "prod_test"},
 		"global": map[string]any{
 			"myapp/Deployment/myapp/spec/replicas": 3.0,
 		},
 	}
 	wantInstances[2].ValuesInline = map[string]any{
-		"presets": []string{"prod", "prod+test"},
+		"presets": []string{"prod", "prod_test"},
 		"global": map[string]any{
 			"myapp/Deployment/myapp/spec/replicas": 5.0,
 		},
 	}
 	wantInstances[3].ValuesInline = map[string]any{
-		"presets": []string{"prod+test", "test"},
+		"presets": []string{"prod_test", "test"},
 	}
 	wantInstances[4].ValuesInline = map[string]any{
-		"presets": []string{"prod+test", "test"},
+		"presets": []string{"prod_test", "test"},
 	}
 	if diff := cmp.Diff(wantInstances, gotInstances); diff != "" {
 		t.Errorf("instances mismatch, +got -want:\n%s", diff)

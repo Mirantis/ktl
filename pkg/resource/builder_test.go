@@ -66,7 +66,7 @@ func TestBuilder(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	got := builder.Build().MustString()
+	got := builder.RNode().MustString()
 	want := `a:
   b: v1
 x:

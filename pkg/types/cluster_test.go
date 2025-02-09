@@ -23,11 +23,11 @@ func TestClusterIndexGroup(t *testing.T) {
 			ids:  []types.ClusterId{c1, c2, c3, c4, c5},
 		},
 		{
-			want: "a+b+c",
+			want: "a_b_c",
 			ids:  []types.ClusterId{c1, c2, c3, c4},
 		},
 		{
-			want: "a+c",
+			want: "a_c",
 			ids:  []types.ClusterId{c1, c2, c4},
 		},
 		{
@@ -39,11 +39,11 @@ func TestClusterIndexGroup(t *testing.T) {
 			ids:  []types.ClusterId{c1, c4},
 		},
 		{
-			want: "c2+c3+c4+c5",
+			want: "c2_c3_c4_c5",
 			ids:  []types.ClusterId{c2, c3, c4, c5},
 		},
 		{
-			want: "c1+c5",
+			want: "c1_c5",
 			ids:  []types.ClusterId{c1, c5},
 		},
 	}

@@ -13,7 +13,7 @@ preset_values:
     myapp/ConfigMap/myapp-env/metadata/labels/env: prod
     myapp/Deployment/myapp/metadata/labels/env: prod
     myapp/Service/myapp-svc/metadata/labels/env: prod
-  prod+test:
+  prod_test:
     myapp/Deployment/myapp/spec/template/spec/containers/[name=myapp]/image: myapp:v1.1
   test:
     myapp/ConfigMap/myapp-env/data/MYAPP_VAR2: value2-test

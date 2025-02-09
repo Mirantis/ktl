@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+  namespace: myapp
+  labels:
+    env: dev
+spec:
+  template:
+    spec:
+      containers:
+      - name: myapp
+        args: ["--debug"]
+        image: myapp:v1.2-345

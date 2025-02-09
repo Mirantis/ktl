@@ -15,8 +15,6 @@ import (
 	"github.com/Mirantis/rekustomize/pkg/yutil"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
-	"sigs.k8s.io/kustomize/kyaml/kio"
-	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	"sigs.k8s.io/kustomize/kyaml/openapi"
 	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/sets"
@@ -77,29 +75,20 @@ func (chart *Chart) templateName(id resid.ResId) string {
 }
 
 func (chart *Chart) storeTemplates(fileSys filesys.FileSystem, dir string) error {
-	tplDir := filepath.Join(dir, "templates")
-	if err := fileSys.MkdirAll(tplDir); err != nil {
+	templatePrefix := []byte("# HELM" + chart.token + ": ")
+	store := &resource.FileStore{
+		Dir:           filepath.Join(dir, "templates"),
+		FileSystem:    fileSys,
+		NameGenerator: chart.templateName,
+		PostProcessor: func(_ string, body []byte) []byte {
+			return bytes.ReplaceAll(body, templatePrefix, []byte{})
+		},
+	}
+	if err := store.WriteAll(maps.All(chart.templates)); err != nil {
 		return err
 	}
-	buf := &bytes.Buffer{}
-	for id, rn := range chart.templates {
-		path := filepath.Join(tplDir, chart.templateName(id))
-		buf.Reset()
-		err := kio.ByteWriter{
-			Writer: buf,
 
-			ClearAnnotations: []string{kioutil.PathAnnotation},
-		}.Write([]*yaml.RNode{rn})
-		if err != nil {
-			return fmt.Errorf("unable to serialize %v: %w", path, err)
-		}
-		body := bytes.ReplaceAll(buf.Bytes(), []byte("# HELM"+chart.token+": "), []byte{})
-		if err := fileSys.WriteFile(path, body); err != nil {
-			return fmt.Errorf("unable to write %v: %w", path, err)
-		}
-	}
-
-	return fileSys.WriteFile(filepath.Join(tplDir, "_helpers.tpl"), helpersTpl)
+	return fileSys.WriteFile(filepath.Join(store.Dir, "_helpers.tpl"), helpersTpl)
 }
 
 func (chart *Chart) storeValues(fileSys filesys.FileSystem, dir string) error {
@@ -198,7 +187,7 @@ func (chart *Chart) Add(id resid.ResId, resources map[types.ClusterId]*yaml.RNod
 		return err
 	}
 
-	rn := builder.Build()
+	rn := builder.RNode()
 	headComment := fmt.Sprintf(`HELM%s: {{- include "merge_presets" . -}}`, chart.token)
 	if rn.YNode().HeadComment != "" {
 		headComment += "\n" + rn.YNode().HeadComment

@@ -30,7 +30,7 @@ func NewBuilder(id resid.ResId) *Builder {
 	return NewNodeBuilder(rn)
 }
 
-func (b *Builder) Build() *yaml.RNode {
+func (b *Builder) RNode() *yaml.RNode {
 	return b.nodes[0]
 }
 
