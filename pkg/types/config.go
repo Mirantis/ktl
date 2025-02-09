@@ -8,9 +8,9 @@ type ClusterGroup struct {
 }
 
 type SkipRule struct {
-	Resources []*Selector `json:"resources" yaml:"resources"`
-	Excluding []*Selector `json:"excluding" yaml:"excluding"`
-	Fields    []string    `json:"fields" yaml:"fields"`
+	If     []*Selector `json:"if" yaml:"if"`
+	IfNot  []*Selector `json:"ifNot" yaml:"ifNot"`
+	Fields []string    `json:"fields" yaml:"fields"`
 }
 
 type ExportRule struct {

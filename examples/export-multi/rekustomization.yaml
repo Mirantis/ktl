@@ -36,7 +36,7 @@ export:
   names:
     include: ["my*app"]
 skip:
-  - resources:
+  - if:
       - kind: Namespace
         name: myapp
     fields:
