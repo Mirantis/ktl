@@ -15,12 +15,14 @@ import (
 	"github.com/Mirantis/rekustomize/pkg/dedup"
 	"github.com/Mirantis/rekustomize/pkg/export"
 	"github.com/Mirantis/rekustomize/pkg/filter"
+	"github.com/Mirantis/rekustomize/pkg/helm"
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/api/konfig"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/sets"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -137,6 +139,7 @@ type exportOpts struct {
 	clusters      []string
 	clusterGroups map[string]sets.String
 	cleanupRules  cleanup.Rules
+	clustersIndex *types.ClusterIndex
 }
 
 func (opts *exportOpts) parseCleanupRules() error {
@@ -188,6 +191,22 @@ func (opts *exportOpts) parseClusterFilter() error {
 		"selected", slices.Sorted(maps.Keys(filteredClusters)),
 		"skipped", slices.Sorted(maps.Keys(skippedClusters)),
 	)
+	opts.clustersIndex = types.NewClusterIndex()
+	clusters := map[string]*types.Cluster{}
+	for _, group := range slices.Sorted(maps.Keys(opts.clusterGroups)) {
+		names := opts.clusterGroups[group]
+		for name := range names {
+			cluster, found := clusters[name]
+			if !found {
+				cluster = &types.Cluster{Name: name}
+				clusters[name] = cluster
+			}
+			cluster.Tags = append(cluster.Tags, group)
+		}
+	}
+	for _, name := range slices.Sorted(maps.Keys(clusters)) {
+		opts.clustersIndex.Add(*clusters[name])
+	}
 	return nil
 }
 
@@ -233,20 +252,68 @@ func (opts *exportOpts) runMulti(dir string) error {
 
 	return opts.exportComponents(buffers, dir)
 }
+func (opts *exportOpts) convertBuffers(buffers map[string]*kio.PackageBuffer) (map[resid.ResId]map[types.ClusterId]*yaml.RNode, error) {
+	resources := map[resid.ResId]map[types.ClusterId]*yaml.RNode{}
+	for clusterName, buffer := range buffers {
+		cluster, err := opts.clustersIndex.Id(clusterName)
+		if err != nil {
+			return nil, err
+		}
+		for _, rn := range buffer.Nodes {
+			id := resid.FromRNode(rn)
+			byCluster, exists := resources[id]
+			if !exists {
+				byCluster = map[types.ClusterId]*yaml.RNode{}
+				resources[id] = byCluster
+			}
+			byCluster[cluster] = rn
+		}
+	}
+	return resources, nil
+}
 
 func (opts *exportOpts) exportCharts(buffers map[string]*kio.PackageBuffer, dir string) error {
-	chart, err := dedup.BuildHelmChart(&opts.HelmCharts[0], buffers, opts.clusterGroups, filepath.Join(dir, "charts"))
+	chartMeta := opts.HelmCharts[0]
+	chart := helm.NewChart(chartMeta, opts.clustersIndex)
+	chartDir := filepath.Join(dir, "charts", chartMeta.Name)
+	if err := os.MkdirAll(chartDir, 0o777); err != nil {
+		return fmt.Errorf("unable to create %v: %w", chartDir, err)
+	}
+
+	resources, err := opts.convertBuffers(buffers)
 	if err != nil {
 		return err
+	}
+
+	for id, byCluster := range resources {
+		if err := chart.Add(id, byCluster); err != nil {
+			return err
+		}
 	}
 
 	diskFs := filesys.MakeFsOnDisk()
-	if err := chart.Save(diskFs); err != nil {
+	if err := chart.Store(diskFs, chartDir); err != nil {
 		return err
 	}
-	err = dedup.SaveClusterCharts(diskFs, filepath.Join(dir, "overlays"), chart)
-	if err != nil {
-		return err
+	for id, cluster := range opts.clustersIndex.All() {
+		path := filepath.Join(dir, "overlays", cluster.Name, "kustomization.yaml")
+		kust := &types.Kustomization{}
+		kust.Kind = types.KustomizationKind
+		chartHome, err := filepath.Rel(filepath.Dir(path), filepath.Dir(chartDir))
+		kust.HelmGlobals = &types.HelmGlobals{
+			ChartHome: chartHome,
+		}
+		kust.HelmCharts = []types.HelmChart{chart.Instance(id)}
+		kustBody, err := yaml.Marshal(kust)
+		if err != nil {
+			return fmt.Errorf("unable to serialize %v: %w", path, err)
+		}
+		if err := os.MkdirAll(filepath.Dir(path), 0o777); err != nil {
+			return fmt.Errorf("unable to create %v: %w", path, err)
+		}
+		if err := os.WriteFile(path, kustBody, 0o666); err != nil {
+			return fmt.Errorf("unable to write %v: %w", path, err)
+		}
 	}
 
 	return nil

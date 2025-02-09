@@ -2,11 +2,11 @@
 apiVersion: v1
 kind: Service
 metadata:
+  labels:
+    app: myapp
+    env: {{ index .Values.global "myapp/Service/myapp-svc/metadata/labels/env" }}
   name: myapp-svc
   namespace: myapp
-  labels:
-    env: {{ index .Values.global "myapp/Service/myapp-svc/metadata/labels/env" }}
-    app: myapp
 spec:
   internalTrafficPolicy: Cluster
   ipFamilies:

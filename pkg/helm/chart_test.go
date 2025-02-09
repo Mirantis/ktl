@@ -15,6 +15,7 @@ import (
 )
 
 //go:embed testdata/chart
+//go:embed testdata/chart/templates/_helpers.tpl
 var chartFs embed.FS
 
 func TestChart(t *testing.T) {
@@ -43,7 +44,7 @@ func TestChart(t *testing.T) {
 		t.Fatal(err)
 	}
 	gotFs := filesys.MakeFsInMemory()
-	if err := chart.Store(gotFs); err != nil {
+	if err := chart.Store(gotFs, "/"); err != nil {
 		t.Fatal(err)
 	}
 	got := e2e.ReadFiles(gotFs, "/")

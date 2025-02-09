@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"iter"
 	"maps"
+	"math"
 	"slices"
 	"sort"
 	"strings"
@@ -34,6 +35,27 @@ func NewClusterIndex() *ClusterIndex {
 		byName:       map[string]ClusterId{},
 		cachedGroups: map[string]string{},
 	}
+}
+
+func (idx *ClusterIndex) All() iter.Seq2[ClusterId, Cluster] {
+	if len(idx.items) != len(idx.ids) {
+		panic(fmt.Errorf("corrupted cluster index"))
+	}
+	return func(yield func(ClusterId, Cluster) bool) {
+		for i := range len(idx.items) {
+			if !yield(idx.ids[i], idx.items[i]) {
+				return
+			}
+		}
+	}
+}
+
+func (idx *ClusterIndex) Id(name string) (ClusterId, error) {
+	id, found := idx.byName[name]
+	if found {
+		return id, nil
+	}
+	return math.MaxUint32, fmt.Errorf("cluster not found: %s", name)
 }
 
 func (idx *ClusterIndex) Add(cluster Cluster) ClusterId {

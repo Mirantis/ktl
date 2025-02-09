@@ -1,9 +1,12 @@
 package helm
 
 import (
+	"bytes"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"maps"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -12,11 +15,16 @@ import (
 	"github.com/Mirantis/rekustomize/pkg/yutil"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
+	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	"sigs.k8s.io/kustomize/kyaml/openapi"
 	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/sets"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
+
+//go:embed data/_helpers.tpl
+var helpersTpl []byte
 
 type ChartValues map[string]*yaml.Node
 
@@ -68,22 +76,33 @@ func (chart *Chart) templateName(id resid.ResId) string {
 	return strings.ToLower(fmt.Sprintf("%s-%s.yaml", id.Name, id.Kind))
 }
 
-func (chart *Chart) storeTemplates(fileSys filesys.FileSystem) error {
+func (chart *Chart) storeTemplates(fileSys filesys.FileSystem, dir string) error {
+	tplDir := filepath.Join(dir, "templates")
+	if err := fileSys.MkdirAll(tplDir); err != nil {
+		return err
+	}
+	buf := &bytes.Buffer{}
 	for id, rn := range chart.templates {
-		name := chart.templateName(id)
-		template, err := rn.String()
+		path := filepath.Join(tplDir, chart.templateName(id))
+		buf.Reset()
+		err := kio.ByteWriter{
+			Writer: buf,
+
+			ClearAnnotations: []string{kioutil.PathAnnotation},
+		}.Write([]*yaml.RNode{rn})
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to serialize %v: %w", path, err)
 		}
-		template = strings.ReplaceAll(template, "# HELM"+chart.token+": ", "")
-		if err := fileSys.WriteFile("templates/"+name, []byte(template)); err != nil {
-			return err
+		body := bytes.ReplaceAll(buf.Bytes(), []byte("# HELM"+chart.token+": "), []byte{})
+		if err := fileSys.WriteFile(path, body); err != nil {
+			return fmt.Errorf("unable to write %v: %w", path, err)
 		}
 	}
-	return nil
+
+	return fileSys.WriteFile(filepath.Join(tplDir, "_helpers.tpl"), helpersTpl)
 }
 
-func (chart *Chart) storeValues(fileSys filesys.FileSystem) error {
+func (chart *Chart) storeValues(fileSys filesys.FileSystem, dir string) error {
 	presets := yaml.NewMapRNode(nil)
 	presetNames := slices.Sorted(maps.Keys(chart.presetValues))
 	for _, presetName := range presetNames {
@@ -108,14 +127,14 @@ func (chart *Chart) storeValues(fileSys filesys.FileSystem) error {
 	if err := root.SetMapField(presets, "preset_values"); err != nil {
 		panic(err)
 	}
-	return fileSys.WriteFile("values.yaml", []byte(root.MustString()))
+	return fileSys.WriteFile(filepath.Join(dir, "values.yaml"), []byte(root.MustString()))
 }
 
-func (chart *Chart) Store(fileSys filesys.FileSystem) error {
-	if err := chart.storeTemplates(fileSys); err != nil {
+func (chart *Chart) Store(fileSys filesys.FileSystem, dir string) error {
+	if err := chart.storeTemplates(fileSys, dir); err != nil {
 		return err
 	}
-	if err := chart.storeValues(fileSys); err != nil {
+	if err := chart.storeValues(fileSys, dir); err != nil {
 		return err
 	}
 	metaBytes, err := yaml.Marshal(chart.meta)
@@ -123,7 +142,7 @@ func (chart *Chart) Store(fileSys filesys.FileSystem) error {
 		panic(err)
 	}
 	body := "apiVersion: v2\n" + string(metaBytes)
-	return fileSys.WriteFile("Chart.yaml", []byte(body))
+	return fileSys.WriteFile(filepath.Join(dir, "Chart.yaml"), []byte(body))
 }
 
 func (chart *Chart) Instance(cluster types.ClusterId) types.HelmChart {
@@ -166,7 +185,7 @@ func (chart *Chart) Add(id resid.ResId, resources map[types.ClusterId]*yaml.RNod
 		occurances = append(occurances, slices.Repeat([]int{0}, max(0, depth+2-len(occurances)))...)
 		occurances[depth+1] = len(it.Clusters())
 		isOptional := occurances[depth+1] < occurances[depth]
-		varName := varPrefix + path.String()
+		varName := strings.TrimSuffix(varPrefix+path.String(), "/")
 		variants := resource.GroupByValue(it.Values())
 		value := chart.value(varName, variants, isOptional)
 		if isOptional {
@@ -180,7 +199,11 @@ func (chart *Chart) Add(id resid.ResId, resources map[types.ClusterId]*yaml.RNod
 	}
 
 	rn := builder.Build()
-	rn.YNode().HeadComment = fmt.Sprintf(`HELM%s: {{- include "merge_presets" . -}}`, chart.token)
+	headComment := fmt.Sprintf(`HELM%s: {{- include "merge_presets" . -}}`, chart.token)
+	if rn.YNode().HeadComment != "" {
+		headComment += "\n" + rn.YNode().HeadComment
+	}
+	rn.YNode().HeadComment = headComment
 	yutil.FixComments(rn.YNode())
 	chart.templates[id] = rn
 

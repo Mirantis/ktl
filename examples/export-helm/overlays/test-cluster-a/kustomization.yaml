@@ -6,5 +6,5 @@ helmCharts:
   version: v0.1
   valuesInline:
     presets:
-    - prod,test
+    - prod+test
     - test

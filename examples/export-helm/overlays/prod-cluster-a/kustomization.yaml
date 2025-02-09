@@ -9,5 +9,4 @@ helmCharts:
       myapp/Deployment/myapp/spec/replicas: 3
     presets:
     - prod
-    - prod,test
-    - prod-cluster-a
+    - prod+test

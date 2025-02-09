@@ -2,38 +2,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  labels:
+    app: myapp
+    env: {{ index .Values.global "myapp/Deployment/myapp/metadata/labels/env" }}
   name: myapp
   namespace: myapp
-  labels:
-    env: {{ index .Values.global "myapp/Deployment/myapp/metadata/labels/env" }}
-    app: myapp
 spec:
-  template:
-    spec:
-      containers:
-      - name: myapp
-        image: {{ index .Values.global "myapp/Deployment/myapp/spec/template/spec/containers/[name=myapp]/image" }}
-        {{- if index .Values.global "myapp/Deployment/myapp/spec/template/spec/containers/[name=myapp]/args" }}
-        args:
-        - --debug
-        {{- end }}
-
-        envFrom:
-        - configMapRef:
-            name: myapp-env
-        imagePullPolicy: IfNotPresent
-        resources: {}
-        terminationMessagePath: /dev/termination-log
-      schedulerName: default-scheduler
-      securityContext: {}
-    metadata:
-      labels:
-        app: myapp
+  progressDeadlineSeconds: 600
   {{- if index .Values.global "myapp/Deployment/myapp/spec/replicas" }}
   replicas: {{ index .Values.global "myapp/Deployment/myapp/spec/replicas" }}
-  {{- end }}
+  {{- end }} # myapp/Deployment/myapp/spec/replicas
 
-  progressDeadlineSeconds: 600
   selector:
     matchLabels:
       app: myapp
@@ -42,3 +21,24 @@ spec:
       maxSurge: 25%
       maxUnavailable: 25%
     type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - {{- if index .Values.global "myapp/Deployment/myapp/spec/template/spec/containers/[name=myapp]/args" }}
+        args:
+        - --debug
+        {{- end }} # myapp/Deployment/myapp/spec/template/spec/containers/[name=myapp]/args
+
+        envFrom:
+        - configMapRef:
+            name: myapp-env
+        image: {{ index .Values.global "myapp/Deployment/myapp/spec/template/spec/containers/[name=myapp]/image" }}
+        imagePullPolicy: IfNotPresent
+        name: myapp
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+      schedulerName: default-scheduler
+      securityContext: {}

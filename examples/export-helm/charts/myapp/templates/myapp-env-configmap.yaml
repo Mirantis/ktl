@@ -1,12 +1,12 @@
 {{- include "merge_presets" . -}}
 apiVersion: v1
+data:
+  MYAPP_VAR1: value1
+  MYAPP_VAR2: {{ index .Values.global "myapp/ConfigMap/myapp-env/data/MYAPP_VAR2" }}
 kind: ConfigMap
 metadata:
+  labels:
+    app: myapp
+    env: {{ index .Values.global "myapp/ConfigMap/myapp-env/metadata/labels/env" }}
   name: myapp-env
   namespace: myapp
-  labels:
-    env: {{ index .Values.global "myapp/ConfigMap/myapp-env/metadata/labels/env" }}
-    app: myapp
-data:
-  MYAPP_VAR2: {{ index .Values.global "myapp/ConfigMap/myapp-env/data/MYAPP_VAR2" }}
-  MYAPP_VAR1: value1
