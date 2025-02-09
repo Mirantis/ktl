@@ -26,9 +26,9 @@ import (
 //go:embed data/_helpers.tpl
 var helpersTpl []byte
 
-type ChartValues map[string]*yaml.Node
+type chartValues map[string]*yaml.Node
 
-func (cv ChartValues) AsMap() map[string]any {
+func (cv chartValues) asMap() map[string]any {
 	rn := yaml.NewMapRNode(nil)
 	for name, value := range cv {
 		if err := rn.SetMapField(yaml.NewRNode(value), name); err != nil {
@@ -51,8 +51,8 @@ type Chart struct {
 	templates map[resid.ResId]*yaml.RNode
 
 	token          string
-	presetValues   map[string]ChartValues
-	inlineValues   map[types.ClusterId]ChartValues
+	presetValues   map[string]chartValues
+	inlineValues   map[types.ClusterId]chartValues
 	clusterPresets map[types.ClusterId]sets.String
 	clusters       *types.ClusterIndex
 	clusterIds     []types.ClusterId
@@ -64,8 +64,8 @@ func NewChart(meta types.HelmChart, clusters *types.ClusterIndex) *Chart {
 		clusters:       clusters,
 		clusterIds:     clusters.Ids(),
 		token:          rand.String(8),
-		presetValues:   map[string]ChartValues{},
-		inlineValues:   map[types.ClusterId]ChartValues{},
+		presetValues:   map[string]chartValues{},
+		inlineValues:   map[types.ClusterId]chartValues{},
 		clusterPresets: map[types.ClusterId]sets.String{},
 		templates:      map[resid.ResId]*yaml.RNode{},
 	}
@@ -152,7 +152,7 @@ func (chart *Chart) Instance(cluster types.ClusterId) types.HelmChart {
 		helmChart.ValuesInline["presets"] = slices.Sorted(maps.Keys(presets))
 	}
 	if inline, found := chart.inlineValues[cluster]; found {
-		helmChart.ValuesInline["global"] = inline.AsMap()
+		helmChart.ValuesInline["global"] = inline.asMap()
 	}
 	return helmChart
 }
@@ -237,7 +237,7 @@ func (chart *Chart) value(variable string, variants []*resource.ValueGroup, opti
 	return node
 }
 
-func (chart *Chart) values(ids []types.ClusterId) ChartValues {
+func (chart *Chart) values(ids []types.ClusterId) chartValues {
 	if len(ids) == 0 {
 		panic(fmt.Errorf("missing clusters"))
 	}
@@ -247,14 +247,14 @@ func (chart *Chart) values(ids []types.ClusterId) ChartValues {
 		cluster := ids[0]
 		values, exists := chart.inlineValues[cluster]
 		if !exists {
-			values = ChartValues{}
+			values = chartValues{}
 			chart.inlineValues[cluster] = values
 		}
 		return values
 	} else {
 		values, exists := chart.presetValues[preset]
 		if !exists {
-			values = ChartValues{}
+			values = chartValues{}
 			chart.presetValues[preset] = values
 			for _, cluster := range ids {
 				clusterPresets, clusterExists := chart.clusterPresets[cluster]
