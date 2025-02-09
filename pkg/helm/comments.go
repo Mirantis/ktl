@@ -1,4 +1,4 @@
-package yutil
+package helm
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func SetComments(comments ...string) CommentsSetter {
+func setComments(comments ...string) commentsSetter {
 	var head, line, foot string
 	switch len(comments) {
 	case 1:
@@ -20,20 +20,20 @@ func SetComments(comments ...string) CommentsSetter {
 		foot = comments[2]
 	}
 
-	return CommentsSetter{
+	return commentsSetter{
 		HeadComment: head,
 		LineComment: line,
 		FootComment: foot,
 	}
 }
 
-type CommentsSetter struct {
+type commentsSetter struct {
 	HeadComment string
 	LineComment string
 	FootComment string
 }
 
-func (cs CommentsSetter) Filter(rn *yaml.RNode) (*yaml.RNode, error) {
+func (cs commentsSetter) Filter(rn *yaml.RNode) (*yaml.RNode, error) {
 	if rn == nil {
 		return nil, fmt.Errorf("nil rnode")
 	}
@@ -47,7 +47,7 @@ func (cs CommentsSetter) Filter(rn *yaml.RNode) (*yaml.RNode, error) {
 	return rn, nil
 }
 
-func FixComments(node *yaml.Node) {
+func fixComments(node *yaml.Node) {
 	if node == nil {
 		return
 	}
@@ -56,7 +56,7 @@ func FixComments(node *yaml.Node) {
 	case yaml.MappingNode:
 		for i := 0; i < len(node.Content); i += 2 {
 			k, v := node.Content[i], node.Content[i+1]
-			FixComments(v)
+			fixComments(v)
 
 			if k.HeadComment != "" && v.HeadComment != "" {
 				k.HeadComment += "\n"
@@ -77,7 +77,7 @@ func FixComments(node *yaml.Node) {
 		}
 
 		for i := 0; i < len(node.Content)-1; i++ {
-			FixComments(nodes[i])
+			fixComments(nodes[i])
 
 			if nodes[i].FootComment != "" && nodes[i+1].HeadComment != "" {
 				nodes[i].FootComment += "\n"
@@ -88,7 +88,7 @@ func FixComments(node *yaml.Node) {
 		}
 
 		last := nodes[len(nodes)-1]
-		FixComments(last)
+		fixComments(last)
 
 		if node.FootComment != "" && last.FootComment != "" {
 			last.FootComment += "\n"

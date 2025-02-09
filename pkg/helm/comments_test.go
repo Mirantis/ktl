@@ -1,4 +1,4 @@
-package yutil
+package helm
 
 import (
 	"testing"
@@ -81,16 +81,16 @@ root2: {}
 	)
 
 	rn := yaml.MustParse(input)
-	if err := rn.PipeE(yaml.Lookup("root1", "[node=a]"), SetComments("head0", "foot0")); err != nil {
+	if err := rn.PipeE(yaml.Lookup("root1", "[node=a]"), setComments("head0", "foot0")); err != nil {
 		t.Fatal(err)
 	}
-	if err := rn.PipeE(yaml.Lookup("root1", "[node=a]", "opt"), SetComments("head1", "line1", "foot1")); err != nil {
+	if err := rn.PipeE(yaml.Lookup("root1", "[node=a]", "opt"), setComments("head1", "line1", "foot1")); err != nil {
 		t.Fatal(err)
 	}
-	if err := rn.PipeE(yaml.Lookup("root1", "[node=b]"), SetComments("head2", "foot2")); err != nil {
+	if err := rn.PipeE(yaml.Lookup("root1", "[node=b]"), setComments("head2", "foot2")); err != nil {
 		t.Fatal(err)
 	}
-	FixComments(rn.YNode())
+	fixComments(rn.YNode())
 	got, err := rn.String()
 	if err != nil {
 		t.Fatal(err)

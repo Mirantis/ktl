@@ -12,7 +12,6 @@ import (
 
 	"github.com/Mirantis/rekustomize/pkg/resource"
 	"github.com/Mirantis/rekustomize/pkg/types"
-	"github.com/Mirantis/rekustomize/pkg/yutil"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/openapi"
@@ -193,7 +192,7 @@ func (chart *Chart) Add(id resid.ResId, resources map[types.ClusterId]*yaml.RNod
 		headComment += "\n" + rn.YNode().HeadComment
 	}
 	rn.YNode().HeadComment = headComment
-	yutil.FixComments(rn.YNode())
+	fixComments(rn.YNode())
 	chart.templates[id] = rn
 
 	return nil
