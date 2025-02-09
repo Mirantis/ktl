@@ -29,8 +29,12 @@ export:
     include: ["my*app"]
   labelSelectors: ["skip-me!=yes"]
 - apiResources:
-    include: ["namespaces", "customresourcedefinitions.apiextensions.k8s.io"]
+    include: ["customresourcedefinitions.apiextensions.k8s.io"]
   labelSelectors: ["skip-me!=yes"]
+- apiResources:
+    include: ["namespaces"]
+  names:
+    include: ["my*app"]
 skip:
   - resources:
       - kind: Namespace
@@ -40,8 +44,3 @@ skip:
   - fields:
       - "metadata.annotations.ignored-annotation"
       - "metadata.labels.ignored-label"
-  - resources:
-      - kind: Namespace
-    excluding:
-      - name: myapp
-      - name: mynewapp

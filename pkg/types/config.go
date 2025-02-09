@@ -14,6 +14,7 @@ type SkipRule struct {
 }
 
 type ExportRule struct {
+	Names          PatternSelector `json:"names" yaml:"names"`
 	Namespaces     PatternSelector `json:"namespaces" yaml:"namespaces"`
 	Resources      PatternSelector `json:"apiResources" yaml:"apiResources"`
 	LabelSelectors []string        `json:"labelSelectors" yaml:"labelSelectors"`

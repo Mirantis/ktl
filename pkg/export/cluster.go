@@ -90,7 +90,11 @@ func (c *Cluster) export(rule types.ExportRule) (map[resid.ResId]*yaml.RNode, er
 	}
 	byResId := map[resid.ResId]*yaml.RNode{}
 	for _, rn := range nodes {
-		byResId[resid.FromRNode(rn)] = rn
+		id := resid.FromRNode(rn)
+		if 0 == len(rule.Names.Select([]string{id.Name})) {
+			continue
+		}
+		byResId[id] = rn
 		SetObjectPath(rn, true)
 	}
 	return byResId, nil
