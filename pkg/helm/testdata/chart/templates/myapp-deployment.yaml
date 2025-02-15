@@ -5,12 +5,12 @@ metadata:
   name: myapp
   namespace: myapp
   labels:
-    env: {{ index .Values.global "myapp/Deployment/myapp/metadata/labels/env" }}
+    env: {{ index .Values.global "myapp/Deployment/myapp.metadata.labels.env" }}
     app: myapp
 spec:
-  {{- if index .Values.global "myapp/Deployment/myapp/spec/replicas" }}
-  replicas: {{ index .Values.global "myapp/Deployment/myapp/spec/replicas" }}
-  {{- end }} # myapp/Deployment/myapp/spec/replicas
+  {{- if index .Values.global "myapp/Deployment/myapp.spec.replicas" }}
+  replicas: {{ index .Values.global "myapp/Deployment/myapp.spec.replicas" }}
+  {{- end }} # myapp/Deployment/myapp.spec.replicas
 
   selector:
     matchLabels:
@@ -22,11 +22,11 @@ spec:
     spec:
       containers:
       - name: myapp
-        {{- if index .Values.global "myapp/Deployment/myapp/spec/template/spec/containers/[name=myapp]/args" }}
+        {{- if index .Values.global "myapp/Deployment/myapp.spec.template.spec.containers.[name=myapp].args" }}
         args: ["--debug"]
-        {{- end }} # myapp/Deployment/myapp/spec/template/spec/containers/[name=myapp]/args
+        {{- end }} # myapp/Deployment/myapp.spec.template.spec.containers.[name=myapp].args
 
-        image: {{ index .Values.global "myapp/Deployment/myapp/spec/template/spec/containers/[name=myapp]/image" }}
+        image: {{ index .Values.global "myapp/Deployment/myapp.spec.template.spec.containers.[name=myapp].image" }}
         envFrom:
         - configMapRef:
             name: myapp-env

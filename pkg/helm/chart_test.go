@@ -61,13 +61,13 @@ func TestChart(t *testing.T) {
 	wantInstances[1].ValuesInline = map[string]any{
 		"presets": []string{"prod", "prod_test"},
 		"global": map[string]any{
-			"myapp/Deployment/myapp/spec/replicas": 3.0,
+			"myapp/Deployment/myapp.spec.replicas": 3.0,
 		},
 	}
 	wantInstances[2].ValuesInline = map[string]any{
 		"presets": []string{"prod", "prod_test"},
 		"global": map[string]any{
-			"myapp/Deployment/myapp/spec/replicas": 5.0,
+			"myapp/Deployment/myapp.spec.replicas": 5.0,
 		},
 	}
 	wantInstances[3].ValuesInline = map[string]any{
