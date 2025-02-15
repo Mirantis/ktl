@@ -30,8 +30,8 @@ export:
     include: ["jobs"]
   names:
     include: ["static-task"]
-skip:
-  # "skip" can be used to remove specific fields or resources.
+filters:
+  # "SkipFilter" can be used to remove specific fields or resources.
   #
   # TODO: add examples for these filters:
   # - "excluding"
@@ -40,11 +40,13 @@ skip:
   #
   # TODO: explain the "fields" syntax
   # (subject to change: switch to RFC6901 NodePath instead of "."-notation)
-  - resources:
+  - kind: SkipFilter
+    resources:
       - kind: Namespace
         name: myapp
     fields:
       - "metadata.labels.[my.escaped/label]"
-  - fields:
+  - kind: SkipFilter
+    fields:
       - "metadata.annotations.ignored-annotation"
       - "metadata.labels.ignored-label"

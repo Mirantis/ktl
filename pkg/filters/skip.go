@@ -1,24 +1,46 @@
-package types
+package filters
 
 import (
+	"github.com/Mirantis/rekustomize/pkg/types"
+	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/kio/filters"
 	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-type SkipRule struct {
-	Resources []*Selector `json:"resources" yaml:"resources"`
-	Except    []*Selector `json:"except" yaml:"except"`
-	Fields    []NodePath  `json:"fields" yaml:"fields"`
+func init() {
+	filters.Filters["SkipFilter"] = func() kio.Filter { return &SkipFilter{} }
 }
 
-func (rule *SkipRule) Apply(rn *yaml.RNode) error {
+type SkipFilter struct {
+	Kind      string            `yaml:"kind"`
+	Resources []*types.Selector `yaml:"resources"`
+	Except    []*types.Selector `yaml:"except"`
+	Fields    []types.NodePath  `yaml:"fields"`
+}
+
+func (rule *SkipFilter) Filter(input []*yaml.RNode) ([]*yaml.RNode, error) {
+	output := []*yaml.RNode{}
+	for _, node := range input {
+		res, err := rule.filter(node)
+		if err != nil {
+			return nil, err
+		}
+		if res.IsNilOrEmpty() {
+			continue
+		}
+		output = append(output, res)
+	}
+	return output, nil
+}
+
+func (rule *SkipFilter) filter(rn *yaml.RNode) (*yaml.RNode, error) {
 	if !rule.match(rn) {
-		return nil
+		return rn, nil
 	}
 
 	if len(rule.Fields) < 1 {
-		rn.SetYNode(nil)
-		return nil
+		return nil, nil
 	}
 
 	for _, path := range rule.Fields {
@@ -35,10 +57,10 @@ func (rule *SkipRule) Apply(rn *yaml.RNode) error {
 		rn.Pipe(functions...)
 	}
 
-	return nil
+	return rn, nil
 }
 
-func (rule *SkipRule) match(rn *yaml.RNode) bool {
+func (rule *SkipFilter) match(rn *yaml.RNode) bool {
 	if len(rule.Resources) > 0 && !matchSelectors(rn, rule.Resources) {
 		return false
 	}
@@ -48,7 +70,7 @@ func (rule *SkipRule) match(rn *yaml.RNode) bool {
 	return true
 }
 
-func matchSelectors(rn *yaml.RNode, selectors []*Selector) bool {
+func matchSelectors(rn *yaml.RNode, selectors []*types.Selector) bool {
 	id := resid.FromRNode(rn)
 	for _, selector := range selectors {
 		if !id.IsSelectedBy(selector.ResId) {

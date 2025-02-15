@@ -25,8 +25,9 @@ export:
     - "nodes"
     - "persistentvolumes"
     - "volumeattachments.storage.k8s.io"
-skip:
-- fields:
+filters:
+- kind: SkipFilter
+  fields:
   - "status"
   - "metadata.uid"
   - "metadata.selfLink"
@@ -34,13 +35,15 @@ skip:
   - "metadata.generation"
   - "metadata.creationTimestamp"
   - "metadata.annotations.[kubectl.kubernetes.io/last-applied-configuration]"
-- resources:
+- kind: SkipFilter
+  resources:
   - kind: Deployment
     group: apps
     version: v1
   fields:
   - "metadata.annotations.[deployment.kubernetes.io/revision]"
-- resources:
+- kind: SkipFilter
+  resources:
   - kind: Job
     group: batch
     version: v1
@@ -50,13 +53,15 @@ skip:
   - "spec.selector.matchLabels.[batch.kubernetes.io/controller-uid]"
   - "spec.template.metadata.labels.[batch.kubernetes.io/controller-uid]"
   - "spec.template.metadata.labels.controller-uid"
-- resources:
+- kind: SkipFilter
+  resources:
   - kind: Service
     version: v1
   fields:
   - "spec.clusterIP"
   - "spec.clusterIPs"
-- resources:
+- kind: SkipFilter
+  resources:
   - kind: ConfigMap
     version: v1
     name: "kube-root-ca.crt"

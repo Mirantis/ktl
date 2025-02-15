@@ -12,6 +12,7 @@ import (
 
 	"github.com/Mirantis/rekustomize/pkg/cleanup"
 	"github.com/Mirantis/rekustomize/pkg/export"
+	_ "github.com/Mirantis/rekustomize/pkg/filters"
 	"github.com/Mirantis/rekustomize/pkg/helm"
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
 	"github.com/Mirantis/rekustomize/pkg/kustomize"
@@ -20,6 +21,7 @@ import (
 	"sigs.k8s.io/kustomize/api/konfig"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/kio/filters"
 	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -54,10 +56,10 @@ func exportCommand() *cobra.Command {
 			if err := opts.parseClusterFilter(); err != nil {
 				return err
 			}
-			if err := opts.parseCleanupRules(); err != nil {
-				return err
+			for i := range opts.Filters {
+				opts.filters = append(opts.filters, opts.Filters[i].Filter)
 			}
-			opts.cleanupRules = append(opts.cleanupRules, cleanup.DefaultRules()...)
+
 			return opts.Run(dir)
 		},
 	}
@@ -67,8 +69,8 @@ func exportCommand() *cobra.Command {
 type exportOpts struct {
 	types.Rekustomization
 	clusters      []string
-	cleanupRules  cleanup.Rules
 	clustersIndex *types.ClusterIndex
+	filters       []kio.Filter
 }
 
 func (opts *exportOpts) setDefaults(defaults *types.Rekustomization) {
@@ -84,14 +86,8 @@ func (opts *exportOpts) setDefaults(defaults *types.Rekustomization) {
 		}
 		opts.ExportRules[i].LabelSelectors = append(opts.ExportRules[i].LabelSelectors, labelSelectors...)
 	}
-	opts.SkipRules = append(opts.SkipRules, defaults.SkipRules...)
-}
-
-func (opts *exportOpts) parseCleanupRules() error {
-	for i := range opts.SkipRules {
-		opts.cleanupRules = append(opts.cleanupRules, &opts.SkipRules[i])
-	}
-	return nil
+	opts.Filters = append(opts.Filters, defaults.Filters...)
+	opts.Filters = append(opts.Filters, filters.KFilter{Filter: cleanup.DefaultRules()})
 }
 
 func (opts *exportOpts) parseClusterFilter() error {
@@ -132,7 +128,7 @@ func (opts *exportOpts) runMulti(dir string) error {
 				Rules:  opts.ExportRules,
 			}
 
-			err := exporter.Execute(buf, opts.cleanupRules)
+			err := exporter.Execute(buf, opts.filters...)
 			errs = append(errs, err)
 		}()
 	}
@@ -279,7 +275,7 @@ func (opts *exportOpts) runSingle(dir string) error {
 		Rules:  opts.ExportRules,
 	}
 
-	if err := exporter.Execute(out, opts.cleanupRules); err != nil {
+	if err := exporter.Execute(out, opts.filters...); err != nil {
 		return err
 	}
 	// REVISIT: overlaps with dedup.Component.Save()

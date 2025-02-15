@@ -32,12 +32,14 @@ helmCharts:
   # charts with filters similar to "skip".
   - name: "myapp"
     version: "v0.1"
-skip:
-  - resources:
+filters:
+  - kind: SkipFilter
+    resources:
       - kind: Namespace
         name: myapp
     fields:
       - "metadata.labels.[my.escaped/label]"
-  - fields:
+  - kind: SkipFilter
+    fields:
       - "metadata.annotations.ignored-annotation"
       - "metadata.labels.ignored-label"

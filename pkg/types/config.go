@@ -1,22 +1,25 @@
 package types
 
+import "sigs.k8s.io/kustomize/kyaml/kio/filters"
+
 const DefaultFileName = "rekustomization.yaml"
 
 type ClusterGroup struct {
-	Names PatternSelector `json:"names" yaml:"names"`
-	Tags  StrList         `json:"tags" yaml:"tags"`
+	Names PatternSelector `yaml:"names"`
+	Tags  StrList         `yaml:"tags"`
 }
 
 type ExportRule struct {
-	Names          PatternSelector `json:"names" yaml:"names"`
-	Namespaces     PatternSelector `json:"namespaces" yaml:"namespaces"`
-	Resources      PatternSelector `json:"apiResources" yaml:"apiResources"`
-	LabelSelectors []string        `json:"labelSelectors" yaml:"labelSelectors"`
+	Names          PatternSelector `yaml:"names"`
+	Namespaces     PatternSelector `yaml:"namespaces"`
+	Resources      PatternSelector `yaml:"apiResources"`
+	LabelSelectors []string        `yaml:"labelSelectors"`
 }
 
 type Rekustomization struct {
-	ClusterGroups []ClusterGroup `json:"clusters" yaml:"clusters"`
-	ExportRules   []ExportRule   `json:"export" yaml:"export"`
-	SkipRules     []SkipRule     `json:"skip" yaml:"skip"`
-	HelmCharts    []HelmChart    `json:"helmCharts" yaml:"helmCharts"`
+	ClusterGroups []ClusterGroup `yaml:"clusters"`
+	ExportRules   []ExportRule   `yaml:"export"`
+	HelmCharts    []HelmChart    `yaml:"helmCharts"`
+
+	Filters []filters.KFilter `yaml:"filters"`
 }
