@@ -1,10 +1,46 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-labels:
-  - pairs:
-      env: dev
+components:
+- ../base
 
-resources:
-  - myapp
-  - mynewapp
+patches:
+- patch: |-
+    $patch: delete
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: simple-app-db
+- target:
+    kind: ConfigMap
+    name: generated-cm
+  patch: |-
+    - op: replace
+      path: /data
+      value:
+        region: eu1
+- target:
+    kind: ConfigMap
+    name: simple-app-env
+  patch: |-
+    - op: replace
+      path: /data
+      value:
+        ENV_VAR1: common-value
+        ENV_VAR2: dev-value
+        ENV_VAR3: dev-cluster-a-value
+- target:
+    kind: Deployment
+    name: simple-app
+  patch: |-
+    - op: replace
+      path: /spec/replicas
+      value: 1
+    - op: replace
+      path: /spec/template/spec/containers/0/image
+      value: example.com/simple-app:a92bbcbf624c
+    - op: add
+      path: /spec/template/spec/containers/0/args
+      value: [ "--debug" ]
+    - op: add
+      path: /metadata/annotations/dev.example.com~1info
+      value: flaky-tests

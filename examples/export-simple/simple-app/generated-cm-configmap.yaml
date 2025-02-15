@@ -1,0 +1,9 @@
+apiVersion: v1
+data:
+  region: eu1
+kind: ConfigMap
+metadata:
+  labels:
+    generated-by: awesome-controller
+  name: generated-cm
+  namespace: simple-app

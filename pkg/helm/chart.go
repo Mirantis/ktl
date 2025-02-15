@@ -211,7 +211,7 @@ func (chart *Chart) value(variable string, variants []*resource.ValueGroup, opti
 		value := variant.Value
 		if optional {
 			preset := chart.values(variant.Clusters)
-			preset[variable] = &yaml.Node{Kind: yaml.ScalarNode, Value: "true"}
+			preset[variable] = &yaml.Node{Kind: yaml.ScalarNode, Value: "enabled"}
 		}
 		return value
 	}

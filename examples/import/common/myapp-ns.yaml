@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: myapp
-  annotations:
-    ignored-annotation: must-be-cleared
-  labels:
-    ignored-label: must-be-cleared
-    my.escaped/label: must-be-cleared

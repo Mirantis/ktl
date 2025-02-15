@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: myapp-env
-  namespace: myapp
-  labels:
-    env: dev
-data:
-  MYAPP_VAR2: value2-dev

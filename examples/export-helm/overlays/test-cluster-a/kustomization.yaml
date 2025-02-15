@@ -2,9 +2,11 @@ kind: Kustomization
 helmGlobals:
   chartHome: ../../charts
 helmCharts:
-- name: myapp
-  version: v0.1
+- name: simple-app
+  version: v1.0
   valuesInline:
+    global:
+      simple-app/ConfigMap/simple-app-env.data.ENV_VAR3: test-cluster-a-value
     presets:
     - prod_test
     - test

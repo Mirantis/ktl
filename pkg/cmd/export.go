@@ -133,7 +133,7 @@ func (opts *exportOpts) runMulti(dir string) error {
 	if err := errors.Join(errs...); err != nil {
 		return err
 	}
-	if len(opts.HelmCharts) > 0 {
+	if opts.HelmChart.Name != "" {
 		return opts.exportCharts(buffers, dir)
 	}
 
@@ -160,7 +160,7 @@ func (opts *exportOpts) convertBuffers(buffers map[string]*kio.PackageBuffer) (m
 }
 
 func (opts *exportOpts) exportCharts(buffers map[string]*kio.PackageBuffer, dir string) error {
-	chartMeta := opts.HelmCharts[0]
+	chartMeta := opts.HelmChart
 	chart := helm.NewChart(chartMeta, opts.clustersIndex)
 	chartDir := filepath.Join(dir, "charts", chartMeta.Name)
 	if err := os.MkdirAll(chartDir, 0o777); err != nil {

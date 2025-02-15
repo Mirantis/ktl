@@ -1,0 +1,6 @@
+resources:
+- simple-app/generated-cm-configmap.yaml
+- simple-app/infra-canary-cronjob.yaml
+- simple-app/simple-app-deployment.yaml
+- simple-app/simple-app-env-configmap.yaml
+- simple-app/simple-app-service.yaml

@@ -1,0 +1,29 @@
+{{- include "merge_presets" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: simple-app
+  name: simple-app
+  namespace: simple-app
+spec:
+  replicas: {{ index .Values.global "simple-app/Deployment/simple-app.spec.replicas" }}
+  selector:
+    matchLabels:
+      app: simple-app
+  template:
+    metadata:
+      labels:
+        app: simple-app
+    spec:
+      containers:
+      - {{- if index .Values.global "simple-app/Deployment/simple-app.spec.template.spec.containers.[name=simple-app].args" }}
+        args:
+        - --debug
+        {{- end }} # simple-app/Deployment/simple-app.spec.template.spec.containers.[name=simple-app].args
+
+        envFrom:
+        - configMapRef:
+            name: simple-app-env
+        image: {{ index .Values.global "simple-app/Deployment/simple-app.spec.template.spec.containers.[name=simple-app].image" }}
+        name: simple-app

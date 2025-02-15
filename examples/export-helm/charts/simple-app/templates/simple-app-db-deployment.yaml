@@ -1,0 +1,24 @@
+{{- include "merge_presets" . -}}
+{{- if index .Values.global "simple-app/Deployment/simple-app-db" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: simple-app-db
+  name: simple-app-db
+  namespace: simple-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: simple-app-db
+  template:
+    metadata:
+      labels:
+        app: simple-app-db
+    spec:
+      containers:
+      - image: db:v2.0
+        name: db
+
+{{- end }} # simple-app/Deployment/simple-app-db

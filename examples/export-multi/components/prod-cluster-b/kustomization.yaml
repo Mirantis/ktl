@@ -1,3 +1,0 @@
-kind: Component
-patches:
-- path: myapp/myapp-deployment.yaml

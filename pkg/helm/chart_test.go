@@ -4,7 +4,6 @@ import (
 	"embed"
 	"testing"
 
-	"github.com/Mirantis/rekustomize/examples"
 	"github.com/Mirantis/rekustomize/pkg/e2e"
 	"github.com/Mirantis/rekustomize/pkg/helm"
 	"github.com/Mirantis/rekustomize/pkg/types"
@@ -14,9 +13,22 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-//go:embed testdata/chart
-//go:embed testdata/chart/templates/_helpers.tpl
-var chartFs embed.FS
+var (
+	//go:embed testdata/chart
+	//go:embed testdata/chart/templates/_helpers.tpl
+	chartFs embed.FS
+
+	//go:embed testdata/dev-cluster-a.yaml
+	appDevA string
+	//go:embed testdata/test-cluster-a.yaml
+	appTestA string
+	//go:embed testdata/test-cluster-b.yaml
+	appTestB string
+	//go:embed testdata/prod-cluster-a.yaml
+	appProdA string
+	//go:embed testdata/prod-cluster-b.yaml
+	appProdB string
+)
 
 func TestChart(t *testing.T) {
 	clusters := types.NewClusterIndex()
@@ -26,11 +38,11 @@ func TestChart(t *testing.T) {
 	testA := clusters.Add(types.Cluster{Name: "test-a", Tags: []string{"test"}})
 	testB := clusters.Add(types.Cluster{Name: "test-b", Tags: []string{"test"}})
 	resources := map[types.ClusterId]*yaml.RNode{
-		devA:  examples.MyAppDeploymentDevA,
-		prodA: examples.MyAppDeploymentProdA,
-		prodB: examples.MyAppDeploymentProdB,
-		testA: examples.MyAppDeploymentTestA,
-		testB: examples.MyAppDeploymentTestB,
+		devA:  yaml.MustParse(appDevA),
+		prodA: yaml.MustParse(appProdA),
+		prodB: yaml.MustParse(appProdB),
+		testA: yaml.MustParse(appTestA),
+		testB: yaml.MustParse(appTestB),
 	}
 
 	meta := types.HelmChart{
@@ -39,7 +51,7 @@ func TestChart(t *testing.T) {
 	}
 
 	chart := helm.NewChart(meta, clusters)
-	id := resid.FromRNode(examples.MyAppDeploymentDevA)
+	id := resid.FromRNode(resources[devA])
 	if err := chart.Add(id, resources); err != nil {
 		t.Fatal(err)
 	}

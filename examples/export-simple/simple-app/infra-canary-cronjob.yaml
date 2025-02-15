@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: infra-canary
+  namespace: simple-app
+spec:
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - image: example.com/healthcheck:v1
+            name: healthcheck
+  schedule: '* * * * *'
+  suspend: false

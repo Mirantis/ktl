@@ -1,5 +1,0 @@
-kind: Component
-patches:
-- path: myapp/myapp-deployment.yaml
-- path: myapp/myapp-env-configmap.yaml
-- path: myapp/myapp-svc-service.yaml

@@ -1,0 +1,3 @@
+kind: Component
+patches:
+- path: simple-app/simple-app-env-configmap.yaml

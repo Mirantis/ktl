@@ -1,0 +1,4 @@
+clusters:
+- names: dev-cluster-a
+export:
+- namespaces: simple-app

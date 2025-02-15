@@ -1,0 +1,9 @@
+apiVersion: v1
+data:
+  ENV_VAR1: common-value
+  ENV_VAR2: dev-value
+  ENV_VAR3: dev-cluster-a-value
+kind: ConfigMap
+metadata:
+  name: simple-app-env
+  namespace: simple-app

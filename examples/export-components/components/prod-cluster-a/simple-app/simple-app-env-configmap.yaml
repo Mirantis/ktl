@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: simple-app-env
+  namespace: simple-app
+data:
+  ENV_VAR3: prod-cluster-a-value

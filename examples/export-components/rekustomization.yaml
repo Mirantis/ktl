@@ -1,0 +1,21 @@
+clusters:
+- names: dev-*
+  tags: dev
+- names: test-*
+  tags: test
+- names: prod-*
+  tags: prod
+export:
+- namespaces: simple-app
+  labelSelectors: ['!generated-by']
+- apiResources: namespaces
+  names: simple-app
+filters:
+- kind: SkipFilter
+  fields:
+  - metadata.annotations.example\.com/generated
+  - metadata.annotations.dev\.example\.com/info[=flaky-tests]
+- kind: SkipFilter
+  resources:
+  - kind: CronJob
+    name: infra-canary

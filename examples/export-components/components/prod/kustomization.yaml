@@ -1,0 +1,5 @@
+kind: Component
+patches:
+- path: simple-app/simple-app-env-configmap.yaml
+resources:
+- simple-app/simple-app-db-deployment.yaml

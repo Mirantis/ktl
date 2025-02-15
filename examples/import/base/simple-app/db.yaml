@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simple-app-db
+  labels:
+    app: simple-app-db
+spec:
+  selector:
+    matchLabels:
+      app: simple-app-db
+  template:
+    metadata:
+      labels:
+        app: simple-app-db
+    spec:
+      containers:
+      - name: db
+        image: db:v2.0

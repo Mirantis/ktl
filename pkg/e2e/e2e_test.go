@@ -26,13 +26,11 @@ func initServers(t *testing.T, clusters []string) map[string]string {
 	result := map[string]string{}
 	ch := make(chan *testServer)
 	defer close(ch)
-	commonDir := filepath.Join("..", "..", "examples", "import", "common")
 	for _, cluster := range clusters {
 		go func(name string) {
 			clusterDir := filepath.Join("..", "..", "examples", "import", name)
 			url := e2e.K8sServer(t)
 			errs := []error{}
-			errs = append(errs, kctl.Server(url).ApplyKustomization(commonDir))
 			errs = append(errs, kctl.Server(url).ApplyKustomization(clusterDir))
 			server := &testServer{name: name, url: url, err: errors.Join(errs...)}
 			ch <- server
@@ -63,9 +61,15 @@ func TestE2E(t *testing.T) {
 	t.Run("client-version", testClientVersion)
 	t.Run("server-version-error", testServerVersionError)
 	t.Run("server-version", testServerVersion)
-	t.Run("export-single", func(t *testing.T) { testExport(t, "export-single") })
-	t.Run("export-multi", func(t *testing.T) { testExport(t, "export-multi") })
-	t.Run("export-helm", func(t *testing.T) { testExport(t, "export-helm") })
+	scenarios := []string{
+		"export-simple",
+		"export-simple-filtered",
+		"export-helm",
+		"export-components",
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario, func(t *testing.T) { testExport(t, scenario) })
+	}
 }
 
 func testClientVersion(t *testing.T) {

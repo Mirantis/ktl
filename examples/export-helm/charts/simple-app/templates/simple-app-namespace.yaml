@@ -1,0 +1,10 @@
+{{- include "merge_presets" . -}}
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    kubernetes.io/metadata.name: simple-app
+  name: simple-app
+spec:
+  finalizers:
+  - kubernetes

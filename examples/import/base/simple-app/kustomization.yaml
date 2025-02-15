@@ -1,0 +1,12 @@
+kind: Component
+
+namespace: simple-app
+
+resources:
+- _ns.yaml
+- cm.yaml
+- db.yaml
+- deploy.yaml
+- generated-cm.yaml
+- infra-canary.yaml
+- svc.yaml

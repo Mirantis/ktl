@@ -42,12 +42,22 @@ filters:
     version: v1
   fields:
   - "metadata.annotations.[deployment.kubernetes.io/revision]"
-  - "spec.replicas[=1]"
+  - "spec.progressDeadlineSeconds[=600]"
   - "spec.revisionHistoryLimit[=10]"
+  - "spec.strategy.rollingUpdate.maxSurge[=25%]"
+  - "spec.strategy.rollingUpdate.maxUnavailable[=25%]"
+  - "spec.strategy.rollingUpdate[={}]"
+  - "spec.strategy.type[=RollingUpdate]"
+  - "spec.strategy[={}]"
   - "spec.template.metadata.creationTimestamp[=null]"
+  - "spec.template.spec.containers.*.imagePullPolicy[=IfNotPresent]"
+  - "spec.template.spec.containers.*.resources[={}]"
+  - "spec.template.spec.containers.*.terminationMessagePath[=/dev/termination-log]"
   - "spec.template.spec.containers.*.terminationMessagePolicy[=File]"
   - "spec.template.spec.dnsPolicy[=ClusterFirst]"
   - "spec.template.spec.restartPolicy[=Always]"
+  - "spec.template.spec.schedulerName[=default-scheduler]"
+  - "spec.template.spec.securityContext[={}]"
   - "spec.template.spec.terminationGracePeriodSeconds[=30]"
 - kind: SkipFilter
   resources:
@@ -74,6 +84,31 @@ filters:
   - "spec.clusterIPs"
   - "spec.sessionAffinity[=None]"
   - "spec.type[=ClusterIP]"
+  - "spec.ipFamilies[=[IPv4]]"
+  - "spec.ipFamilyPolicy[=SingleStack]"
+  - "spec.internalTrafficPolicy[=Cluster]"
+- kind: SkipFilter
+  resources:
+  - kind: CronJob
+    group: batch
+    version: v1
+  fields:
+  - "spec.concurrencyPolicy[=Allow]"
+  - "spec.failedJobsHistoryLimit[=1]"
+  - "spec.jobTemplate.metadata.creationTimestamp[=null]"
+  - "spec.jobTemplate.metadata[={}]"
+  - "spec.jobTemplate.spec.template.metadata.creationTimestamp[=null]"
+  - "spec.jobTemplate.spec.template.metadata[={}]"
+  - "spec.jobTemplate.spec.template.spec.containers.*.imagePullPolicy[=IfNotPresent]"
+  - "spec.jobTemplate.spec.template.spec.containers.*.resources[={}]"
+  - "spec.jobTemplate.spec.template.spec.containers.*.terminationMessagePath[=/dev/termination-log]"
+  - "spec.jobTemplate.spec.template.spec.containers.*.terminationMessagePolicy[=File]"
+  - "spec.jobTemplate.spec.template.spec.dnsPolicy[=ClusterFirst]"
+  - "spec.jobTemplate.spec.template.spec.restartPolicy[=Always]"
+  - "spec.jobTemplate.spec.template.spec.schedulerName[=default-scheduler]"
+  - "spec.jobTemplate.spec.template.spec.securityContext[={}]"
+  - "spec.jobTemplate.spec.template.spec.terminationGracePeriodSeconds[=30]"
+  - "spec.successfulJobsHistoryLimit[=3]"
 - kind: SkipFilter
   resources:
   - kind: ConfigMap

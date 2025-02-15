@@ -19,7 +19,7 @@ type ExportRule struct {
 type Rekustomization struct {
 	ClusterGroups []ClusterGroup `yaml:"clusters"`
 	ExportRules   []ExportRule   `yaml:"export"`
-	HelmCharts    []HelmChart    `yaml:"helmCharts"`
+	HelmChart     HelmChart      `yaml:"helmChart"`
 
 	Filters []filters.KFilter `yaml:"filters"`
 }

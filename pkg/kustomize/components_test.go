@@ -4,7 +4,6 @@ import (
 	"embed"
 	"testing"
 
-	"github.com/Mirantis/rekustomize/examples"
 	"github.com/Mirantis/rekustomize/pkg/e2e"
 	"github.com/Mirantis/rekustomize/pkg/kustomize"
 	"github.com/Mirantis/rekustomize/pkg/types"
@@ -14,8 +13,21 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-//go:embed testdata/components
-var compFs embed.FS
+var (
+	//go:embed testdata/components
+	compFs embed.FS
+
+	//go:embed testdata/dev-cluster-a.yaml
+	appDevA string
+	//go:embed testdata/test-cluster-a.yaml
+	appTestA string
+	//go:embed testdata/test-cluster-b.yaml
+	appTestB string
+	//go:embed testdata/prod-cluster-a.yaml
+	appProdA string
+	//go:embed testdata/prod-cluster-b.yaml
+	appProdB string
+)
 
 func TestComponents(t *testing.T) {
 	clusters := types.NewClusterIndex()
@@ -25,13 +37,13 @@ func TestComponents(t *testing.T) {
 	testA := clusters.Add(types.Cluster{Name: "test-a", Tags: []string{"test"}})
 	testB := clusters.Add(types.Cluster{Name: "test-b", Tags: []string{"test"}})
 	resources := map[types.ClusterId]*yaml.RNode{
-		devA:  examples.MyAppDeploymentDevA,
-		prodA: examples.MyAppDeploymentProdA,
-		prodB: examples.MyAppDeploymentProdB,
-		testA: examples.MyAppDeploymentTestA,
-		testB: examples.MyAppDeploymentTestB,
+		devA:  yaml.MustParse(appDevA),
+		prodA: yaml.MustParse(appProdA),
+		prodB: yaml.MustParse(appProdB),
+		testA: yaml.MustParse(appTestA),
+		testB: yaml.MustParse(appTestB),
 	}
-	id := resid.FromRNode(examples.MyAppDeploymentDevA)
+	id := resid.FromRNode(resources[devA])
 	comps := kustomize.NewComponents(clusters)
 	if err := comps.Add(id, resources); err != nil {
 		t.Fatal(err)

@@ -2,7 +2,7 @@ global: {}
 preset_values:
   dev:
     myapp/Deployment/myapp.metadata.labels.env: dev
-    myapp/Deployment/myapp.spec.template.spec.containers.[name=myapp].args: "true"
+    myapp/Deployment/myapp.spec.template.spec.containers.[name=myapp].args: enabled
     myapp/Deployment/myapp.spec.template.spec.containers.[name=myapp].image: myapp:v1.2-345
   prod:
     myapp/Deployment/myapp.metadata.labels.env: prod

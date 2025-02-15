@@ -1,0 +1,16 @@
+global: {}
+preset_values:
+  dev:
+    simple-app/ConfigMap/simple-app-env.data.ENV_VAR2: dev-value
+    simple-app/ConfigMap/simple-app-env.data.ENV_VAR3: dev-cluster-a-value
+    simple-app/Deployment/simple-app.spec.replicas: 1
+    simple-app/Deployment/simple-app.spec.template.spec.containers.[name=simple-app].args: enabled
+    simple-app/Deployment/simple-app.spec.template.spec.containers.[name=simple-app].image: example.com/simple-app:a92bbcbf624c
+  prod:
+    simple-app/ConfigMap/simple-app-env.data.ENV_VAR2: prod-value
+    simple-app/Deployment/simple-app-db: enabled
+  prod_test:
+    simple-app/Deployment/simple-app.spec.replicas: 3
+    simple-app/Deployment/simple-app.spec.template.spec.containers.[name=simple-app].image: example.com/simple-app:v1.2.345
+  test:
+    simple-app/ConfigMap/simple-app-env.data.ENV_VAR2: test-value

@@ -2,6 +2,7 @@ package filters
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
@@ -29,12 +30,22 @@ func ClearAll(p types.NodePath) (yaml.Filter, error) {
 			if err != nil {
 				return nil, fmt.Errorf("invalid path condition %q: %v", cond[i], err)
 			}
-			fm := yaml.FilterMatcher{Filters: yaml.YFilters{{
-				Filter: yaml.FieldMatcher{
-					Name:        field,
-					StringValue: value,
-				},
-			}}}
+			matcher := yaml.FieldMatcher{
+				Name: field,
+			}
+			fm := yaml.FilterMatcher{Filters: yaml.YFilters{{Filter: matcher}}}
+			switch {
+			case strings.HasPrefix(value, "[") && strings.HasSuffix(value, "]"):
+				fallthrough
+			case strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}"):
+				rnValue, err := yaml.Parse(value)
+				if err != nil {
+					return nil, fmt.Errorf("invalid path condition %q: %v", cond[i], err)
+				}
+				matcher.Value = rnValue
+			default:
+				matcher.StringValue = value
+			}
 			*pipe = append(*pipe, fm)
 		}
 

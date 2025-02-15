@@ -2,8 +2,8 @@ kind: Kustomization
 helmGlobals:
   chartHome: ../../charts
 helmCharts:
-- name: myapp
-  version: v0.1
+- name: simple-app
+  version: v1.0
   valuesInline:
     presets:
     - dev

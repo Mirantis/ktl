@@ -1,0 +1,10 @@
+{{- include "merge_presets" . -}}
+apiVersion: v1
+data:
+  ENV_VAR1: common-value
+  ENV_VAR2: {{ index .Values.global "simple-app/ConfigMap/simple-app-env.data.ENV_VAR2" }}
+  ENV_VAR3: {{ index .Values.global "simple-app/ConfigMap/simple-app-env.data.ENV_VAR3" }}
+kind: ConfigMap
+metadata:
+  name: simple-app-env
+  namespace: simple-app
