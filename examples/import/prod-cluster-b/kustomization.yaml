@@ -6,14 +6,6 @@ components:
 patches:
 - target:
     kind: ConfigMap
-    name: generated-cm
-  patch: |-
-    - op: replace
-      path: /data
-      value:
-        region: eu1
-- target:
-    kind: ConfigMap
     name: simple-app-env
   patch: |-
     - op: replace
@@ -22,3 +14,10 @@ patches:
         ENV_VAR1: common-value
         ENV_VAR2: prod-value
         ENV_VAR3: prod-cluster-b-value
+- target:
+    kind: Deployment
+    name: simple-app
+  patch: |-
+    - op: replace
+      path: /spec/replicas
+      value: 5

@@ -9,7 +9,6 @@ metadata:
     dev.example.com/info: flaky-tests
     example.com/generated: extra-info
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: simple-app

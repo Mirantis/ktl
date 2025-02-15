@@ -12,14 +12,6 @@ patches:
       name: simple-app-db
 - target:
     kind: ConfigMap
-    name: generated-cm
-  patch: |-
-    - op: replace
-      path: /data
-      value:
-        region: eu1
-- target:
-    kind: ConfigMap
     name: simple-app-env
   patch: |-
     - op: replace

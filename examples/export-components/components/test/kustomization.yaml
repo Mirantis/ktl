@@ -1,3 +1,4 @@
 kind: Component
 patches:
+- path: simple-app/simple-app-deployment.yaml
 - path: simple-app/simple-app-env-configmap.yaml

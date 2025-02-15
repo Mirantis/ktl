@@ -5,5 +5,4 @@ metadata:
   labels:
     generated-by: awesome-controller
 data:
-  region: PLACEHOLDER
-  cluster: PLACEHOLDER
+  region: eu1

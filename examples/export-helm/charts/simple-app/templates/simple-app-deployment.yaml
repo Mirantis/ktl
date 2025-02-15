@@ -7,7 +7,10 @@ metadata:
   name: simple-app
   namespace: simple-app
 spec:
+  {{- if index .Values.global "simple-app/Deployment/simple-app.spec.replicas" }}
   replicas: {{ index .Values.global "simple-app/Deployment/simple-app.spec.replicas" }}
+  {{- end }} # simple-app/Deployment/simple-app.spec.replicas
+
   selector:
     matchLabels:
       app: simple-app

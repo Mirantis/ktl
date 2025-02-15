@@ -4,7 +4,6 @@ metadata:
   name: simple-app
   namespace: simple-app
 spec:
-  replicas: 3
   template:
     spec:
       containers:

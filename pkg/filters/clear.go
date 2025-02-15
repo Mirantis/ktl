@@ -30,23 +30,27 @@ func ClearAll(p types.NodePath) (yaml.Filter, error) {
 			if err != nil {
 				return nil, fmt.Errorf("invalid path condition %q: %v", cond[i], err)
 			}
-			matcher := yaml.FieldMatcher{
-				Name: field,
-			}
-			fm := yaml.FilterMatcher{Filters: yaml.YFilters{{Filter: matcher}}}
+			fm := yaml.FilterMatcher{}
 			switch {
-			case strings.HasPrefix(value, "[") && strings.HasSuffix(value, "]"):
+			case value == "":
 				fallthrough
-			case strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}"):
-				rnValue, err := yaml.Parse(value)
-				if err != nil {
-					return nil, fmt.Errorf("invalid path condition %q: %v", cond[i], err)
-				}
-				matcher.Value = rnValue
+			case strings.HasPrefix(value, "{"):
+				fallthrough
+			case strings.HasPrefix(value, "["):
+				fm.Filters = append(
+					fm.Filters,
+					yaml.YFilter{Filter: yaml.Lookup(field)},
+					yaml.YFilter{Filter: &ValueMatcher{Value: value}},
+				)
 			default:
+				matcher := yaml.FieldMatcher{
+					Name: field,
+				}
 				matcher.StringValue = value
+				fm.Filters = append(fm.Filters, yaml.YFilter{Filter: matcher})
 			}
 			*pipe = append(*pipe, fm)
+			pg = nil
 		}
 
 		if pg == nil {

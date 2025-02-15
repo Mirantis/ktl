@@ -8,7 +8,6 @@ metadata:
   name: simple-app-db
   namespace: simple-app
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: simple-app-db
