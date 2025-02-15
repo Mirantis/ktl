@@ -4,7 +4,6 @@ import (
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/filters"
-	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -19,69 +18,39 @@ type SkipFilter struct {
 	Fields    []types.NodePath  `yaml:"fields"`
 }
 
-func (rule *SkipFilter) Filter(input []*yaml.RNode) ([]*yaml.RNode, error) {
+func (filter *SkipFilter) Filter(input []*yaml.RNode) ([]*yaml.RNode, error) {
+	match := &ResourceMatcher{
+		Resources: filter.Resources,
+		Except:    filter.Except,
+	}
+	mm := filters.MatchModifyFilter{
+		MatchFilters: []yaml.YFilters{{yaml.YFilter{Filter: match}}},
+	}
+
+	if len(filter.Fields) == 0 {
+		mm.ModifyFilters = yaml.YFilters{{Filter: &ValueSetter{}}}
+	}
+
+	for _, path := range filter.Fields {
+		prefix, field := path[:len(path)-1], path[len(path)-1]
+		tee := yaml.Tee(
+			&yaml.PathMatcher{Path: prefix},
+			&ForEach{Filters: yaml.YFilters{{Filter: yaml.Clear(field)}}},
+		)
+		mm.ModifyFilters = append(mm.ModifyFilters, yaml.YFilter{Filter: tee})
+	}
+
+	if _, err := mm.Filter(input); err != nil {
+		return nil, err
+	}
+
 	output := []*yaml.RNode{}
-	for _, node := range input {
-		res, err := rule.filter(node)
-		if err != nil {
-			return nil, err
-		}
-		if res.IsNilOrEmpty() {
+	for _, rn := range input {
+		if rn.IsNilOrEmpty() {
 			continue
 		}
-		output = append(output, res)
+		output = append(output, rn)
 	}
+
 	return output, nil
-}
-
-func (rule *SkipFilter) filter(rn *yaml.RNode) (*yaml.RNode, error) {
-	if !rule.match(rn) {
-		return rn, nil
-	}
-
-	if len(rule.Fields) < 1 {
-		return nil, nil
-	}
-
-	for _, path := range rule.Fields {
-		functions := []yaml.Filter{}
-		if len(path) < 1 {
-			continue
-		}
-		name := path[len(path)-1]
-		prefix := path[:len(path)-1]
-		if len(prefix) > 0 {
-			functions = append(functions, yaml.Lookup(prefix...))
-		}
-		functions = append(functions, yaml.Clear(name))
-		rn.Pipe(functions...)
-	}
-
-	return rn, nil
-}
-
-func (rule *SkipFilter) match(rn *yaml.RNode) bool {
-	if len(rule.Resources) > 0 && !matchSelectors(rn, rule.Resources) {
-		return false
-	}
-	if len(rule.Except) > 0 && matchSelectors(rn, rule.Except) {
-		return false
-	}
-	return true
-}
-
-func matchSelectors(rn *yaml.RNode, selectors []*types.Selector) bool {
-	id := resid.FromRNode(rn)
-	for _, selector := range selectors {
-		if !id.IsSelectedBy(selector.ResId) {
-			continue
-		}
-		// TODO: add optimized version for label/annotation selectors:
-		// - rn.MatchesAnnotationSelector(selector.AnnotationSelector)
-		// - rn.MatchesLabelSelector(selector.LabelSelector)
-		// Using these methods directly requires redundant parsing
-		// and error handling
-		return true
-	}
-	return false
 }
