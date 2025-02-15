@@ -153,6 +153,13 @@ func (chart *Chart) Instances(clusters ...types.ClusterId) []types.HelmChart {
 	return helmCharts
 }
 
+func variableName(id resid.ResId, path types.NodePath) string {
+	name := fmt.Sprintf("%s/%s/%s.%s", id.Namespace, id.Kind, id.Name, path)
+	name = strings.TrimPrefix(name, "/")
+	name = strings.TrimSuffix(name, ".")
+	return name
+}
+
 func (chart *Chart) Add(id resid.ResId, resources map[types.ClusterId]*yaml.RNode) error {
 	if _, exists := chart.templates[id]; exists {
 		return fmt.Errorf("resource already added: %s", id)
@@ -161,10 +168,6 @@ func (chart *Chart) Add(id resid.ResId, resources map[types.ClusterId]*yaml.RNod
 	schema := openapi.SchemaForResourceType(id.AsTypeMeta())
 	it := resource.NewIterator(resources, schema)
 	builder := resource.NewBuilder(id)
-	varPrefix := id.Kind + "/" + id.Name
-	if id.Namespace != "" {
-		varPrefix = id.Namespace + "/" + varPrefix
-	}
 	occurances := []int{len(chart.clusterIds)}
 
 	for it.Next() {
@@ -173,7 +176,7 @@ func (chart *Chart) Add(id resid.ResId, resources map[types.ClusterId]*yaml.RNod
 		occurances = append(occurances, slices.Repeat([]int{0}, max(0, depth+2-len(occurances)))...)
 		occurances[depth+1] = len(it.Clusters())
 		isOptional := occurances[depth+1] < occurances[depth]
-		varName := strings.TrimSuffix(varPrefix+path.String(), "/")
+		varName := variableName(id, it.Path())
 		variants := resource.GroupByValue(it.Values())
 		value := chart.value(varName, variants, isOptional)
 		if isOptional {

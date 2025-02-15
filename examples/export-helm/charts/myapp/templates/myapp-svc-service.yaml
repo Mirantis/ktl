@@ -4,7 +4,7 @@ kind: Service
 metadata:
   labels:
     app: myapp
-    env: {{ index .Values.global "myapp/Service/myapp-svc/metadata/labels/env" }}
+    env: {{ index .Values.global "myapp/Service/myapp-svc.metadata.labels.env" }}
   name: myapp-svc
   namespace: myapp
 spec:

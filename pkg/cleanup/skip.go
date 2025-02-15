@@ -3,16 +3,10 @@ package cleanup
 import (
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/resid"
-	kyutil "sigs.k8s.io/kustomize/kyaml/utils"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func NewSkipRule(resources, excluding []*types.Selector, fields []string) (Rule, error) {
-	paths := []types.NodePath{}
-	for _, field := range fields {
-		path := types.NodePath(kyutil.SmarterPathSplitter(field, "."))
-		paths = append(paths, path)
-	}
+func NewSkipRule(resources, excluding []*types.Selector, paths []types.NodePath) (Rule, error) {
 	rule := &skipRule{
 		resources: resources,
 		excluding: excluding,

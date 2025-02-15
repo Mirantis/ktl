@@ -10,7 +10,7 @@ type ClusterGroup struct {
 type SkipRule struct {
 	If     []*Selector `json:"if" yaml:"if"`
 	IfNot  []*Selector `json:"ifNot" yaml:"ifNot"`
-	Fields []string    `json:"fields" yaml:"fields"`
+	Fields []NodePath  `json:"fields" yaml:"fields"`
 }
 
 type ExportRule struct {

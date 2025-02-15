@@ -1,22 +1,22 @@
 global: {}
 preset_values:
   dev:
-    myapp/ConfigMap/myapp-env/data/MYAPP_VAR2: value2-dev
-    myapp/ConfigMap/myapp-env/metadata/labels/env: dev
-    myapp/Deployment/myapp/metadata/labels/env: dev
-    myapp/Deployment/myapp/spec/template/spec/containers/[name=myapp]/args: "true"
-    myapp/Deployment/myapp/spec/template/spec/containers/[name=myapp]/image: myapp:v1.2-345
-    myapp/Service/myapp-svc/metadata/labels/env: dev
+    myapp/ConfigMap/myapp-env.data.MYAPP_VAR2: value2-dev
+    myapp/ConfigMap/myapp-env.metadata.labels.env: dev
+    myapp/Deployment/myapp.metadata.labels.env: dev
+    myapp/Deployment/myapp.spec.template.spec.containers.[name=myapp].args: "true"
+    myapp/Deployment/myapp.spec.template.spec.containers.[name=myapp].image: myapp:v1.2-345
+    myapp/Service/myapp-svc.metadata.labels.env: dev
     mynewapp/Deployment/mynewapp: "true"
   prod:
-    myapp/ConfigMap/myapp-env/data/MYAPP_VAR2: value2-prod
-    myapp/ConfigMap/myapp-env/metadata/labels/env: prod
-    myapp/Deployment/myapp/metadata/labels/env: prod
-    myapp/Service/myapp-svc/metadata/labels/env: prod
+    myapp/ConfigMap/myapp-env.data.MYAPP_VAR2: value2-prod
+    myapp/ConfigMap/myapp-env.metadata.labels.env: prod
+    myapp/Deployment/myapp.metadata.labels.env: prod
+    myapp/Service/myapp-svc.metadata.labels.env: prod
   prod_test:
-    myapp/Deployment/myapp/spec/template/spec/containers/[name=myapp]/image: myapp:v1.1
+    myapp/Deployment/myapp.spec.template.spec.containers.[name=myapp].image: myapp:v1.1
   test:
-    myapp/ConfigMap/myapp-env/data/MYAPP_VAR2: value2-test
-    myapp/ConfigMap/myapp-env/metadata/labels/env: test
-    myapp/Deployment/myapp/metadata/labels/env: test
-    myapp/Service/myapp-svc/metadata/labels/env: test
+    myapp/ConfigMap/myapp-env.data.MYAPP_VAR2: value2-test
+    myapp/ConfigMap/myapp-env.metadata.labels.env: test
+    myapp/Deployment/myapp.metadata.labels.env: test
+    myapp/Service/myapp-svc.metadata.labels.env: test

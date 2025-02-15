@@ -6,7 +6,7 @@ helmCharts:
   version: v0.1
   valuesInline:
     global:
-      myapp/Deployment/myapp/spec/replicas: 3
+      myapp/Deployment/myapp.spec.replicas: 3
     presets:
     - prod
     - prod_test
