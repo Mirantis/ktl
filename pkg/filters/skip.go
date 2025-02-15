@@ -32,12 +32,12 @@ func (filter *SkipFilter) Filter(input []*yaml.RNode) ([]*yaml.RNode, error) {
 	}
 
 	for _, path := range filter.Fields {
-		prefix, field := path[:len(path)-1], path[len(path)-1]
-		tee := yaml.Tee(
-			&yaml.PathMatcher{Path: prefix},
-			&ForEach{Filters: yaml.YFilters{{Filter: yaml.Clear(field)}}},
-		)
-		mm.ModifyFilters = append(mm.ModifyFilters, yaml.YFilter{Filter: tee})
+		clear, err := ClearAll(path)
+		if err != nil {
+			return nil, err
+		}
+		yf := yaml.YFilter{Filter: clear}
+		mm.ModifyFilters = append(mm.ModifyFilters, yf)
 	}
 
 	if _, err := mm.Filter(input); err != nil {

@@ -1,8 +1,6 @@
 package filters
 
 import (
-	"fmt"
-
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -16,13 +14,10 @@ type ValueSetter struct {
 }
 
 func (filter *ValueSetter) Filter(input *yaml.RNode) (*yaml.RNode, error) {
-	if input == nil {
-		return nil, fmt.Errorf("unable to set nil node")
-	}
 	v := filter.Value
 	if v == nil {
 		v = yaml.MakeNullNode()
 	}
-	*input = *v
+	*input = *v.Copy()
 	return input, nil
 }

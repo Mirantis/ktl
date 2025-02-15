@@ -10,7 +10,6 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/Mirantis/rekustomize/pkg/cleanup"
 	"github.com/Mirantis/rekustomize/pkg/export"
 	_ "github.com/Mirantis/rekustomize/pkg/filters"
 	"github.com/Mirantis/rekustomize/pkg/helm"
@@ -21,7 +20,6 @@ import (
 	"sigs.k8s.io/kustomize/api/konfig"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/kio"
-	"sigs.k8s.io/kustomize/kyaml/kio/filters"
 	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -87,7 +85,6 @@ func (opts *exportOpts) setDefaults(defaults *types.Rekustomization) {
 		opts.ExportRules[i].LabelSelectors = append(opts.ExportRules[i].LabelSelectors, labelSelectors...)
 	}
 	opts.Filters = append(opts.Filters, defaults.Filters...)
-	opts.Filters = append(opts.Filters, filters.KFilter{Filter: cleanup.DefaultRules()})
 }
 
 func (opts *exportOpts) parseClusterFilter() error {

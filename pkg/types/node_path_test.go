@@ -139,6 +139,11 @@ func TestNodePathNormalize(t *testing.T) {
 			wantP: types.NodePath{"a", "d"},
 			wantC: []string{"", "[b=1,c=2]"},
 		},
+		{
+			name:  "error",
+			input: types.NodePath{"a[b=1]", "[c=2]", "d"},
+			wantE: true,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

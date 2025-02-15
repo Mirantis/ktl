@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 
@@ -92,6 +93,9 @@ func (p NodePath) Normalize() (NodePath, []string, error) {
 	conditions := make([]string, len(path))
 	for i := range p {
 		key, cond, prefix := splitPathCondition(path[i])
+		if yaml.IsWildcard(key) && conditions[i] != "" {
+			return nil, nil, fmt.Errorf("invalid path element: %s.%s", conditions[i], key)
+		}
 		if prefix {
 			path[i] = key
 			conditions[i] = mergeConditions(conditions[i], cond)
