@@ -88,16 +88,8 @@ func (opts *exportOpts) setDefaults(defaults *types.Rekustomization) {
 }
 
 func (opts *exportOpts) parseCleanupRules() error {
-	for _, ruleCfg := range opts.SkipRules {
-		rule, err := cleanup.NewSkipRule(
-			ruleCfg.If,
-			ruleCfg.IfNot,
-			ruleCfg.Fields,
-		)
-		if err != nil {
-			return err
-		}
-		opts.cleanupRules = append(opts.cleanupRules, rule)
+	for i := range opts.SkipRules {
+		opts.cleanupRules = append(opts.cleanupRules, &opts.SkipRules[i])
 	}
 	return nil
 }

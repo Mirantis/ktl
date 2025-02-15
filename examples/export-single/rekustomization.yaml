@@ -40,7 +40,7 @@ skip:
   #
   # TODO: explain the "fields" syntax
   # (subject to change: switch to RFC6901 NodePath instead of "."-notation)
-  - if:
+  - resources:
       - kind: Namespace
         name: myapp
     fields:

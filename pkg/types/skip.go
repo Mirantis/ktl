@@ -1,37 +1,27 @@
-package cleanup
+package types
 
 import (
-	"github.com/Mirantis/rekustomize/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func NewSkipRule(resources, excluding []*types.Selector, paths []types.NodePath) (Rule, error) {
-	rule := &skipRule{
-		resources: resources,
-		excluding: excluding,
-		paths:     paths,
-	}
-	return rule, nil
+type SkipRule struct {
+	Resources []*Selector `json:"resources" yaml:"resources"`
+	Except    []*Selector `json:"except" yaml:"except"`
+	Fields    []NodePath  `json:"fields" yaml:"fields"`
 }
 
-type skipRule struct {
-	resources []*types.Selector
-	excluding []*types.Selector
-	paths     []types.NodePath
-}
-
-func (rule *skipRule) Apply(rn *yaml.RNode) error {
+func (rule *SkipRule) Apply(rn *yaml.RNode) error {
 	if !rule.match(rn) {
 		return nil
 	}
 
-	if len(rule.paths) < 1 {
+	if len(rule.Fields) < 1 {
 		rn.SetYNode(nil)
 		return nil
 	}
 
-	for _, path := range rule.paths {
+	for _, path := range rule.Fields {
 		functions := []yaml.Filter{}
 		if len(path) < 1 {
 			continue
@@ -48,17 +38,17 @@ func (rule *skipRule) Apply(rn *yaml.RNode) error {
 	return nil
 }
 
-func (rule *skipRule) match(rn *yaml.RNode) bool {
-	if len(rule.resources) > 0 && !matchSelectors(rn, rule.resources) {
+func (rule *SkipRule) match(rn *yaml.RNode) bool {
+	if len(rule.Resources) > 0 && !matchSelectors(rn, rule.Resources) {
 		return false
 	}
-	if len(rule.excluding) > 0 && matchSelectors(rn, rule.excluding) {
+	if len(rule.Except) > 0 && matchSelectors(rn, rule.Except) {
 		return false
 	}
 	return true
 }
 
-func matchSelectors(rn *yaml.RNode, selectors []*types.Selector) bool {
+func matchSelectors(rn *yaml.RNode, selectors []*Selector) bool {
 	id := resid.FromRNode(rn)
 	for _, selector := range selectors {
 		if !id.IsSelectedBy(selector.ResId) {

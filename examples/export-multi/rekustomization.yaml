@@ -32,7 +32,7 @@ export:
 - apiResources: namespaces
   names: my*app
 skip:
-  - if:
+  - resources:
       - kind: Namespace
         name: myapp
     fields:

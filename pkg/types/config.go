@@ -7,12 +7,6 @@ type ClusterGroup struct {
 	Tags  StrList         `json:"tags" yaml:"tags"`
 }
 
-type SkipRule struct {
-	If     []*Selector `json:"if" yaml:"if"`
-	IfNot  []*Selector `json:"ifNot" yaml:"ifNot"`
-	Fields []NodePath  `json:"fields" yaml:"fields"`
-}
-
 type ExportRule struct {
 	Names          PatternSelector `json:"names" yaml:"names"`
 	Namespaces     PatternSelector `json:"namespaces" yaml:"namespaces"`

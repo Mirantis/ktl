@@ -33,7 +33,7 @@ helmCharts:
   - name: "myapp"
     version: "v0.1"
 skip:
-  - if:
+  - resources:
       - kind: Namespace
         name: myapp
     fields:
