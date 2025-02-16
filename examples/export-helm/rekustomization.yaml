@@ -8,6 +8,8 @@ clusters:
 export:
 - namespaces: simple-app
   labelSelectors: ['!generated-by']
+  apiResources:
+    exclude: jobs.batch
 - apiResources: namespaces
   names: simple-app
 filters:

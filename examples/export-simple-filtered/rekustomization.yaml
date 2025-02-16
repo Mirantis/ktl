@@ -3,6 +3,8 @@ clusters:
 export:
 - namespaces: simple-app
   labelSelectors: ['!generated-by']
+  apiResources:
+    exclude: jobs.batch
 - apiResources: namespaces
   names: simple-app
 filters:
@@ -14,3 +16,4 @@ filters:
   resources:
   - kind: CronJob
     name: infra-canary
+
