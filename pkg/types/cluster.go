@@ -18,12 +18,12 @@ type Cluster struct {
 	Tags []string
 }
 
-type ClusterId uint32
+type ClusterID uint32
 
 type ClusterIndex struct {
 	items  []Cluster
-	ids    []ClusterId
-	byName map[string]ClusterId
+	ids    []ClusterID
+	byName map[string]ClusterID
 
 	cachedGroups map[string]string
 	cachedTags   []string
@@ -32,7 +32,7 @@ type ClusterIndex struct {
 
 func NewClusterIndex() *ClusterIndex {
 	return &ClusterIndex{
-		byName:       map[string]ClusterId{},
+		byName:       map[string]ClusterID{},
 		cachedGroups: map[string]string{},
 	}
 }
@@ -60,11 +60,11 @@ func BuildClusterIndex(names []string, groups []ClusterGroup) *ClusterIndex {
 	return index
 }
 
-func (idx *ClusterIndex) All() iter.Seq2[ClusterId, Cluster] {
+func (idx *ClusterIndex) All() iter.Seq2[ClusterID, Cluster] {
 	if len(idx.items) != len(idx.ids) {
 		panic(fmt.Errorf("corrupted cluster index"))
 	}
-	return func(yield func(ClusterId, Cluster) bool) {
+	return func(yield func(ClusterID, Cluster) bool) {
 		for i := range len(idx.items) {
 			if !yield(idx.ids[i], idx.items[i]) {
 				return
@@ -73,7 +73,7 @@ func (idx *ClusterIndex) All() iter.Seq2[ClusterId, Cluster] {
 	}
 }
 
-func (idx *ClusterIndex) Id(name string) (ClusterId, error) {
+func (idx *ClusterIndex) Id(name string) (ClusterID, error) {
 	id, found := idx.byName[name]
 	if found {
 		return id, nil
@@ -81,13 +81,13 @@ func (idx *ClusterIndex) Id(name string) (ClusterId, error) {
 	return math.MaxUint32, fmt.Errorf("cluster not found: %s", name)
 }
 
-func (idx *ClusterIndex) Add(cluster Cluster) ClusterId {
+func (idx *ClusterIndex) Add(cluster Cluster) ClusterID {
 	tags := sets.String{}
 	tags.Insert(cluster.Tags...)
 	id, exists := idx.byName[cluster.Name]
 
 	if !exists {
-		id = ClusterId(len(idx.items))
+		id = ClusterID(len(idx.items))
 		idx.ids = append(idx.ids, id)
 		idx.items = append(idx.items, cluster)
 		idx.byName[cluster.Name] = id
@@ -109,11 +109,11 @@ func (idx *ClusterIndex) Add(cluster Cluster) ClusterId {
 	return id
 }
 
-func (idx *ClusterIndex) Ids() []ClusterId {
+func (idx *ClusterIndex) Ids() []ClusterID {
 	return slices.Clone(idx.ids)
 }
 
-func (idx *ClusterIndex) Names(ids ...ClusterId) iter.Seq[string] {
+func (idx *ClusterIndex) Names(ids ...ClusterID) iter.Seq[string] {
 	return func(yield func(string) bool) {
 		for _, id := range ids {
 			cluster := idx.Cluster(id)
@@ -124,21 +124,21 @@ func (idx *ClusterIndex) Names(ids ...ClusterId) iter.Seq[string] {
 	}
 }
 
-func (idx *ClusterIndex) checkId(id ClusterId) error {
+func (idx *ClusterIndex) checkId(id ClusterID) error {
 	if int(id) >= len(idx.items) || int(id) < 0 {
 		return fmt.Errorf("cluster id out of range: %v", id)
 	}
 	return nil
 }
 
-func (idx *ClusterIndex) Cluster(id ClusterId) Cluster {
+func (idx *ClusterIndex) Cluster(id ClusterID) Cluster {
 	if err := idx.checkId(id); err != nil {
 		panic(err)
 	}
 	return idx.items[id]
 }
 
-func (idx *ClusterIndex) groupKey(ids []ClusterId) string {
+func (idx *ClusterIndex) groupKey(ids []ClusterID) string {
 	sortedIds := slices.Clone(ids)
 	slices.Sort(sortedIds)
 	return fmt.Sprintf("%v", sortedIds)
@@ -177,7 +177,7 @@ func (idx *ClusterIndex) tags() iter.Seq2[string, *roaring.Bitmap] {
 	}
 }
 
-func (idx *ClusterIndex) Group(ids ...ClusterId) string {
+func (idx *ClusterIndex) Group(ids ...ClusterID) string {
 	if len(ids) == 0 {
 		return ""
 	}

@@ -14,11 +14,11 @@ import (
 
 type ValueGroup struct {
 	Value    *yaml.Node
-	Clusters []types.ClusterId
+	Clusters []types.ClusterID
 	values   []*yaml.Node
 }
 
-func GroupByValue(values iter.Seq2[types.ClusterId, *yaml.Node]) []*ValueGroup {
+func GroupByValue(values iter.Seq2[types.ClusterID, *yaml.Node]) []*ValueGroup {
 	groups := map[string]*ValueGroup{}
 
 	for cluster, node := range values {

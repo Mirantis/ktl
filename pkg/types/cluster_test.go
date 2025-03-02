@@ -16,35 +16,35 @@ func TestClusterIndexGroup(t *testing.T) {
 
 	tests := []struct {
 		want string
-		ids  []types.ClusterId
+		ids  []types.ClusterID
 	}{
 		{
 			want: "all-clusters",
-			ids:  []types.ClusterId{c1, c2, c3, c4, c5},
+			ids:  []types.ClusterID{c1, c2, c3, c4, c5},
 		},
 		{
 			want: "a_b_c",
-			ids:  []types.ClusterId{c1, c2, c3, c4},
+			ids:  []types.ClusterID{c1, c2, c3, c4},
 		},
 		{
 			want: "a_c",
-			ids:  []types.ClusterId{c1, c2, c4},
+			ids:  []types.ClusterID{c1, c2, c4},
 		},
 		{
 			want: "a",
-			ids:  []types.ClusterId{c1, c2},
+			ids:  []types.ClusterID{c1, c2},
 		},
 		{
 			want: "c",
-			ids:  []types.ClusterId{c1, c4},
+			ids:  []types.ClusterID{c1, c4},
 		},
 		{
 			want: "c2_c3_c4_c5",
-			ids:  []types.ClusterId{c2, c3, c4, c5},
+			ids:  []types.ClusterID{c2, c3, c4, c5},
 		},
 		{
 			want: "c1_c5",
-			ids:  []types.ClusterId{c1, c5},
+			ids:  []types.ClusterID{c1, c5},
 		},
 	}
 

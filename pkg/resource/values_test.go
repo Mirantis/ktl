@@ -17,7 +17,7 @@ func TestGroupByValue(t *testing.T) {
 	n2 := yaml.MustParse(`{ a: 2, b: 3 }`)
 	n3 := yaml.MustParse(`{ a: 2, b: 3 }`)
 	n4 := yaml.MustParse(`{ a: 2, b: 3 }`)
-	input := map[types.ClusterId]*yaml.Node{
+	input := map[types.ClusterID]*yaml.Node{
 		0: yaml.CopyYNode(n0.YNode()),
 		1: yaml.CopyYNode(n1.YNode()),
 		2: yaml.CopyYNode(n2.YNode()),

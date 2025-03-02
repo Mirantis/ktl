@@ -15,13 +15,13 @@ import (
 )
 
 type Iterator struct {
-	clusters []types.ClusterId
+	clusters []types.ClusterID
 	states   stack[*iteratorState]
 	current  *iteratorState
 	err      error
 }
 
-func NewIterator(resources map[types.ClusterId]*yaml.RNode, schema *openapi.ResourceSchema) *Iterator {
+func NewIterator(resources map[types.ClusterID]*yaml.RNode, schema *openapi.ResourceSchema) *Iterator {
 	it := &Iterator{}
 	if len(resources) == 0 {
 		return it
@@ -53,16 +53,16 @@ func (it *Iterator) Schema() *openapi.ResourceSchema {
 	return it.current.schema
 }
 
-func (it *Iterator) Clusters() []types.ClusterId {
-	clusters := make([]types.ClusterId, 0, len(it.clusters))
+func (it *Iterator) Clusters() []types.ClusterID {
+	clusters := make([]types.ClusterID, 0, len(it.clusters))
 	for cluster := range it.Values() {
 		clusters = append(clusters, cluster)
 	}
 	return clusters
 }
 
-func (it *Iterator) Values() iter.Seq2[types.ClusterId, *yaml.Node] {
-	return func(yield func(types.ClusterId, *yaml.Node) bool) {
+func (it *Iterator) Values() iter.Seq2[types.ClusterID, *yaml.Node] {
+	return func(yield func(types.ClusterID, *yaml.Node) bool) {
 		placeholder := &yaml.Node{Kind: it.current.kind}
 		for i := range it.clusters {
 			value := it.current.values[i]

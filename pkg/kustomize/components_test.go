@@ -36,7 +36,7 @@ func TestComponents(t *testing.T) {
 	prodB := clusters.Add(types.Cluster{Name: "prod-b", Tags: []string{"prod"}})
 	testA := clusters.Add(types.Cluster{Name: "test-a", Tags: []string{"test"}})
 	testB := clusters.Add(types.Cluster{Name: "test-b", Tags: []string{"test"}})
-	resources := map[types.ClusterId]*yaml.RNode{
+	resources := map[types.ClusterID]*yaml.RNode{
 		devA:  yaml.MustParse(appDevA),
 		prodA: yaml.MustParse(appProdA),
 		prodB: yaml.MustParse(appProdB),

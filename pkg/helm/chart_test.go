@@ -37,7 +37,7 @@ func TestChart(t *testing.T) {
 	prodB := clusters.Add(types.Cluster{Name: "prod-b", Tags: []string{"prod"}})
 	testA := clusters.Add(types.Cluster{Name: "test-a", Tags: []string{"test"}})
 	testB := clusters.Add(types.Cluster{Name: "test-b", Tags: []string{"test"}})
-	resources := map[types.ClusterId]*yaml.RNode{
+	resources := map[types.ClusterID]*yaml.RNode{
 		devA:  yaml.MustParse(appDevA),
 		prodA: yaml.MustParse(appProdA),
 		prodB: yaml.MustParse(appProdB),
@@ -52,15 +52,19 @@ func TestChart(t *testing.T) {
 
 	chart := helm.NewChart(meta, clusters)
 	id := resid.FromRNode(resources[devA])
+
 	if err := chart.Add(id, resources); err != nil {
 		t.Fatal(err)
 	}
+
 	gotFs := filesys.MakeFsInMemory()
 	if err := chart.Store(gotFs, "/"); err != nil {
 		t.Fatal(err)
 	}
+
 	got := e2e.ReadFiles(gotFs, "/")
 	want := e2e.ReadFsFiles(chartFs, "testdata/chart")
+
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("chart mismatch, +got -want:\n%s", diff)
 	}
@@ -88,6 +92,7 @@ func TestChart(t *testing.T) {
 	wantInstances[4].ValuesInline = map[string]any{
 		"presets": []string{"prod_test", "test"},
 	}
+
 	if diff := cmp.Diff(wantInstances, gotInstances); diff != "" {
 		t.Errorf("instances mismatch, +got -want:\n%s", diff)
 	}

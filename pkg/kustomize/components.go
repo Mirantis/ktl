@@ -20,7 +20,7 @@ type component struct {
 	name      string
 	resources map[resid.ResId]*yaml.RNode
 	patches   map[resid.ResId]*yaml.RNode
-	clusters  []types.ClusterId
+	clusters  []types.ClusterID
 }
 
 func (comp *component) filePath(id resid.ResId) string {
@@ -86,19 +86,19 @@ type Components struct {
 	clusters  *types.ClusterIndex
 	items     []*component
 	byName    map[string]*component
-	byCluster map[types.ClusterId][]*component
+	byCluster map[types.ClusterID][]*component
 }
 
 func NewComponents(clusters *types.ClusterIndex) *Components {
 	comps := &Components{
 		clusters:  clusters,
 		byName:    map[string]*component{},
-		byCluster: map[types.ClusterId][]*component{},
+		byCluster: map[types.ClusterID][]*component{},
 	}
 	return comps
 }
 
-func (comps *Components) Cluster(cluster types.ClusterId) ([]string, error) {
+func (comps *Components) Cluster(cluster types.ClusterID) ([]string, error) {
 	items, found := comps.byCluster[cluster]
 	if !found {
 		return nil, fmt.Errorf("cluster not found")
@@ -112,7 +112,7 @@ func (comps *Components) Cluster(cluster types.ClusterId) ([]string, error) {
 	return names, nil
 }
 
-func (comps *Components) component(ids ...types.ClusterId) *component {
+func (comps *Components) component(ids ...types.ClusterID) *component {
 	name := comps.clusters.Group(ids...)
 	comp, found := comps.byName[name]
 	if !found {
@@ -130,7 +130,7 @@ func (comps *Components) component(ids ...types.ClusterId) *component {
 	return comp
 }
 
-func (comps *Components) Add(id resid.ResId, resources map[types.ClusterId]*yaml.RNode) error {
+func (comps *Components) Add(id resid.ResId, resources map[types.ClusterID]*yaml.RNode) error {
 	mainBuilder := resource.NewBuilder(id)
 	mainClusterIds := slices.Collect(maps.Keys(resources))
 	mainComp := comps.component(mainClusterIds...)

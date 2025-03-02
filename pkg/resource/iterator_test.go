@@ -61,7 +61,7 @@ spec:
 	c2 := idx.Add(types.Cluster{Name: "c2"})
 	c3 := idx.Add(types.Cluster{Name: "c3"})
 	schema := openapi.SchemaForResourceType(yaml.TypeMeta{APIVersion: "apps/v1", Kind: "Deployment"})
-	it := resource.NewIterator(map[types.ClusterId]*yaml.RNode{
+	it := resource.NewIterator(map[types.ClusterID]*yaml.RNode{
 		c1: n1,
 		c2: n2,
 		c3: n3,

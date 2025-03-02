@@ -139,8 +139,8 @@ func (opts *exportOpts) runMulti(dir string) error {
 
 	return opts.exportComponents(buffers, dir)
 }
-func (opts *exportOpts) convertBuffers(buffers map[string]*kio.PackageBuffer) (map[resid.ResId]map[types.ClusterId]*yaml.RNode, error) {
-	resources := map[resid.ResId]map[types.ClusterId]*yaml.RNode{}
+func (opts *exportOpts) convertBuffers(buffers map[string]*kio.PackageBuffer) (map[resid.ResId]map[types.ClusterID]*yaml.RNode, error) {
+	resources := map[resid.ResId]map[types.ClusterID]*yaml.RNode{}
 	for clusterName, buffer := range buffers {
 		cluster, err := opts.clustersIndex.Id(clusterName)
 		if err != nil {
@@ -150,7 +150,7 @@ func (opts *exportOpts) convertBuffers(buffers map[string]*kio.PackageBuffer) (m
 			id := resid.FromRNode(rn)
 			byCluster, exists := resources[id]
 			if !exists {
-				byCluster = map[types.ClusterId]*yaml.RNode{}
+				byCluster = map[types.ClusterID]*yaml.RNode{}
 				resources[id] = byCluster
 			}
 			byCluster[cluster] = rn
