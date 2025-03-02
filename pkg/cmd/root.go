@@ -7,5 +7,6 @@ func RootCommand() *cobra.Command {
 		Use: "rekustomize",
 	}
 	root.AddCommand(exportCommand())
+
 	return root
 }
