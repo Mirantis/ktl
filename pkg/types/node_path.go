@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -9,42 +10,57 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-// NodePath represents YAML node path
-type NodePath []string
+var errNodePathInvalid = errors.New("invalid node path")
 
-// String returns a text representation of the path
+// NodePath represents YAML node path.
+type NodePath []string //nolint:recvcheck
+
+// String returns a text representation of the path.
 func (p NodePath) String() string {
 	if len(p) == 0 {
 		return ""
 	}
 
 	escaped := make([]string, len(p))
+
 	for i, part := range p {
 		if strings.Contains(part, ".") {
 			part = "[" + strings.Trim(part, "[]") + "]"
 		}
+
 		escaped[i] = part
 	}
+
 	return strings.Join(escaped, ".")
 }
 
 func (p *NodePath) UnmarshalYAML(node *yaml.Node) error {
 	if node == nil {
 		*p = nil
+
 		return nil
 	}
+
 	if node.Kind == yaml.ScalarNode {
 		return p.unmarshalScalar(node)
 	}
-	return node.Decode((*[]string)(p))
+
+	err := node.Decode((*[]string)(p))
+	if err != nil {
+		return fmt.Errorf("invalid node path: %w", err)
+	}
+
+	return nil
 }
 
 func (p *NodePath) unmarshalScalar(node *yaml.Node) error {
 	var path string
 	if err := node.Decode(&path); err != nil {
-		return err
+		return fmt.Errorf("invalid node path: %w", err)
 	}
+
 	*p = utils.SmarterPathSplitter(path, ".")
+
 	return nil
 }
 
@@ -66,53 +82,61 @@ func splitPathCondition(pathPart string) (key, cond string, prefix bool) {
 		key = pathPart[splitIdx+1:]
 	} else {
 		splitIdx := strings.Index(pathPart, "[")
-		key = pathPart[:splitIdx]
+		key = pathPart[:splitIdx] //nolint:gocritic
 		cond = pathPart[splitIdx:]
 	}
 
 	if suffix && strings.HasPrefix(cond, "[=") {
 		cond = "[" + key + cond[1:]
-		prefix, suffix = true, false
+		prefix = true
 	}
 
 	return key, cond, prefix
 }
 
 func mergeConditions(left, right string) string {
-	if "" == left {
+	if left == "" {
 		return right
 	}
-	if "" == right {
+
+	if right == "" {
 		return left
 	}
+
 	return strings.TrimSuffix(left, "]") + "," + strings.TrimPrefix(right, "[")
 }
 
 func (p NodePath) Normalize() (NodePath, []string, error) {
 	path := slices.Clone(p)
 	conditions := make([]string, len(path))
-	for i := range p {
-		key, cond, prefix := splitPathCondition(path[i])
-		if yaml.IsWildcard(key) && conditions[i] != "" {
-			return nil, nil, fmt.Errorf("invalid path element: %s.%s", conditions[i], key)
+
+	for idx := range p {
+		key, cond, prefix := splitPathCondition(path[idx])
+		if yaml.IsWildcard(key) && conditions[idx] != "" {
+			return nil, nil, fmt.Errorf("%w: %s.%s", errNodePathInvalid, conditions[idx], key)
 		}
+
 		if prefix {
-			path[i] = key
-			conditions[i] = mergeConditions(conditions[i], cond)
+			path[idx] = key
+			conditions[idx] = mergeConditions(conditions[idx], cond)
+
 			continue
 		}
 
-		if i == len(p)-1 {
+		if idx == len(p)-1 {
 			nextKey, _, err := yaml.SplitIndexNameValue(cond)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, fmt.Errorf("%w: %v", errNodePathInvalid, err.Error())
 			}
+
 			path = append(path, nextKey)
-			conditions = append(conditions, "")
+
+			conditions = append(conditions, "") //nolint:makezero
 		}
 
-		path[i] = key
-		conditions[i+1] = cond
+		path[idx] = key
+		conditions[idx+1] = cond
 	}
+
 	return path, conditions, nil
 }

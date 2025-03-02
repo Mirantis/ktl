@@ -5,5 +5,5 @@ linters:
   - funlen
   - paralleltest
   - exhaustruct
-
+  - nonamedreturns
 

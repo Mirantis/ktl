@@ -68,7 +68,7 @@ func NewChart(meta types.HelmChart, clusters *types.ClusterIndex) *Chart {
 	chart := &Chart{
 		meta:           meta,
 		clusters:       clusters,
-		clusterIDs:     clusters.Ids(),
+		clusterIDs:     clusters.IDs(),
 		token:          rand.String(tokenLen),
 		presetValues:   map[string]chartValues{},
 		inlineValues:   map[types.ClusterID]chartValues{},

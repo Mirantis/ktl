@@ -96,7 +96,7 @@ func (opts *exportOpts) parseClusterFilter() error {
 		return err
 	}
 	opts.clustersIndex = types.BuildClusterIndex(allClusters, opts.ClusterGroups)
-	opts.clusters = slices.Collect(opts.clustersIndex.Names(opts.clustersIndex.Ids()...))
+	opts.clusters = slices.Collect(opts.clustersIndex.Names(opts.clustersIndex.IDs()...))
 	return nil
 }
 
@@ -142,7 +142,7 @@ func (opts *exportOpts) runMulti(dir string) error {
 func (opts *exportOpts) convertBuffers(buffers map[string]*kio.PackageBuffer) (map[resid.ResId]map[types.ClusterID]*yaml.RNode, error) {
 	resources := map[resid.ResId]map[types.ClusterID]*yaml.RNode{}
 	for clusterName, buffer := range buffers {
-		cluster, err := opts.clustersIndex.Id(clusterName)
+		cluster, err := opts.clustersIndex.ID(clusterName)
 		if err != nil {
 			return nil, err
 		}

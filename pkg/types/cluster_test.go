@@ -8,11 +8,11 @@ import (
 
 func TestClusterIndexGroup(t *testing.T) {
 	idx := types.NewClusterIndex()
-	c1 := idx.Add(types.Cluster{Name: "c1", Tags: []string{"a", "b", "c"}})
-	c2 := idx.Add(types.Cluster{Name: "c2", Tags: []string{"a"}})
-	c3 := idx.Add(types.Cluster{Name: "c3", Tags: []string{"b"}})
-	c4 := idx.Add(types.Cluster{Name: "c4", Tags: []string{"c"}})
-	c5 := idx.Add(types.Cluster{Name: "c5", Tags: []string{}})
+	c1 := idx.Add(types.Cluster{Name: "c1", Tags: []string{"a", "b", "c"}}) //nolint:varnamelen
+	c2 := idx.Add(types.Cluster{Name: "c2", Tags: []string{"a"}})           //nolint:varnamelen
+	c3 := idx.Add(types.Cluster{Name: "c3", Tags: []string{"b"}})           //nolint:varnamelen
+	c4 := idx.Add(types.Cluster{Name: "c4", Tags: []string{"c"}})           //nolint:varnamelen
+	c5 := idx.Add(types.Cluster{Name: "c5", Tags: []string{}})              //nolint:varnamelen
 
 	tests := []struct {
 		want string
@@ -54,6 +54,7 @@ func TestClusterIndexGroup(t *testing.T) {
 			if got == test.want {
 				return
 			}
+
 			t.Errorf("got: %s, want: %s", got, test.want)
 		})
 	}

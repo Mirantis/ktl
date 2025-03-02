@@ -40,13 +40,16 @@ func TestPatternsUnmarshal(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var got types.Patterns
+
 			err := yaml.Unmarshal([]byte(test.input), &got)
 			if test.wantErr && err == nil {
 				t.Fatalf("want err, got none")
 			}
+
 			if !test.wantErr && err != nil {
 				t.Fatalf("want no err, got: %v", err)
 			}
+
 			if diff := cmp.Diff(test.want, got); diff != "" {
 				t.Fatalf("-want +got:\n%s", diff)
 			}
@@ -112,13 +115,16 @@ func TestPatternSelectorUnmarshal(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var got types.PatternSelector
+
 			err := yaml.Unmarshal([]byte(test.input), &got)
 			if test.wantErr && err == nil {
 				t.Fatalf("want err, got none")
 			}
+
 			if !test.wantErr && err != nil {
 				t.Fatalf("want no err, got: %v", err)
 			}
+
 			if diff := cmp.Diff(test.want, got); diff != "" {
 				t.Fatalf("-want +got:\n%s", diff)
 			}
@@ -148,6 +154,7 @@ func TestPatternSelector(t *testing.T) {
 			},
 		},
 	}
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			got := test.selector.Select(input)

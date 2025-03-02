@@ -88,12 +88,15 @@ func TestNodePathUnmarshalYAML(t *testing.T) {
 			if err != nil && test.wantErr {
 				return
 			}
+
 			if err != nil {
 				t.Fatalf("want no-error, got: %v", err)
 			}
+
 			if test.wantErr {
 				t.Fatalf("want error, got none")
 			}
+
 			if diff := cmp.Diff(test.want, test.Got); diff != "" {
 				t.Fatalf("-want +got:\n%s", diff)
 			}
@@ -152,9 +155,11 @@ func TestNodePathNormalize(t *testing.T) {
 			if err != nil && test.wantE {
 				return
 			}
+
 			if err != nil {
 				t.Fatalf("want no error, got: %v", err)
 			}
+
 			if test.wantE {
 				t.Fatalf("want error, got none")
 			}
