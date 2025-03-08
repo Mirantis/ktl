@@ -22,10 +22,14 @@ type testServer struct {
 }
 
 func initServers(t *testing.T, clusters []string) map[string]string {
+	t.Helper()
+
 	kctl := kubectl.DefaultCmd()
 	result := map[string]string{}
-	ch := make(chan *testServer)
-	defer close(ch)
+
+	serversChan := make(chan *testServer)
+	defer close(serversChan)
+
 	for _, cluster := range clusters {
 		go func(name string) {
 			clusterDir := filepath.Join("..", "..", "examples", "import", name)
@@ -33,18 +37,22 @@ func initServers(t *testing.T, clusters []string) map[string]string {
 			errs := []error{}
 			errs = append(errs, kctl.Server(url).ApplyKustomization(clusterDir))
 			server := &testServer{name: name, url: url, err: errors.Join(errs...)}
-			ch <- server
+			serversChan <- server
 		}(cluster)
 	}
+
 	errs := []error{}
+
 	for range clusters {
-		entry := <-ch
+		entry := <-serversChan
 		result[entry.name] = entry.url
 		errs = append(errs, entry.err)
 	}
+
 	if err := errors.Join(errs...); err != nil {
 		t.Fatal(err)
 	}
+
 	return result
 }
 
@@ -61,24 +69,27 @@ func TestE2E(t *testing.T) {
 	t.Run("client-version", testClientVersion)
 	t.Run("server-version-error", testServerVersionError)
 	t.Run("server-version", testServerVersion)
+
 	scenarios := []string{
 		"export-simple",
 		"export-simple-filtered",
 		"export-helm",
 		"export-components",
 	}
+
 	for _, scenario := range scenarios {
 		t.Run(scenario, func(t *testing.T) { testExport(t, scenario) })
 	}
 }
 
 func testClientVersion(t *testing.T) {
-	v, err := kubectl.DefaultCmd().Version(false)
+	version, err := kubectl.DefaultCmd().Version(false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if v.ClientVersion.Major != "1" {
-		t.Fatalf("unexpected ClientVersion: %+#v", v.ClientVersion)
+
+	if version.ClientVersion.Major != "1" {
+		t.Fatalf("unexpected ClientVersion: %+#v", version.ClientVersion)
 	}
 }
 
@@ -86,10 +97,12 @@ func testServerVersionError(t *testing.T) {
 	wantErr := ("kubectl --server 127.0.0.1:1 failed: exit status 1, " +
 		"stderr: The connection to the server 127.0.0.1:1 was refused - " +
 		"did you specify the right host or port?")
+
 	_, err := kubectl.DefaultCmd().Server("127.0.0.1:1").Version(true)
 	if err == nil {
 		t.Fatalf("want err, got nil")
 	}
+
 	if err.Error() != wantErr {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -97,28 +110,36 @@ func testServerVersionError(t *testing.T) {
 
 func testServerVersion(t *testing.T) {
 	kctl := kubectl.DefaultCmd()
-	v, err := kctl.Version(true)
+
+	version, err := kctl.Version(true)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if v.ServerVersion.GitVersion != e2e.ServerVersion {
-		t.Fatalf("unexpected ServerVersion: %+#v", v.ServerVersion)
+
+	if version.ServerVersion.GitVersion != e2e.ServerVersion {
+		t.Fatalf("unexpected ServerVersion: %+#v", version.ServerVersion)
 	}
 }
 
 func testExport(t *testing.T, name string) {
+	t.Helper()
+
 	diskFs := filesys.MakeFsOnDisk()
 	outDir := filepath.Join(t.TempDir(), name)
+
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
+
 	cfg, err := os.ReadFile(filepath.Join("..", "..", "examples", name, types.DefaultFileName))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(outDir, types.DefaultFileName), []byte(cfg), 0o644); err != nil {
+
+	if err := os.WriteFile(filepath.Join(outDir, types.DefaultFileName), cfg, 0o600); err != nil {
 		t.Fatal(err)
 	}
+
 	exportCmd := cmd.RootCommand()
 	exportCmd.SetArgs([]string{"export", outDir})
 
@@ -126,8 +147,9 @@ func testExport(t *testing.T, name string) {
 		t.Fatal(err)
 	}
 
-	got := e2e.ReadFiles(diskFs, outDir)
-	want := e2e.ReadFiles(diskFs, filepath.Join("..", "..", "examples", name))
+	got := e2e.ReadFiles(t, diskFs, outDir)
+	want := e2e.ReadFiles(t, diskFs, filepath.Join("..", "..", "examples", name))
+
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("unexpected result, +got -want:\n%v", diff)
 	}

@@ -44,16 +44,19 @@ func TestComponents(t *testing.T) {
 		testB: yaml.MustParse(appTestB),
 	}
 	id := resid.FromRNode(resources[devA])
+
 	comps := kustomize.NewComponents(clusters)
 	if err := comps.Add(id, resources); err != nil {
 		t.Fatal(err)
 	}
+
 	gotFs := filesys.MakeFsInMemory()
 	if err := comps.Store(gotFs, "/"); err != nil {
 		t.Fatal(err)
 	}
-	got := e2e.ReadFiles(gotFs, "/")
-	want := e2e.ReadFsFiles(compFs, "testdata/components")
+
+	got := e2e.ReadFiles(t, gotFs, "/")
+	want := e2e.ReadFsFiles(t, compFs, "testdata/components")
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("chart mismatch, +got -want:\n%s", diff)
 	}

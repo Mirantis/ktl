@@ -62,8 +62,8 @@ func TestChart(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := e2e.ReadFiles(gotFs, "/")
-	want := e2e.ReadFsFiles(chartFs, "testdata/chart")
+	got := e2e.ReadFiles(t, gotFs, "/")
+	want := e2e.ReadFsFiles(t, chartFs, "testdata/chart")
 
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("chart mismatch, +got -want:\n%s", diff)

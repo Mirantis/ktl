@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -10,11 +9,11 @@ import (
 )
 
 func KubeConfig(t *testing.T, clusters map[string]string, current string) {
+	t.Helper()
+
 	testDir := t.TempDir()
 	cfgFile := filepath.Join(testDir, "kubeconfig")
-	if err := os.Setenv(clientcmd.RecommendedConfigPathEnvVar, cfgFile); err != nil {
-		t.Fatal(err)
-	}
+	t.Setenv(clientcmd.RecommendedConfigPathEnvVar, cfgFile)
 	cfgPath := clientcmd.NewDefaultPathOptions()
 	cfgPath.GlobalFile = cfgFile
 
@@ -27,8 +26,8 @@ func KubeConfig(t *testing.T, clusters map[string]string, current string) {
 		cfg.Clusters[name] = &api.Cluster{Server: server}
 		cfg.Contexts[name] = &api.Context{Cluster: name, Namespace: "default"}
 	}
-	cfg.CurrentContext = current
 
+	cfg.CurrentContext = current
 	if err := clientcmd.ModifyConfig(cfgPath, *cfg, true); err != nil {
 		t.Fatal(err)
 	}
