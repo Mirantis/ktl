@@ -28,14 +28,17 @@ type Cluster struct {
 func (c *Cluster) init() error {
 	var err error
 	if c.clusterResources, err = c.Client.ApiResources(false); err != nil {
-		return err
+		return fmt.Errorf("unable to get API resources list: %w", err)
 	}
+
 	if c.namespacedResources, err = c.Client.ApiResources(true); err != nil {
-		return err
+		return fmt.Errorf("unable to get API resources list: %w", err)
 	}
+
 	if c.namespaces, err = c.Client.Namespaces(); err != nil {
-		return err
+		return fmt.Errorf("unable to get namespaces list: %w", err)
 	}
+
 	return nil
 }
 
@@ -45,11 +48,13 @@ func (c *Cluster) Execute(out kio.Writer, filters ...kio.Filter) error {
 	}
 
 	nodes := map[resid.ResId]*yaml.RNode{}
+
 	for _, rule := range c.Rules {
 		batch, err := c.export(rule)
 		if err != nil {
 			return err
 		}
+
 		maps.Insert(nodes, maps.All(batch))
 	}
 
@@ -66,54 +71,67 @@ func (c *Cluster) Execute(out kio.Writer, filters ...kio.Filter) error {
 		Outputs: []kio.Writer{out},
 	}
 
-	return pipeline.Execute()
+	err := pipeline.Execute()
+	if err != nil {
+		return fmt.Errorf("export pipeline failed: %w", err)
+	}
+
+	return nil
 }
 
 func (c *Cluster) export(rule types.ExportRule) (map[resid.ResId]*yaml.RNode, error) {
 	slog.Info("exporting", "rule", rule)
+
 	namespaces := slices.Clone(c.namespaces)
 	resources := slices.Clone(c.namespacedResources)
-	if 0 == max(len(rule.Namespaces.Include), len(rule.Namespaces.Exclude)) {
+
+	if max(len(rule.Namespaces.Include), len(rule.Namespaces.Exclude)) == 0 {
 		namespaces = []string{""}
+
 		resources = append(resources, c.clusterResources...)
 	}
+
 	namespaces = rule.Namespaces.Select(namespaces)
 	resources = rule.Resources.Select(resources)
-
 	nodes := []*yaml.RNode{}
+
 	for _, ns := range namespaces {
 		batch, err := c.Client.GetAll(ns, rule.LabelSelectors, resources...)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to fetch resources: %w", err)
 		}
+
 		nodes = append(nodes, batch...)
 	}
-	byResId := map[resid.ResId]*yaml.RNode{}
-	for _, rn := range nodes {
-		id := resid.FromRNode(rn)
-		if 0 == len(rule.Names.Select([]string{id.Name})) {
+
+	byResID := map[resid.ResId]*yaml.RNode{}
+
+	for _, resNode := range nodes {
+		id := resid.FromRNode(resNode)
+		if len(rule.Names.Select([]string{id.Name})) == 0 {
 			continue
 		}
-		byResId[id] = rn
-		SetObjectPath(rn, true)
+
+		byResID[id] = resNode
+		SetObjectPath(resNode, true)
 	}
-	return byResId, nil
+
+	return byResID, nil
 }
 
 func SetObjectPath(obj *yaml.RNode, withNamespace bool) {
-	annotations := map[string]string{}
-	for k, v := range obj.GetAnnotations() {
-		annotations[k] = v
-	}
+	annotations := maps.Clone(obj.GetAnnotations())
 	path := fmt.Sprintf(
 		"%s-%s.yaml",
 		obj.GetName(),
 		strings.ToLower(obj.GetKind()),
 	)
 	ns := obj.GetNamespace()
+
 	if withNamespace && ns != "" {
 		path = filepath.Join(ns, path)
 	}
+
 	annotations[kioutil.PathAnnotation] = path
-	obj.SetAnnotations(annotations)
+	obj.SetAnnotations(annotations) //nolint:errcheck
 }
