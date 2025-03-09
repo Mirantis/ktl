@@ -1,9 +1,11 @@
 clusters:
 - names: dev-*
   tags: dev
-- names: test-*
+- names: test-cluster-a,test-cluster-b
   tags: test
-- names: prod-*
+- names:
+  - prod-cluster-a
+  - prod-cluster-b
   tags: prod
 export:
 - namespaces: simple-app
