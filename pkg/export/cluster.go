@@ -27,11 +27,11 @@ type Cluster struct {
 
 func (c *Cluster) init() error {
 	var err error
-	if c.clusterResources, err = c.Client.ApiResources(false); err != nil {
+	if c.clusterResources, err = c.Client.APIResources(false); err != nil {
 		return fmt.Errorf("unable to get API resources list: %w", err)
 	}
 
-	if c.namespacedResources, err = c.Client.ApiResources(true); err != nil {
+	if c.namespacedResources, err = c.Client.APIResources(true); err != nil {
 		return fmt.Errorf("unable to get API resources list: %w", err)
 	}
 
