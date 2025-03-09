@@ -57,6 +57,7 @@ func TestComponents(t *testing.T) {
 
 	got := e2e.ReadFiles(t, gotFs, "/")
 	want := e2e.ReadFsFiles(t, compFs, "testdata/components")
+
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("chart mismatch, +got -want:\n%s", diff)
 	}
