@@ -12,6 +12,7 @@ import (
 
 func TestClearAll(t *testing.T) {
 	slog.SetLogLoggerLevel(slog.LevelDebug)
+
 	tests := []struct {
 		name    string
 		path    types.NodePath
@@ -77,27 +78,34 @@ func TestClearAll(t *testing.T) {
 `,
 		},
 	}
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			input := yaml.MustParse(test.input)
+
 			f, err := filters.ClearAll(test.path)
 			if err != nil {
 				t.Fatalf("invalid filter: %v", err)
 			}
+
 			got, err := f.Filter(input)
 			if err != nil && test.wantErr {
 				return
 			}
+
 			if err != nil {
 				t.Fatalf("want no error, got: %v", err)
 			}
+
 			if test.wantErr {
 				t.Fatalf("want error, got none")
 			}
+
 			gotText, err := got.String()
 			if err != nil {
 				t.Fatalf("invalid result yaml: %v", err)
 			}
+
 			if diff := cmp.Diff(test.want, gotText); diff != "" {
 				t.Fatalf("-want +got:\n%s", diff)
 			}

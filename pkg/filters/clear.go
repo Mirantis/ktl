@@ -8,62 +8,74 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func ClearAll(p types.NodePath) (yaml.Filter, error) {
+func makeFieldMatcher(field, value string) *yaml.FilterMatcher {
+	filterMatcher := &yaml.FilterMatcher{}
+
+	switch {
+	case value == "":
+		fallthrough
+	case strings.HasPrefix(value, "{"):
+		fallthrough
+	case strings.HasPrefix(value, "["):
+		filterMatcher.Filters = append(
+			filterMatcher.Filters,
+			yaml.YFilter{Filter: yaml.Lookup(field)},
+			yaml.YFilter{Filter: &ValueMatcher{Value: value}},
+		)
+	default:
+		matcher := yaml.FieldMatcher{
+			Name: field,
+		}
+		matcher.StringValue = value
+		filterMatcher.Filters = append(filterMatcher.Filters, yaml.YFilter{Filter: matcher})
+	}
+
+	return filterMatcher
+}
+
+func ClearAll(p types.NodePath) (*yaml.TeePiper, error) {
 	path, cond, err := p.Normalize()
 	if err != nil {
-		return nil, fmt.Errorf("invalid path %s: %v", p, err)
+		return nil, fmt.Errorf("invalid path %s: %w", p, err)
 	}
+
 	root := &yaml.TeePiper{}
 	pipe := &root.Filters
-	var pg *yaml.PathGetter
-	for i := range path {
-		if yaml.IsWildcard(path[i]) {
+
+	var pathGetter *yaml.PathGetter
+
+	for idx := range path {
+		if yaml.IsWildcard(path[idx]) {
 			forEach := &ForEach{}
 			*pipe = append(*pipe, forEach)
 			pipe = &forEach.Filters
-			pg = nil
+			pathGetter = nil
+
 			continue
 		}
 
-		if cond[i] != "" {
-			field, value, err := yaml.SplitIndexNameValue(cond[i])
+		if cond[idx] != "" {
+			field, value, err := yaml.SplitIndexNameValue(cond[idx])
 			if err != nil {
-				return nil, fmt.Errorf("invalid path condition %q: %v", cond[i], err)
+				return nil, fmt.Errorf("invalid path condition %q: %w", cond[idx], err)
 			}
-			fm := yaml.FilterMatcher{}
-			switch {
-			case value == "":
-				fallthrough
-			case strings.HasPrefix(value, "{"):
-				fallthrough
-			case strings.HasPrefix(value, "["):
-				fm.Filters = append(
-					fm.Filters,
-					yaml.YFilter{Filter: yaml.Lookup(field)},
-					yaml.YFilter{Filter: &ValueMatcher{Value: value}},
-				)
-			default:
-				matcher := yaml.FieldMatcher{
-					Name: field,
-				}
-				matcher.StringValue = value
-				fm.Filters = append(fm.Filters, yaml.YFilter{Filter: matcher})
-			}
-			*pipe = append(*pipe, fm)
-			pg = nil
+
+			*pipe = append(*pipe, makeFieldMatcher(field, value))
+			pathGetter = nil
 		}
 
-		if pg == nil {
-			pg = &yaml.PathGetter{}
-			*pipe = append(*pipe, pg)
+		if pathGetter == nil {
+			pathGetter = &yaml.PathGetter{}
+			*pipe = append(*pipe, pathGetter)
 		}
 
-		pg.Path = append(pg.Path, path[i])
+		pathGetter.Path = append(pathGetter.Path, path[idx])
 	}
 
-	if pg != nil && len(pg.Path) > 0 {
-		field := pg.Path[len(pg.Path)-1]
-		pg.Path = pg.Path[:len(pg.Path)-1]
+	if pathGetter != nil && len(pathGetter.Path) > 0 {
+		field := pathGetter.Path[len(pathGetter.Path)-1]
+		pathGetter.Path = pathGetter.Path[:len(pathGetter.Path)-1]
+
 		*pipe = append(*pipe, yaml.Clear(field))
 	} else {
 		*pipe = append(*pipe, &ValueSetter{})

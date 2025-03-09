@@ -1,11 +1,13 @@
 package filters
 
 import (
+	"fmt"
 	"strings"
 
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
+//nolint:gochecknoinits
 func init() {
 	yaml.Filters["ValueSetter"] = func() yaml.Filter { return &ValueSetter{} }
 }
@@ -20,7 +22,9 @@ func (filter *ValueSetter) Filter(input *yaml.RNode) (*yaml.RNode, error) {
 	if v == nil {
 		v = yaml.MakeNullNode()
 	}
+
 	*input = *v.Copy()
+
 	return input, nil
 }
 
@@ -32,14 +36,16 @@ func (m *ValueMatcher) filterNilOrEmpty(input *yaml.RNode) (*yaml.RNode, error) 
 	if m.Value == "" {
 		return input, nil
 	}
-	return nil, nil
+
+	return nil, nil //nolint:nilnil
 }
 
 func (m *ValueMatcher) filterScalar(input *yaml.RNode) (*yaml.RNode, error) {
 	if m.Value == input.YNode().Value {
 		return input, nil
 	}
-	return nil, nil
+
+	return nil, nil //nolint:nilnil
 }
 
 func (m *ValueMatcher) Filter(input *yaml.RNode) (*yaml.RNode, error) {
@@ -47,8 +53,8 @@ func (m *ValueMatcher) Filter(input *yaml.RNode) (*yaml.RNode, error) {
 		return m.filterNilOrEmpty(input)
 	}
 
-	if "" == m.Value {
-		return nil, nil
+	if m.Value == "" {
+		return nil, nil //nolint:nilnil
 	}
 
 	if input.YNode().Kind == yaml.ScalarNode {
@@ -57,11 +63,12 @@ func (m *ValueMatcher) Filter(input *yaml.RNode) (*yaml.RNode, error) {
 
 	value, err := yaml.String(input.YNode(), yaml.Flow)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid yaml node: %w", err)
 	}
+
 	if strings.TrimSpace(value) == m.Value {
 		return input, nil
 	}
 
-	return nil, nil
+	return nil, nil //nolint:nilnil
 }
