@@ -10,6 +10,7 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
+//nolint:varnamelen
 func TestIterator(t *testing.T) {
 	n1 := yaml.MustParse(`
 apiVersion: apps/v1
@@ -68,10 +69,12 @@ spec:
 	}, schema)
 
 	got := []string{}
+
 	for it.Next() {
 		path := it.Path().String()
 		got = append(got, path)
 	}
+
 	if err := it.Error(); err != nil {
 		t.Fatal(err)
 	}

@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"errors"
 	"fmt"
 	"iter"
 	"maps"
@@ -22,23 +23,25 @@ type Iterator struct {
 }
 
 func NewIterator(resources map[types.ClusterID]*yaml.RNode, schema *openapi.ResourceSchema) *Iterator {
-	it := &Iterator{}
+	resIter := &Iterator{}
 	if len(resources) == 0 {
-		return it
+		return resIter
 	}
 
-	it.clusters = slices.Sorted(maps.Keys(resources))
+	resIter.clusters = slices.Sorted(maps.Keys(resources))
 	state := &iteratorState{
 		schema:  schema,
-		values:  make([]*yaml.Node, len(it.clusters)),
-		indices: make([]int, len(it.clusters)),
+		values:  make([]*yaml.Node, len(resIter.clusters)),
+		indices: make([]int, len(resIter.clusters)),
 	}
-	for i, cluster := range it.clusters {
+
+	for i, cluster := range resIter.clusters {
 		state.values[i] = resources[cluster].YNode()
 	}
-	it.states.push(state)
 
-	return it
+	resIter.states.push(state)
+
+	return resIter
 }
 
 func (it *Iterator) Error() error {
@@ -58,21 +61,25 @@ func (it *Iterator) Clusters() []types.ClusterID {
 	for cluster := range it.Values() {
 		clusters = append(clusters, cluster)
 	}
+
 	return clusters
 }
 
 func (it *Iterator) Values() iter.Seq2[types.ClusterID, *yaml.Node] {
 	return func(yield func(types.ClusterID, *yaml.Node) bool) {
 		placeholder := &yaml.Node{Kind: it.current.kind}
-		for i := range it.clusters {
-			value := it.current.values[i]
+
+		for idx := range it.clusters {
+			value := it.current.values[idx]
 			if value == nil {
 				continue
 			}
+
 			if !it.current.isValue {
 				value = placeholder
 			}
-			if !yield(it.clusters[i], value) {
+
+			if !yield(it.clusters[idx], value) {
 				return
 			}
 		}
@@ -85,13 +92,17 @@ func (it *Iterator) Next() bool {
 	}
 
 	it.current = it.states.pop()
+
 	batch, err := it.current.unfold()
 	if err != nil {
 		it.err = err
+
 		return false
 	}
+
 	sort.Sort(iteratorStatesOrder(batch))
 	it.states.push(batch...)
+
 	return true
 }
 
@@ -104,6 +115,8 @@ type iteratorState struct {
 	isValue bool
 }
 
+var errNodeKind = errors.New("invalid node kind")
+
 func (is *iteratorState) init() error {
 	if is.kind != 0 {
 		return nil
@@ -113,9 +126,11 @@ func (is *iteratorState) init() error {
 		if nil == node || is.kind == node.Kind {
 			continue
 		}
+
 		if is.kind != 0 {
-			return fmt.Errorf("node kind mismatch: %s", is.path)
+			return fmt.Errorf("%w: %s", errNodeKind, is.path)
 		}
+
 		is.kind = node.Kind
 	}
 
@@ -127,7 +142,7 @@ func (is *iteratorState) init() error {
 	case yaml.SequenceNode:
 		is.isValue = !schema.IsAssociative(is.schema, nil, false)
 	default:
-		return fmt.Errorf("unsupported node: %s", is.path)
+		return fmt.Errorf("%w: %s", errNodeKind, is.path)
 	}
 
 	return nil
@@ -135,6 +150,7 @@ func (is *iteratorState) init() error {
 
 func (is *iteratorState) mergeKey() []string {
 	_, key := is.schema.PatchStrategyAndKeyList()
+
 	return key
 }
 
@@ -153,22 +169,26 @@ func (is *iteratorState) unfold() ([]*iteratorState, error) {
 	case yaml.SequenceNode:
 		return is.listElements()
 	default:
-		panic(fmt.Errorf("unexpected node kind=%v: %s", is.kind, is.path))
+		panic(fmt.Errorf("%w %v: %s", errNodeKind, is.kind, is.path))
 	}
 }
 
 func (is *iteratorState) mappingFields() ([]*iteratorState, error) {
 	states := map[string]*iteratorState{}
+
 	for idxValue, node := range is.values {
 		if node == nil {
 			continue
 		}
+
 		if len(node.Content)%2 != 0 {
-			panic(fmt.Errorf("corrupted node: %s", is.path))
+			panic(fmt.Errorf("%w: %s", errNodeKind, is.path))
 		}
-		for idxField := 0; idxField < len(node.Content)/2; idxField++ {
+
+		for idxField := range len(node.Content) / 2 {
 			pathPart := node.Content[idxField*2].Value
 			state, exists := states[pathPart]
+
 			if !exists {
 				state = &iteratorState{
 					path:    append(slices.Clone(is.path), pathPart),
@@ -176,26 +196,32 @@ func (is *iteratorState) mappingFields() ([]*iteratorState, error) {
 					indices: make([]int, len(is.indices)),
 				}
 				states[pathPart] = state
+
 				if is.schema != nil {
 					state.schema = is.schema.Field(pathPart)
 				}
 			}
+
 			state.indices[idxValue] = idxField
 			state.values[idxValue] = node.Content[idxField*2+1]
 		}
 	}
+
 	return slices.Collect(maps.Values(states)), nil
 }
 
+var errInvalidKV = errors.New("invalid keys/values")
+
 func kvPathPart(key, values []string) string {
 	if len(key) != len(values) {
-		panic(fmt.Errorf("invalid keys/values"))
+		panic(errInvalidKV)
 	}
 
 	parts := make([]string, len(key))
 	for i := range key {
 		parts[i] = key[i] + "=" + values[i]
 	}
+
 	return "[" + strings.Join(parts, ",") + "]"
 }
 
@@ -203,24 +229,28 @@ func (is *iteratorState) listElements() ([]*iteratorState, error) {
 	schema := is.schema.Elements()
 	key := is.mergeKey()
 	states := map[string]*iteratorState{}
-
 	allKeyValues := make([][][]string, len(is.values))
-	for i, node := range is.values {
+
+	for idx, node := range is.values {
 		if node == nil {
 			continue
 		}
-		rn := yaml.NewRNode(node)
-		evl, err := rn.ElementValuesList(key)
+
+		resNode := yaml.NewRNode(node)
+
+		evl, err := resNode.ElementValuesList(key)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("invalid yaml: %w", err)
 		}
-		allKeyValues[i] = evl
+
+		allKeyValues[idx] = evl
 	}
 
 	for idxValue, keyValues := range allKeyValues {
 		for idxElement, elementValues := range keyValues {
 			pathPart := kvPathPart(key, elementValues)
 			state, exists := states[pathPart]
+
 			if !exists {
 				state = &iteratorState{
 					schema:  schema,
@@ -230,6 +260,7 @@ func (is *iteratorState) listElements() ([]*iteratorState, error) {
 				}
 				states[pathPart] = state
 			}
+
 			state.indices[idxValue] = idxElement
 			state.values[idxValue] = is.values[idxValue].Content[idxElement]
 		}
@@ -242,13 +273,15 @@ type iteratorStatesOrder []*iteratorState
 
 func (o iteratorStatesOrder) Len() int      { return len(o) }
 func (o iteratorStatesOrder) Swap(a, b int) { o[a], o[b] = o[b], o[a] }
-func (o iteratorStatesOrder) Less(a, b int) bool {
+func (o iteratorStatesOrder) Less(a, b int) bool { //nolint:varnamelen
 	if d := o.byIndices(a, b); d != 0 {
 		return d < 0
 	}
+
 	if d := o.byNils(a, b); d != 0 {
 		return d < 0
 	}
+
 	return o.byPath(a, b) < 0
 }
 
@@ -260,20 +293,24 @@ func (o iteratorStatesOrder) byIndices(a, b int) int {
 		suma += isa.indices[i]
 		sumb += isb.indices[i]
 	}
+
 	return suma - sumb
 }
 
 func (o iteratorStatesOrder) byNils(a, b int) int {
 	isa, isb := o[a], o[b]
 	suma, sumb := 0, 0
+
 	for i := range max(len(isa.indices), len(isb.indices)) {
 		if isa.values[i] == nil {
 			suma--
 		}
+
 		if isb.values[i] == nil {
 			sumb--
 		}
 	}
+
 	return suma - sumb
 }
 
@@ -281,5 +318,6 @@ func (o iteratorStatesOrder) byPath(a, b int) int {
 	isa, isb := o[a], o[b]
 	pa := isa.path[len(isa.path)-1]
 	pb := isb.path[len(isb.path)-1]
+
 	return strings.Compare(pa, pb)
 }

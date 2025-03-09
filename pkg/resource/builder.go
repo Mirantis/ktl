@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"fmt"
 	"slices"
 
 	"github.com/Mirantis/rekustomize/pkg/types"
@@ -12,22 +13,24 @@ type Builder struct {
 	path  types.NodePath
 	nodes []*yaml.RNode
 
-	hit, miss int
+	Hit, Miss int
 }
 
 func NewNodeBuilder(root *yaml.RNode) *Builder {
 	return &Builder{nodes: []*yaml.RNode{root}}
 }
 
-func NewBuilder(id resid.ResId) *Builder {
-	rn := yaml.NewMapRNode(nil)
-	rn.SetApiVersion(id.ApiVersion())
-	rn.SetKind(id.Kind)
-	rn.SetName(id.Name)
-	if id.Namespace != "" {
-		rn.SetNamespace(id.Namespace)
+func NewBuilder(resID resid.ResId) *Builder {
+	resNode := yaml.NewMapRNode(nil)
+	resNode.SetApiVersion(resID.ApiVersion())
+	resNode.SetKind(resID.Kind)
+	resNode.SetName(resID.Name) //nolint:errcheck
+
+	if resID.Namespace != "" {
+		resNode.SetNamespace(resID.Namespace) //nolint:errcheck
 	}
-	return NewNodeBuilder(rn)
+
+	return NewNodeBuilder(resNode)
 }
 
 func (b *Builder) RNode() *yaml.RNode {
@@ -36,10 +39,12 @@ func (b *Builder) RNode() *yaml.RNode {
 
 func (b *Builder) skipCommon(path types.NodePath) (*yaml.RNode, types.NodePath) {
 	common := 0
+
 	for i := range min(len(path), len(b.path)) {
 		if path[i] != b.path[i] {
 			break
 		}
+
 		common++
 	}
 
@@ -48,30 +53,38 @@ func (b *Builder) skipCommon(path types.NodePath) (*yaml.RNode, types.NodePath) 
 	b.nodes = append(b.nodes[:1+common], padding...)
 
 	if b.nodes[common] == nil {
-		b.miss++
+		b.Miss++
+
 		return b.nodes[0], path
 	}
+
 	if common > 0 {
-		b.hit++
+		b.Hit++
 	}
+
 	return b.nodes[common], path[common:]
 }
 
 func (b *Builder) Add(path types.NodePath, kind yaml.Kind) (*yaml.RNode, error) {
 	root, sub := b.skipCommon(path)
-	rn, err := root.Pipe(yaml.LookupCreate(kind, sub...))
+
+	resNode, err := root.Pipe(yaml.LookupCreate(kind, sub...))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to add resource attribute: %w", err)
 	}
-	b.nodes[len(path)] = rn
-	return rn, nil
+
+	b.nodes[len(path)] = resNode
+
+	return resNode, nil
 }
 
 func (b *Builder) Set(path types.NodePath, node *yaml.Node) (*yaml.RNode, error) {
-	rn, err := b.Add(path, node.Kind)
+	resNode, err := b.Add(path, node.Kind)
 	if err != nil {
 		return nil, err
 	}
-	rn.SetYNode(node)
-	return rn, nil
+
+	resNode.SetYNode(node)
+
+	return resNode, nil
 }

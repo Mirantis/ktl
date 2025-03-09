@@ -8,9 +8,10 @@ func (s *stack[E]) push(v ...E) {
 	}
 }
 
-func (s *stack[E]) pop() E {
+func (s *stack[E]) pop() E { //nolint:ireturn
 	i := len(*s) - 1
 	v := (*s)[i]
 	*s = (*s)[:i]
+
 	return v
 }

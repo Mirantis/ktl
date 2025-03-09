@@ -11,6 +11,7 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
+//nolint:varnamelen
 func TestGroupByValue(t *testing.T) {
 	n0 := yaml.MustParse(`{ a: 1, b: 2, c: 3 }`)
 	n1 := yaml.MustParse(`{ a: 1, c: 3, b: 2 }`)
@@ -24,8 +25,10 @@ func TestGroupByValue(t *testing.T) {
 		3: yaml.CopyYNode(n3.YNode()),
 		4: yaml.CopyYNode(n4.YNode()),
 	}
+
 	groups := resource.GroupByValue(maps.All(input))
 	got := []string{}
+
 	for _, group := range groups {
 		got = append(got, fmt.Sprintf(
 			"%v: %s",
@@ -33,11 +36,13 @@ func TestGroupByValue(t *testing.T) {
 			yaml.NewRNode(group.Value).MustString(),
 		))
 	}
+
 	want := []string{
 		"[2 3 4]: {a: 2, b: 3}\n",
 		"[0]: {a: 1, b: 2, c: 3}\n",
 		"[1]: {a: 1, c: 3, b: 2}\n",
 	}
+
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("+got -want:\n%s", diff)
 	}

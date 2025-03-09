@@ -2,6 +2,7 @@ package resource
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"iter"
 	"maps"
@@ -18,16 +19,19 @@ type ValueGroup struct {
 	values   []*yaml.Node
 }
 
+var errCorruptedYaml = errors.New("corrupted yaml")
+
 func GroupByValue(values iter.Seq2[types.ClusterID, *yaml.Node]) []*ValueGroup {
 	groups := map[string]*ValueGroup{}
 
 	for cluster, node := range values {
-		// TODO: use Encoder/bytes to avoid bytes->string->bytes
 		data, err := yaml.String(node, yaml.Flow)
 		if err != nil {
-			panic(fmt.Errorf("corrupted yaml"))
+			panic(errCorruptedYaml)
 		}
+
 		hash := fmt.Sprintf("%x", sha256.Sum256([]byte(data)))
+
 		group, exists := groups[hash]
 		if !exists {
 			group = &ValueGroup{
@@ -35,6 +39,7 @@ func GroupByValue(values iter.Seq2[types.ClusterID, *yaml.Node]) []*ValueGroup {
 			}
 			groups[hash] = group
 		}
+
 		group.values = append(group.values, node)
 		group.Clusters = append(group.Clusters, cluster)
 	}
@@ -43,7 +48,9 @@ func GroupByValue(values iter.Seq2[types.ClusterID, *yaml.Node]) []*ValueGroup {
 	for _, group := range result {
 		sort.Sort((*valueGroupClustersOrder)(group))
 	}
+
 	sort.Sort(valueGroupOrder(result))
+
 	return result
 }
 
@@ -56,6 +63,7 @@ func (o valueGroupOrder) Less(a, b int) bool {
 	if d := len(va.Clusters) - len(vb.Clusters); d != 0 {
 		return d > 0 // descending
 	}
+
 	return va.Clusters[0] < vb.Clusters[0]
 }
 
@@ -66,6 +74,7 @@ func (o *valueGroupClustersOrder) Swap(a, b int) {
 	o.Clusters[a], o.Clusters[b] = o.Clusters[b], o.Clusters[a]
 	o.values[a], o.values[b] = o.values[b], o.values[a]
 }
+
 func (o *valueGroupClustersOrder) Less(a, b int) bool {
 	return o.Clusters[a] < o.Clusters[b]
 }
