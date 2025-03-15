@@ -1,6 +1,6 @@
 clusters:
 - names: dev-cluster-a
-export:
+resources:
 - namespaces: simple-app
   labelSelectors: ['!generated-by']
   apiResources:

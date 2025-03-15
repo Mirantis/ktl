@@ -44,7 +44,7 @@ func NewClusterIndex() *ClusterIndex {
 	}
 }
 
-func BuildClusterIndex(names []string, groups []ClusterGroup) *ClusterIndex {
+func BuildClusterIndex(names []string, groups []ClusterSelector) *ClusterIndex {
 	index := NewClusterIndex()
 	clusterTags := map[string]sets.String{}
 

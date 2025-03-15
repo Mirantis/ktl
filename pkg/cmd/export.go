@@ -10,7 +10,6 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/Mirantis/rekustomize/pkg/export"
 	_ "github.com/Mirantis/rekustomize/pkg/filters" // register filters
 	"github.com/Mirantis/rekustomize/pkg/helm"
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
@@ -81,26 +80,26 @@ type exportOpts struct {
 }
 
 func (opts *exportOpts) setDefaults(defaults *types.Rekustomization) {
-	if len(opts.ExportRules) == 0 {
-		opts.ExportRules = []types.ExportRule{{}}
+	if len(opts.Resources) == 0 {
+		opts.Resources = []types.ResourceSelector{{}}
 	}
 
-	labelSelectors := defaults.ExportRules[0].LabelSelectors
-	excludeResources := defaults.ExportRules[0].Resources.Exclude
+	labelSelectors := defaults.Resources[0].LabelSelectors
+	excludeResources := defaults.Resources[0].Resources.Exclude
 
-	for i := range opts.ExportRules {
-		if len(opts.ExportRules[i].Resources.Include) == 0 {
-			opts.ExportRules[i].Resources.Exclude = append(opts.ExportRules[i].Resources.Exclude, excludeResources...)
+	for i := range opts.Resources {
+		if len(opts.Resources[i].Resources.Include) == 0 {
+			opts.Resources[i].Resources.Exclude = append(opts.Resources[i].Resources.Exclude, excludeResources...)
 		}
 
-		opts.ExportRules[i].LabelSelectors = append(opts.ExportRules[i].LabelSelectors, labelSelectors...)
+		opts.Resources[i].LabelSelectors = append(opts.Resources[i].LabelSelectors, labelSelectors...)
 	}
 
 	opts.Filters = append(opts.Filters, defaults.Filters...)
 }
 
 func (opts *exportOpts) parseClusterFilter() error {
-	if len(opts.ClusterGroups) == 0 {
+	if len(opts.Clusters) == 0 {
 		return nil
 	}
 
@@ -109,7 +108,7 @@ func (opts *exportOpts) parseClusterFilter() error {
 		return fmt.Errorf("invalid cluster filter: %w", err)
 	}
 
-	opts.clustersIndex = types.BuildClusterIndex(allClusters, opts.ClusterGroups)
+	opts.clustersIndex = types.BuildClusterIndex(allClusters, opts.Clusters)
 	opts.clusters = slices.Collect(opts.clustersIndex.Names(opts.clustersIndex.IDs()...))
 
 	return nil
@@ -138,10 +137,10 @@ func (opts *exportOpts) runMulti(dir string) error {
 			defer waitGroup.Done()
 
 			kctl := kubectl.DefaultCmd().Cluster(cluster)
-			exporter := export.Cluster{
-				Client: kctl,
-				Name:   cluster,
-				Rules:  opts.ExportRules,
+			exporter := kubectl.Export{
+				Client:    kctl,
+				Cluster:   cluster,
+				Resources: opts.Resources,
 			}
 
 			err := exporter.Execute(buf, opts.filters...)
@@ -326,10 +325,10 @@ func (opts *exportOpts) runSingle(dir string) error {
 		FileSystem:  filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
 	}
 
-	exporter := export.Cluster{
-		Client: kctl,
-		Name:   cluster,
-		Rules:  opts.ExportRules,
+	exporter := kubectl.Export{
+		Client:    kctl,
+		Cluster:   cluster,
+		Resources: opts.Resources,
 	}
 
 	if err := exporter.Execute(out, opts.filters...); err != nil {

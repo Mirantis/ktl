@@ -7,7 +7,7 @@ clusters:
   - prod-cluster-a
   - prod-cluster-b
   tags: prod
-export:
+resources:
 - namespaces: simple-app
   labelSelectors: ['!generated-by']
   apiResources:

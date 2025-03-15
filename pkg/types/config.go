@@ -4,12 +4,12 @@ import "sigs.k8s.io/kustomize/kyaml/kio/filters"
 
 const DefaultFileName = "rekustomization.yaml"
 
-type ClusterGroup struct {
+type ClusterSelector struct {
 	Names PatternSelector `yaml:"names"`
 	Tags  StrList         `yaml:"tags"`
 }
 
-type ExportRule struct {
+type ResourceSelector struct {
 	Names          PatternSelector `yaml:"names"`
 	Namespaces     PatternSelector `yaml:"namespaces"`
 	Resources      PatternSelector `yaml:"apiResources"`
@@ -17,9 +17,9 @@ type ExportRule struct {
 }
 
 type Rekustomization struct {
-	ClusterGroups []ClusterGroup `yaml:"clusters"`
-	ExportRules   []ExportRule   `yaml:"export"`
-	HelmChart     HelmChart      `yaml:"helmChart"`
+	Clusters  []ClusterSelector  `yaml:"clusters"`
+	Resources []ResourceSelector `yaml:"resources"`
+	HelmChart HelmChart          `yaml:"helmChart"`
 
 	Filters []filters.KFilter `yaml:"filters"`
 }

@@ -1,4 +1,4 @@
-package export
+package kubectl
 
 import (
 	"fmt"
@@ -15,17 +15,17 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-type Cluster struct {
-	Client
-	Name  string
-	Rules []types.ExportRule
+type Export struct {
+	Client    Cmd
+	Cluster   string
+	Resources []types.ResourceSelector
 
 	clusterResources    []string
 	namespacedResources []string
 	namespaces          []string
 }
 
-func (c *Cluster) init() error {
+func (c *Export) init() error {
 	var err error
 	if c.clusterResources, err = c.Client.APIResources(false); err != nil {
 		return fmt.Errorf("unable to get API resources list: %w", err)
@@ -42,14 +42,14 @@ func (c *Cluster) init() error {
 	return nil
 }
 
-func (c *Cluster) Execute(out kio.Writer, filters ...kio.Filter) error {
+func (c *Export) Execute(out kio.Writer, filters ...kio.Filter) error {
 	if err := c.init(); err != nil {
 		return err
 	}
 
 	nodes := map[resid.ResId]*yaml.RNode{}
 
-	for _, rule := range c.Rules {
+	for _, rule := range c.Resources {
 		batch, err := c.export(rule)
 		if err != nil {
 			return err
@@ -79,7 +79,7 @@ func (c *Cluster) Execute(out kio.Writer, filters ...kio.Filter) error {
 	return nil
 }
 
-func (c *Cluster) export(rule types.ExportRule) (map[resid.ResId]*yaml.RNode, error) {
+func (c *Export) export(rule types.ResourceSelector) (map[resid.ResId]*yaml.RNode, error) {
 	slog.Info("exporting", "rule", rule)
 
 	namespaces := slices.Clone(c.namespaces)
