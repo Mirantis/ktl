@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Mirantis/rekustomize/pkg/cmd"
@@ -24,7 +25,7 @@ type testServer struct {
 func initServers(t *testing.T, clusters []string) map[string]string {
 	t.Helper()
 
-	kctl := kubectl.DefaultCmd()
+	kctl := kubectl.New()
 	result := map[string]string{}
 
 	serversChan := make(chan *testServer)
@@ -35,7 +36,9 @@ func initServers(t *testing.T, clusters []string) map[string]string {
 			clusterDir := filepath.Join("..", "..", "examples", "import", name)
 			url := e2e.K8sServer(t)
 			errs := []error{}
-			errs = append(errs, kctl.Server(url).ApplyKustomization(clusterDir))
+			kctl := kctl.SubCmd()
+			kctl.SetServer(url)
+			errs = append(errs, kctl.ApplyKustomization(clusterDir))
 			server := &testServer{name: name, url: url, err: errors.Join(errs...)}
 			serversChan <- server
 		}(cluster)
@@ -83,7 +86,7 @@ func TestE2E(t *testing.T) {
 }
 
 func testClientVersion(t *testing.T) {
-	version, err := kubectl.DefaultCmd().Version(false)
+	version, err := kubectl.New().ClientVersion()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -94,24 +97,23 @@ func testClientVersion(t *testing.T) {
 }
 
 func testServerVersionError(t *testing.T) {
-	wantErr := ("kubectl --server 127.0.0.1:1 failed: exit status 1, " +
-		"stderr: The connection to the server 127.0.0.1:1 was refused - " +
-		"did you specify the right host or port?")
+	kctl := kubectl.New()
+	kctl.SetServer("127.0.0.1:1")
 
-	_, err := kubectl.DefaultCmd().Server("127.0.0.1:1").Version(true)
+	_, err := kctl.Version()
 	if err == nil {
 		t.Fatalf("want err, got nil")
 	}
 
-	if err.Error() != wantErr {
+	if !strings.HasPrefix(err.Error(), "failed to execute") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func testServerVersion(t *testing.T) {
-	kctl := kubectl.DefaultCmd()
+	kctl := kubectl.New()
 
-	version, err := kctl.Version(true)
+	version, err := kctl.Version()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

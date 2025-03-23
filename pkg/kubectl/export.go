@@ -16,7 +16,7 @@ import (
 )
 
 type Export struct {
-	Client    Cmd
+	Client    *Cmd
 	Cluster   string
 	Resources []types.ResourceSelector
 
@@ -96,7 +96,7 @@ func (c *Export) export(rule types.ResourceSelector) (map[resid.ResId]*yaml.RNod
 	nodes := []*yaml.RNode{}
 
 	for _, ns := range namespaces {
-		batch, err := c.Client.GetAll(ns, rule.LabelSelectors, resources...)
+		batch, err := c.Client.Get(resources, ns, rule.LabelSelectors)
 		if err != nil {
 			return nil, fmt.Errorf("unable to fetch resources: %w", err)
 		}

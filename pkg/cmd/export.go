@@ -65,7 +65,7 @@ func exportCommand() *cobra.Command {
 				opts.filters = append(opts.filters, opts.Filters[i].Filter)
 			}
 
-			return opts.Run(dir)
+			return opts.run(dir)
 		},
 	}
 
@@ -103,7 +103,7 @@ func (opts *exportOpts) parseClusterFilter() error {
 		return nil
 	}
 
-	allClusters, err := kubectl.DefaultCmd().Clusters()
+	allClusters, err := kubectl.New().Clusters()
 	if err != nil {
 		return fmt.Errorf("invalid cluster filter: %w", err)
 	}
@@ -114,7 +114,7 @@ func (opts *exportOpts) parseClusterFilter() error {
 	return nil
 }
 
-func (opts *exportOpts) Run(dir string) error {
+func (opts *exportOpts) run(dir string) error {
 	if len(opts.clusters) > 1 {
 		return opts.runMulti(dir)
 	}
@@ -136,7 +136,8 @@ func (opts *exportOpts) runMulti(dir string) error {
 		go func() {
 			defer waitGroup.Done()
 
-			kctl := kubectl.DefaultCmd().Cluster(cluster)
+			kctl := kubectl.New()
+			kctl.SetCluster(cluster)
 			exporter := kubectl.Export{
 				Client:    kctl,
 				Cluster:   cluster,
@@ -312,12 +313,12 @@ func (opts *exportOpts) exportComponents(buffers map[string]*kio.PackageBuffer, 
 }
 
 func (opts *exportOpts) runSingle(dir string) error {
-	kctl := kubectl.DefaultCmd()
+	kctl := kubectl.New()
 
 	cluster := "<current-context>"
 	if len(opts.clusters) == 1 {
 		cluster = opts.clusters[0]
-		kctl = kctl.Cluster(cluster)
+		kctl.SetCluster(cluster)
 	}
 
 	out := &kio.LocalPackageWriter{

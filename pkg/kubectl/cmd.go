@@ -1,9 +1,6 @@
 package kubectl
 
 import (
-	"bufio"
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -16,216 +13,160 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func DefaultCmd() Cmd {
-	return []string{"kubectl"}
-}
-
-type Cmd []string
-
-func (kc Cmd) String() string {
-	return strings.Join(kc, " ")
-}
-
-func (kc Cmd) Server(server string) Cmd {
-	return slices.Concat(kc, []string{"--server", server})
-}
-
-func (kc Cmd) Cluster(cluster string) Cmd {
-	return slices.Concat(kc, []string{"--cluster", cluster})
-}
-
-func (kc Cmd) output(args ...string) ([]byte, error) {
-	cmd := exec.Command(kc[0], slices.Concat(kc[1:], args)...) //nolint:gosec
-	slog.Info("exec", "cmd", cmd.Args)
-	data, err := cmd.Output()
-
-	if err == nil {
-		return data, nil
+func New(args ...string) *Cmd {
+	if len(args) == 0 {
+		args = []string{"kubectl"}
 	}
 
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) {
-		stderr := strings.TrimSpace(string(exitErr.Stderr))
-
-		return nil, fmt.Errorf("%s failed: %w, stderr: %s", kc, err, stderr)
+	return &Cmd{
+		Cmd:    *exec.Command(args[0], args[1:]...), //nolint:gosec
+		Logger: slog.Default(),
 	}
-
-	return nil, fmt.Errorf("%s failed: %w", kc, err)
 }
 
-func (kc Cmd) Version(server bool) (*version.Version, error) {
-	args := []string{"version", "-ojson"}
-	if !server {
-		args = append(args, "--client=true")
-	}
-
-	data, err := kc.output(args...)
-	if err != nil {
-		return nil, err
-	}
-
-	v := &version.Version{}
-	if err := json.Unmarshal(data, v); err != nil {
-		return nil, fmt.Errorf("unable to parse version json: %w", err)
-	}
-
-	return v, nil
+type Cmd struct {
+	exec.Cmd
+	Logger *slog.Logger
 }
 
-func (kc Cmd) ApplyKustomization(path string) error {
-	_, err := kc.output("apply", "--kustomize", path)
+func (cmd *Cmd) SetServer(server string) {
+	cmd.Args = append(cmd.Args, "--server", server)
+}
+
+func (cmd *Cmd) SetCluster(cluster string) {
+	cmd.Args = append(cmd.Args, "--cluster", cluster)
+}
+
+func (cmd *Cmd) SubCmd(args ...string) *Cmd {
+	return &Cmd{
+		Cmd: exec.Cmd{
+			Path: cmd.Path,
+			Dir:  cmd.Dir,
+			Env:  slices.Clone(cmd.Env),
+			Args: slices.Concat(cmd.Args, args),
+		},
+		Logger: cmd.Logger,
+	}
+}
+
+func (cmd *Cmd) Version() (*version.Version, error) {
+	subcmd := cmd.SubCmd("version", "-ojson")
+	parser := jsonParser(&version.Version{}, nil)
+
+	return executeCmd(subcmd, parser, nil)
+}
+
+func (cmd *Cmd) ClientVersion() (*version.Version, error) {
+	subcmd := cmd.SubCmd("version", "-ojson", "--client=true")
+	parser := jsonParser(&version.Version{}, nil)
+
+	return executeCmd(subcmd, parser, nil)
+}
+
+func (cmd *Cmd) ApplyKustomization(path string) error {
+	subcmd := cmd.SubCmd("apply", "--kustomize", path)
+	_, err := executeCmd(subcmd, parseNoop, true)
 
 	return err
 }
 
-func (kc Cmd) Get(resources, namespace string, selectors []string, names ...string) ([]*yaml.RNode, error) {
-	args := []string{"get", "-oyaml", resources}
+func (cmd *Cmd) Get(resources []string, namespace string, selectors []string, names ...string) ([]*yaml.RNode, error) {
+	args := []string{"get", "-oyaml"}
+
+	if len(resources) > 0 {
+		args = append(args, strings.Join(resources, ","))
+	} else {
+		args = append(args, "all")
+	}
+
 	if len(selectors) > 0 {
 		args = append(args, "-l", strings.Join(selectors, ","))
 	}
 
 	if namespace != "" {
 		args = append(args, "-n", namespace)
-	}
-
-	response, err := kc.output(args...)
-	if err != nil {
-		return nil, err
-	}
-
-	root, err := yaml.Parse(string(response))
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse response yaml: %w", err)
-	}
-
-	items, err := root.Pipe(yaml.Lookup("items"))
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse response yaml: %w", err)
-	}
-
-	nodes := []*yaml.RNode{}
-
-	for _, item := range items.Content() {
-		rn := yaml.NewRNode(item)
-		if len(names) > 0 && !slices.Contains(names, rn.GetName()) {
-			continue
-		}
-
-		nodes = append(nodes, rn)
-	}
-
-	return nodes, nil
-}
-
-func (kc Cmd) GetAll(namespace string, selectors []string, kinds ...string) ([]*yaml.RNode, error) {
-	// REVISIT: extract common code for Get/GetAll
-	if len(kinds) < 1 {
-		kinds = []string{"all"}
-	}
-
-	args := []string{"get", "-oyaml", strings.Join(kinds, ",")}
-	if len(selectors) > 0 {
-		args = append(args, "-l", strings.Join(selectors, ","))
-	}
-
-	if namespace == "" {
-		args = append(args, "-A")
 	} else {
-		args = append(args, "-n", namespace)
+		args = append(args, "-A")
 	}
 
-	response, err := kc.output(args...)
-	if err != nil {
-		return nil, err
-	}
+	args = append(args, names...)
+	subcmd := cmd.SubCmd(args...)
 
-	root, err := yaml.Parse(string(response))
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse response yaml: %w", err)
-	}
-
-	items, err := root.Pipe(yaml.Lookup("items"))
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse response yaml: %w", err)
-	}
-
-	nodes := []*yaml.RNode{}
-
-	for _, item := range items.Content() {
-		rn := yaml.NewRNode(item)
-		nodes = append(nodes, rn)
-	}
-
-	return nodes, nil
+	return executeCmd(subcmd, parseRNodes, nil)
 }
 
-func (kc Cmd) APIResources(namespaced bool) ([]string, error) {
-	resources := []string{}
-
-	response, err := kc.output(
+func (cmd *Cmd) APIResources(namespaced bool) ([]string, error) {
+	subcmd := cmd.SubCmd(
 		"api-resources",
 		"-o", "name",
 		"--verbs", "get",
 		"--namespaced="+strconv.FormatBool(namespaced),
 	)
-	if err != nil {
-		return nil, err
-	}
 
-	s := bufio.NewScanner(bytes.NewBuffer(response))
-	for s.Scan() {
-		resources = append(resources, s.Text())
-	}
+	resources, err := executeCmd(subcmd, parseLines, nil)
+	slices.Sort(resources)
 
-	return resources, nil
+	return resources, err
 }
 
-func (kc Cmd) Namespaces() ([]string, error) {
-	namespaces := []string{}
-
-	response, err := kc.output(
+func (cmd *Cmd) Namespaces() ([]string, error) {
+	subcmd := cmd.SubCmd(
 		"get", "namespaces",
 		"-o", "name",
 		"--no-headers",
 	)
-	if err != nil {
-		return nil, err
-	}
 
-	s := bufio.NewScanner(bytes.NewBuffer(response))
-	for s.Scan() {
-		namespace, found := strings.CutPrefix(s.Text(), "namespace/")
-		if !found {
-			continue
-		}
-
-		namespaces = append(namespaces, namespace)
-	}
-
+	namespaces, err := executeCmd(subcmd, parseResNames, nil)
 	slices.Sort(namespaces)
 
-	return namespaces, nil
+	return namespaces, err
 }
 
-func (kc Cmd) Clusters() ([]string, error) {
-	clusters := []string{}
+func (cmd *Cmd) Clusters() ([]string, error) {
+	subcmd := cmd.SubCmd("config", "get-clusters")
 
-	response, err := kc.output("config", "get-clusters")
+	lines, err := executeCmd(subcmd, parseLines, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	s := bufio.NewScanner(bytes.NewBuffer(response))
-	for s.Scan() {
-		cluster := s.Text()
-		if cluster == "NAME" {
-			continue
-		}
-
-		clusters = append(clusters, cluster)
-	}
-
+	clusters := lines[1:]
 	slices.Sort(clusters)
 
 	return clusters, nil
+}
+
+func (cmd *Cmd) wrapExecErr(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		msg := strings.TrimSpace(string(exitErr.Stderr))
+
+		return fmt.Errorf("failed to execute %q: %w, %s", cmd, err, msg)
+	}
+
+	return fmt.Errorf("failed to execute %q: %w", cmd, err)
+}
+
+func (cmd *Cmd) wrapParseErr(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	return fmt.Errorf("failed to parse %q output: %w", cmd, err)
+}
+
+//nolint:ireturn
+func executeCmd[T any](cmd *Cmd, parser parserFn[T], def T) (T, error) {
+	data, err := cmd.Output()
+	if err == nil {
+		result, err := parser(data)
+
+		return result, cmd.wrapParseErr(err)
+	}
+
+	return def, cmd.wrapExecErr(err)
 }
