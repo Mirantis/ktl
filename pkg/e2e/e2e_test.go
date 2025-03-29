@@ -36,8 +36,7 @@ func initServers(t *testing.T, clusters []string) map[string]string {
 			clusterDir := filepath.Join("..", "..", "examples", "import", name)
 			url := e2e.K8sServer(t)
 			errs := []error{}
-			kctl := kctl.SubCmd()
-			kctl.SetServer(url)
+			kctl := kctl.Server(url)
 			errs = append(errs, kctl.ApplyKustomization(clusterDir))
 			server := &testServer{name: name, url: url, err: errors.Join(errs...)}
 			serversChan <- server
@@ -97,8 +96,7 @@ func testClientVersion(t *testing.T) {
 }
 
 func testServerVersionError(t *testing.T) {
-	kctl := kubectl.New()
-	kctl.SetServer("127.0.0.1:1")
+	kctl := kubectl.New().Server("127.0.0.1:1")
 
 	_, err := kctl.Version()
 	if err == nil {

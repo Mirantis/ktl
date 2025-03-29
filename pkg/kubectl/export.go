@@ -4,52 +4,55 @@ import (
 	"fmt"
 	"log/slog"
 	"maps"
-	"path/filepath"
 	"slices"
-	"strings"
 
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/kio"
-	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-type Export struct {
-	Client    *Cmd
-	Cluster   string
-	Resources []types.ResourceSelector
+type clusterExporter struct {
+	cmd  *Cmd
+	name string
 
 	clusterResources    []string
 	namespacedResources []string
 	namespaces          []string
 }
 
-func (c *Export) init() error {
-	var err error
-	if c.clusterResources, err = c.Client.APIResources(false); err != nil {
-		return fmt.Errorf("unable to get API resources list: %w", err)
+func newClusterExporter(cmd *Cmd, name string) (*clusterExporter, error) {
+	clusterResources, err := cmd.APIResources(false)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get API resources list: %w", err)
 	}
 
-	if c.namespacedResources, err = c.Client.APIResources(true); err != nil {
-		return fmt.Errorf("unable to get API resources list: %w", err)
+	namespacedResources, err := cmd.APIResources(true)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get API resources list: %w", err)
 	}
 
-	if c.namespaces, err = c.Client.Namespaces(); err != nil {
-		return fmt.Errorf("unable to get namespaces list: %w", err)
+	namespaces, err := cmd.Namespaces()
+	if err != nil {
+		return nil, fmt.Errorf("unable to get namespaces list: %w", err)
 	}
 
-	return nil
+	exporter := &clusterExporter{
+		cmd:  cmd,
+		name: name,
+
+		namespaces:          namespaces,
+		namespacedResources: namespacedResources,
+		clusterResources:    clusterResources,
+	}
+
+	return exporter, nil
 }
 
-func (c *Export) Execute(out kio.Writer, filters ...kio.Filter) error {
-	if err := c.init(); err != nil {
-		return err
-	}
-
+func (c *clusterExporter) resources(out kio.Writer, selectors []types.ResourceSelector, filters []kio.Filter) error {
 	nodes := map[resid.ResId]*yaml.RNode{}
 
-	for _, rule := range c.Resources {
+	for _, rule := range selectors {
 		batch, err := c.export(rule)
 		if err != nil {
 			return err
@@ -62,11 +65,7 @@ func (c *Export) Execute(out kio.Writer, filters ...kio.Filter) error {
 		Nodes: slices.Collect(maps.Values(nodes)),
 	}}
 	pipeline := &kio.Pipeline{
-		Inputs: inputs,
-		// REVISIT: FileSetter annotations are ignored - bug in kustomize?
-		// 1) cleared if no annotation is set before the filter is applied
-		// 2) reverted if path annotations was set before the filter is applied
-		// &filters.FileSetter{FilenamePattern: "%n_%k.yaml"},
+		Inputs:  inputs,
 		Filters: filters,
 		Outputs: []kio.Writer{out},
 	}
@@ -79,7 +78,7 @@ func (c *Export) Execute(out kio.Writer, filters ...kio.Filter) error {
 	return nil
 }
 
-func (c *Export) export(rule types.ResourceSelector) (map[resid.ResId]*yaml.RNode, error) {
+func (c *clusterExporter) export(rule types.ResourceSelector) (map[resid.ResId]*yaml.RNode, error) {
 	slog.Info("exporting", "rule", rule)
 
 	namespaces := slices.Clone(c.namespaces)
@@ -96,7 +95,7 @@ func (c *Export) export(rule types.ResourceSelector) (map[resid.ResId]*yaml.RNod
 	nodes := []*yaml.RNode{}
 
 	for _, ns := range namespaces {
-		batch, err := c.Client.Get(resources, ns, rule.LabelSelectors)
+		batch, err := c.cmd.Get(resources, ns, rule.LabelSelectors)
 		if err != nil {
 			return nil, fmt.Errorf("unable to fetch resources: %w", err)
 		}
@@ -111,27 +110,8 @@ func (c *Export) export(rule types.ResourceSelector) (map[resid.ResId]*yaml.RNod
 		if len(rule.Names.Select([]string{id.Name})) == 0 {
 			continue
 		}
-
 		byResID[id] = resNode
-		SetObjectPath(resNode, true)
 	}
 
 	return byResID, nil
-}
-
-func SetObjectPath(obj *yaml.RNode, withNamespace bool) {
-	annotations := maps.Clone(obj.GetAnnotations())
-	path := fmt.Sprintf(
-		"%s-%s.yaml",
-		obj.GetName(),
-		strings.ToLower(obj.GetKind()),
-	)
-	ns := obj.GetNamespace()
-
-	if withNamespace && ns != "" {
-		path = filepath.Join(ns, path)
-	}
-
-	annotations[kioutil.PathAnnotation] = path
-	obj.SetAnnotations(annotations) //nolint:errcheck
 }

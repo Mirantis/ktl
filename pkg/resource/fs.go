@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"iter"
 	"path/filepath"
+	"strings"
 
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -51,4 +52,15 @@ func (store *FileStore) WriteAll(nodes iter.Seq2[resid.ResId, *yaml.RNode]) erro
 	}
 
 	return nil
+}
+
+func FileName(resID resid.ResId) string {
+	parts := []string{}
+	if resID.Namespace != "" {
+		parts = append(parts, resID.Namespace)
+	}
+
+	parts = append(parts, strings.ToLower(fmt.Sprintf("%s-%s.yaml", resID.Name, resID.Kind)))
+
+	return filepath.Join(parts...)
 }

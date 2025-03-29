@@ -2,24 +2,21 @@ package cmd
 
 import (
 	_ "embed"
-	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
-	"sync"
 
 	_ "github.com/Mirantis/rekustomize/pkg/filters" // register filters
 	"github.com/Mirantis/rekustomize/pkg/helm"
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
 	"github.com/Mirantis/rekustomize/pkg/kustomize"
+	"github.com/Mirantis/rekustomize/pkg/resource"
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/api/konfig"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/kio"
-	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -56,10 +53,7 @@ func exportCommand() *cobra.Command {
 			}
 
 			opts.setDefaults(defaults)
-
-			if err := opts.parseClusterFilter(); err != nil {
-				return err
-			}
+			opts.kctl = kubectl.New()
 
 			for i := range opts.Filters {
 				opts.filters = append(opts.filters, opts.Filters[i].Filter)
@@ -74,9 +68,9 @@ func exportCommand() *cobra.Command {
 
 type exportOpts struct {
 	types.Rekustomization
-	clusters      []string
-	clustersIndex *types.ClusterIndex
-	filters       []kio.Filter
+	kctl      *kubectl.Cmd
+	resources *types.ClusterResources
+	filters   []kio.Filter
 }
 
 func (opts *exportOpts) setDefaults(defaults *types.Rekustomization) {
@@ -98,24 +92,19 @@ func (opts *exportOpts) setDefaults(defaults *types.Rekustomization) {
 	opts.Filters = append(opts.Filters, defaults.Filters...)
 }
 
-func (opts *exportOpts) parseClusterFilter() error {
-	if len(opts.Clusters) == 0 {
-		return nil
-	}
-
-	allClusters, err := kubectl.New().Clusters()
-	if err != nil {
-		return fmt.Errorf("invalid cluster filter: %w", err)
-	}
-
-	opts.clustersIndex = types.BuildClusterIndex(allClusters, opts.Clusters)
-	opts.clusters = slices.Collect(opts.clustersIndex.Names(opts.clustersIndex.IDs()...))
-
-	return nil
-}
-
 func (opts *exportOpts) run(dir string) error {
-	if len(opts.clusters) > 1 {
+	clusters, err := opts.kctl.Clusters(opts.Clusters)
+	if err != nil {
+		return err
+	}
+
+	resources, err := clusters.Resources(opts.Resources, opts.filters)
+	if err != nil {
+		return err
+	}
+	opts.resources = resources
+
+	if len(clusters.IDs()) > 1 {
 		return opts.runMulti(dir)
 	}
 
@@ -123,76 +112,15 @@ func (opts *exportOpts) run(dir string) error {
 }
 
 func (opts *exportOpts) runMulti(dir string) error {
-	waitGroup := &sync.WaitGroup{}
-	buffers := map[string]*kio.PackageBuffer{}
-	errs := []error{}
-
-	for _, cluster := range opts.clusters {
-		buf := &kio.PackageBuffer{}
-		buffers[cluster] = buf
-
-		waitGroup.Add(1)
-
-		go func() {
-			defer waitGroup.Done()
-
-			kctl := kubectl.New()
-			kctl.SetCluster(cluster)
-			exporter := kubectl.Export{
-				Client:    kctl,
-				Cluster:   cluster,
-				Resources: opts.Resources,
-			}
-
-			err := exporter.Execute(buf, opts.filters...)
-			errs = append(errs, err)
-		}()
-	}
-
-	waitGroup.Wait()
-
-	if err := errors.Join(errs...); err != nil {
-		return err
-	}
-
 	if opts.HelmChart.Name != "" {
-		return opts.exportCharts(buffers, dir)
+		return opts.exportCharts(dir)
 	}
 
-	return opts.exportComponents(buffers, dir)
-}
-
-type clusterBuffers = map[string]*kio.PackageBuffer
-
-type clusterResources = map[resid.ResId]map[types.ClusterID]*yaml.RNode
-
-func (opts *exportOpts) convertBuffers(buffers clusterBuffers) (clusterResources, error) {
-	resources := map[resid.ResId]map[types.ClusterID]*yaml.RNode{}
-
-	for clusterName, buffer := range buffers {
-		cluster, err := opts.clustersIndex.ID(clusterName)
-		if err != nil {
-			return nil, fmt.Errorf("invalid cluster name: %w", err)
-		}
-
-		for _, resNode := range buffer.Nodes {
-			id := resid.FromRNode(resNode)
-
-			byCluster, exists := resources[id]
-			if !exists {
-				byCluster = map[types.ClusterID]*yaml.RNode{}
-				resources[id] = byCluster
-			}
-
-			byCluster[cluster] = resNode
-		}
-	}
-
-	return resources, nil
+	return opts.exportComponents(dir)
 }
 
 func (opts *exportOpts) storeChartOverlays(dir, chartDir string, chart *helm.Chart) error {
-	for clusterID, cluster := range opts.clustersIndex.All() {
+	for clusterID, cluster := range opts.resources.Clusters.All() {
 		path := filepath.Join(dir, "overlays", cluster.Name, "kustomization.yaml")
 		kust := &types.Kustomization{}
 		kust.Kind = types.KustomizationKind
@@ -224,21 +152,16 @@ func (opts *exportOpts) storeChartOverlays(dir, chartDir string, chart *helm.Cha
 	return nil
 }
 
-func (opts *exportOpts) exportCharts(buffers map[string]*kio.PackageBuffer, dir string) error {
+func (opts *exportOpts) exportCharts(dir string) error {
 	chartMeta := opts.HelmChart
-	chart := helm.NewChart(chartMeta, opts.clustersIndex)
+	chart := helm.NewChart(chartMeta, opts.resources.Clusters)
 	chartDir := filepath.Join(dir, "charts", chartMeta.Name)
 
 	if err := os.MkdirAll(chartDir, dirPerm); err != nil {
 		return fmt.Errorf("unable to create %v: %w", chartDir, err)
 	}
 
-	resources, err := opts.convertBuffers(buffers)
-	if err != nil {
-		return err
-	}
-
-	for id, byCluster := range resources {
+	for id, byCluster := range opts.resources.Resources {
 		if err := chart.Add(id, byCluster); err != nil {
 			return fmt.Errorf("unable to add resources to the chart: %w", err)
 		}
@@ -253,7 +176,7 @@ func (opts *exportOpts) exportCharts(buffers map[string]*kio.PackageBuffer, dir 
 }
 
 func (opts *exportOpts) storeComponentsOverlays(dir, compsDir string, comps *kustomize.Components) error {
-	for id, cluster := range opts.clustersIndex.All() {
+	for id, cluster := range opts.resources.Clusters.All() {
 		path := filepath.Join(dir, "overlays", cluster.Name, "kustomization.yaml")
 		kust := &types.Kustomization{}
 		kust.Kind = types.KustomizationKind
@@ -289,16 +212,11 @@ func (opts *exportOpts) storeComponentsOverlays(dir, compsDir string, comps *kus
 	return nil
 }
 
-func (opts *exportOpts) exportComponents(buffers map[string]*kio.PackageBuffer, dir string) error {
-	comps := kustomize.NewComponents(opts.clustersIndex)
+func (opts *exportOpts) exportComponents(dir string) error {
+	comps := kustomize.NewComponents(opts.resources.Clusters)
 	compsDir := filepath.Join(dir, "components")
 
-	resources, err := opts.convertBuffers(buffers)
-	if err != nil {
-		return err
-	}
-
-	for id, byCluster := range resources {
+	for id, byCluster := range opts.resources.Resources {
 		if err := comps.Add(id, byCluster); err != nil {
 			return fmt.Errorf("unable to add resources to the component: %w", err)
 		}
@@ -313,52 +231,24 @@ func (opts *exportOpts) exportComponents(buffers map[string]*kio.PackageBuffer, 
 }
 
 func (opts *exportOpts) runSingle(dir string) error {
-	kctl := kubectl.New()
-
-	cluster := "<current-context>"
-	if len(opts.clusters) == 1 {
-		cluster = opts.clusters[0]
-		kctl.SetCluster(cluster)
-	}
-
-	out := &kio.LocalPackageWriter{
-		PackagePath: dir,
-		FileSystem:  filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
-	}
-
-	exporter := kubectl.Export{
-		Client:    kctl,
-		Cluster:   cluster,
-		Resources: opts.Resources,
-	}
-
-	if err := exporter.Execute(out, opts.filters...); err != nil {
-		return fmt.Errorf("unable to export resources: %w", err)
-	}
-	// REVISIT: overlaps with dedup.Component.Save()
 	kust := &types.Kustomization{}
-	walkFunc := func(path string, info fs.FileInfo, _ error) error {
-		if info.IsDir() {
-			return nil
-		}
+	resourceStore := &resource.FileStore{
+		Dir:           dir,
+		FileSystem:    filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
+		NameGenerator: resource.FileName,
+		PostProcessor: func(path string, body []byte) []byte {
+			relPath, err := filepath.Rel(dir, path)
+			if err != nil {
+				panic(err)
+			}
+			kust.Resources = append(kust.Resources, relPath)
 
-		resPath, pathErr := filepath.Rel(dir, path)
-		if pathErr != nil {
-			return fmt.Errorf("invalid path: %w", pathErr)
-		}
-
-		if resPath == types.DefaultFileName {
-			return nil
-		}
-
-		kust.Resources = append(kust.Resources, resPath)
-
-		return nil
+			return body
+		},
 	}
 
-	err := filepath.Walk(dir, walkFunc)
-	if err != nil {
-		return fmt.Errorf("unable to scan folder: %w", err)
+	if err := resourceStore.WriteAll(opts.resources.All()); err != nil {
+		return fmt.Errorf("unable to store files: %w", err)
 	}
 
 	slices.Sort(kust.Resources)

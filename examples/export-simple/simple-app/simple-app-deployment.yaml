@@ -1,13 +1,13 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  annotations:
+    dev.example.com/info: flaky-tests
+    example.com/generated: extra-info
   labels:
     app: simple-app
   name: simple-app
   namespace: simple-app
-  annotations:
-    dev.example.com/info: flaky-tests
-    example.com/generated: extra-info
 spec:
   selector:
     matchLabels:

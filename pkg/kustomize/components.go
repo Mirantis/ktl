@@ -24,24 +24,13 @@ type component struct {
 	clusters  []types.ClusterID
 }
 
-func (comp *component) filePath(resID resid.ResId) string {
-	parts := []string{}
-	if resID.Namespace != "" {
-		parts = append(parts, resID.Namespace)
-	}
-
-	parts = append(parts, strings.ToLower(fmt.Sprintf("%s-%s.yaml", resID.Name, resID.Kind)))
-
-	return filepath.Join(parts...)
-}
-
 func (comp *component) store(fileSys filesys.FileSystem, dir string) error {
 	kust := &types.Kustomization{}
 	kust.Kind = types.ComponentKind
 	resourceStore := &resource.FileStore{
 		Dir:           dir,
 		FileSystem:    fileSys,
-		NameGenerator: comp.filePath,
+		NameGenerator: resource.FileName,
 		PostProcessor: func(path string, body []byte) []byte {
 			relPath, err := filepath.Rel(dir, path)
 			if err != nil {
@@ -61,7 +50,7 @@ func (comp *component) store(fileSys filesys.FileSystem, dir string) error {
 	patchStore := &resource.FileStore{
 		Dir:           dir,
 		FileSystem:    fileSys,
-		NameGenerator: comp.filePath,
+		NameGenerator: resource.FileName,
 		PostProcessor: func(path string, body []byte) []byte {
 			relPath, err := filepath.Rel(dir, path)
 			if err != nil {

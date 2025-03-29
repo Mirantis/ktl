@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Mirantis/rekustomize/pkg/types"
 	"k8s.io/kubectl/pkg/cmd/version"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -29,12 +30,12 @@ type Cmd struct {
 	Logger *slog.Logger
 }
 
-func (cmd *Cmd) SetServer(server string) {
-	cmd.Args = append(cmd.Args, "--server", server)
+func (cmd *Cmd) Server(server string) *Cmd {
+	return cmd.SubCmd("--server", server)
 }
 
-func (cmd *Cmd) SetCluster(cluster string) {
-	cmd.Args = append(cmd.Args, "--cluster", cluster)
+func (cmd *Cmd) Cluster(cluster string) *Cmd {
+	return cmd.SubCmd("--cluster", cluster)
 }
 
 func (cmd *Cmd) SubCmd(args ...string) *Cmd {
@@ -122,7 +123,7 @@ func (cmd *Cmd) Namespaces() ([]string, error) {
 	return namespaces, err
 }
 
-func (cmd *Cmd) Clusters() ([]string, error) {
+func (cmd *Cmd) Clusters(selectors []types.ClusterSelector) (*Clusters, error) {
 	subcmd := cmd.SubCmd("config", "get-clusters")
 
 	lines, err := executeCmd(subcmd, parseLines, nil)
@@ -130,8 +131,13 @@ func (cmd *Cmd) Clusters() ([]string, error) {
 		return nil, err
 	}
 
-	clusters := lines[1:]
-	slices.Sort(clusters)
+	names := lines[1:]
+	slices.Sort(names)
+
+	clusters := &Clusters{
+		cmd: cmd,
+		ClusterIndex: types.BuildClusterIndex(names, selectors),
+	}
 
 	return clusters, nil
 }
