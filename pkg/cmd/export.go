@@ -14,7 +14,6 @@ import (
 	"github.com/Mirantis/rekustomize/pkg/resource"
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/kustomize/api/konfig"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
@@ -25,7 +24,6 @@ var defaultsYaml []byte
 
 const (
 	dirPerm  = 0o700
-	filePerm = 0o600
 )
 
 func exportCommand() *cobra.Command {
@@ -121,11 +119,14 @@ func (opts *exportOpts) runMulti(dir string) error {
 
 func (opts *exportOpts) storeChartOverlays(dir, chartDir string, chart *helm.Chart) error {
 	for clusterID, cluster := range opts.resources.Clusters.All() {
-		path := filepath.Join(dir, "overlays", cluster.Name, "kustomization.yaml")
+		fileStore := resource.FileStore{
+			Dir:        filepath.Join(dir, "overlays", cluster.Name),
+			FileSystem: filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
+		}
 		kust := &types.Kustomization{}
 		kust.Kind = types.KustomizationKind
 
-		chartHome, err := filepath.Rel(filepath.Dir(path), filepath.Dir(chartDir))
+		chartHome, err := filepath.Rel(fileStore.Dir, filepath.Dir(chartDir))
 		if err != nil {
 			return fmt.Errorf("invalid path: %w", err)
 		}
@@ -135,17 +136,8 @@ func (opts *exportOpts) storeChartOverlays(dir, chartDir string, chart *helm.Cha
 			ChartHome: chartHome,
 		}
 
-		kustBody, err := yaml.Marshal(kust)
-		if err != nil {
-			return fmt.Errorf("unable to serialize %v: %w", path, err)
-		}
-
-		if err := os.MkdirAll(filepath.Dir(path), dirPerm); err != nil {
-			return fmt.Errorf("unable to create %v: %w", path, err)
-		}
-
-		if err := os.WriteFile(path, kustBody, filePerm); err != nil {
-			return fmt.Errorf("unable to write %v: %w", path, err)
+		if err := fileStore.WriteKustomization(kust); err != nil {
+			return fmt.Errorf("unable to store kustomization: %w", err)
 		}
 	}
 
@@ -177,7 +169,10 @@ func (opts *exportOpts) exportCharts(dir string) error {
 
 func (opts *exportOpts) storeComponentsOverlays(dir, compsDir string, comps *kustomize.Components) error {
 	for id, cluster := range opts.resources.Clusters.All() {
-		path := filepath.Join(dir, "overlays", cluster.Name, "kustomization.yaml")
+		fileStore := resource.FileStore{
+			Dir:        filepath.Join(dir, "overlays", cluster.Name),
+			FileSystem: filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
+		}
 		kust := &types.Kustomization{}
 		kust.Kind = types.KustomizationKind
 
@@ -187,7 +182,7 @@ func (opts *exportOpts) storeComponentsOverlays(dir, compsDir string, comps *kus
 		}
 
 		for _, compName := range compNames {
-			relPath, err := filepath.Rel(filepath.Dir(path), filepath.Join(compsDir, compName))
+			relPath, err := filepath.Rel(fileStore.Dir, filepath.Join(compsDir, compName))
 			if err != nil {
 				panic(err)
 			}
@@ -195,17 +190,8 @@ func (opts *exportOpts) storeComponentsOverlays(dir, compsDir string, comps *kus
 			kust.Components = append(kust.Components, relPath)
 		}
 
-		kustBody, err := yaml.Marshal(kust)
-		if err != nil {
-			return fmt.Errorf("unable to serialize %v: %w", path, err)
-		}
-
-		if err := os.MkdirAll(filepath.Dir(path), dirPerm); err != nil {
-			return fmt.Errorf("unable to create %v: %w", path, err)
-		}
-
-		if err := os.WriteFile(path, kustBody, filePerm); err != nil {
-			return fmt.Errorf("unable to write %v: %w", path, err)
+		if err := fileStore.WriteKustomization(kust); err != nil {
+			return fmt.Errorf("unable to store kustomization: %w", err)
 		}
 	}
 
@@ -252,15 +238,8 @@ func (opts *exportOpts) runSingle(dir string) error {
 	}
 
 	slices.Sort(kust.Resources)
-
-	kustBytes, err := yaml.Marshal(kust)
-	if err != nil {
-		return fmt.Errorf("unable to generate kustomization.yaml: %w", err)
-	}
-
-	kustPath := filepath.Join(dir, konfig.DefaultKustomizationFileName())
-	if err := os.WriteFile(kustPath, kustBytes, filePerm); err != nil {
-		return fmt.Errorf("unable to store kustomization.yaml: %w", err)
+	if err := resourceStore.WriteKustomization(kust); err != nil {
+		return fmt.Errorf("unable to store kustomization: %w", err)
 	}
 
 	return nil

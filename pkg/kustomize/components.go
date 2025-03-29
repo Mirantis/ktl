@@ -73,13 +73,7 @@ func (comp *component) store(fileSys filesys.FileSystem, dir string) error {
 		kust.Patches = append(kust.Patches, types.Patch{Path: patch})
 	}
 
-	kustBody, err := yaml.Marshal(kust)
-	if err != nil {
-		return fmt.Errorf("unable to generate kustomization.yaml: %w", err)
-	}
-
-	err = fileSys.WriteFile(filepath.Join(dir, "kustomization.yaml"), kustBody)
-	if err != nil {
+	if err := resourceStore.WriteKustomization(kust); err != nil {
 		return fmt.Errorf("unable to store kustomization.yaml: %w", err)
 	}
 

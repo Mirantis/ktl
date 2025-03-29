@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Mirantis/rekustomize/pkg/types"
+	"sigs.k8s.io/kustomize/api/konfig"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
@@ -49,6 +51,24 @@ func (store *FileStore) WriteAll(nodes iter.Seq2[resid.ResId, *yaml.RNode]) erro
 		if err := store.WriteFile(path, body); err != nil {
 			return fmt.Errorf("unable to write %v: %w", path, err)
 		}
+	}
+
+	return nil
+}
+
+func (store *FileStore) WriteKustomization(kust *types.Kustomization) error {
+	kustBytes, err := yaml.Marshal(kust)
+	if err != nil {
+		return fmt.Errorf("unable to generate kustomization.yaml: %w", err)
+	}
+
+	if err := store.MkdirAll(store.Dir); err != nil {
+		return fmt.Errorf("unable to initialize %q dir: %w", store.Dir, err)
+	}
+
+	kustPath := filepath.Join(store.Dir, konfig.DefaultKustomizationFileName())
+	if err := store.WriteFile(kustPath, kustBytes); err != nil {
+		return fmt.Errorf("unable to store %q: %w", kustPath, err)
 	}
 
 	return nil
