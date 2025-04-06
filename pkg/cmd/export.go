@@ -12,6 +12,7 @@ import (
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
 	"github.com/Mirantis/rekustomize/pkg/kustomize"
 	"github.com/Mirantis/rekustomize/pkg/resource"
+	"github.com/Mirantis/rekustomize/pkg/source"
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
@@ -23,7 +24,7 @@ import (
 var defaultsYaml []byte
 
 const (
-	dirPerm  = 0o700
+	dirPerm = 0o700
 )
 
 func exportCommand() *cobra.Command {
@@ -39,9 +40,9 @@ func exportCommand() *cobra.Command {
 			if err := yaml.Unmarshal(defaultsYaml, &defaults); err != nil {
 				panic(fmt.Errorf("broken defaultSkipRules: %w", err))
 			}
-			dir := args[0]
+			opts.dir = args[0]
 
-			cfgData, err := os.ReadFile(filepath.Join(dir, "rekustomization.yaml"))
+			cfgData, err := os.ReadFile(filepath.Join(opts.dir, "rekustomization.yaml"))
 			if err != nil && !os.IsNotExist(err) {
 				return fmt.Errorf("unable to read rekustomization.yaml: %w", err)
 			}
@@ -57,7 +58,7 @@ func exportCommand() *cobra.Command {
 				opts.filters = append(opts.filters, opts.Filters[i].Filter)
 			}
 
-			return opts.run(dir)
+			return opts.run()
 		},
 	}
 
@@ -66,13 +67,16 @@ func exportCommand() *cobra.Command {
 
 type exportOpts struct {
 	types.Rekustomization
+	dir       string
+	chartDir  string
+	compsDir  string
 	kctl      *kubectl.Cmd
 	resources *types.ClusterResources
 	filters   []kio.Filter
 }
 
 func (opts *exportOpts) setDefaults(defaults *types.Rekustomization) {
-	if len(opts.Resources) == 0 {
+	if len(opts.Resources) == 0 && opts.Source.Kustomization == "" {
 		opts.Resources = []types.ResourceSelector{{}}
 	}
 
@@ -90,43 +94,88 @@ func (opts *exportOpts) setDefaults(defaults *types.Rekustomization) {
 	opts.Filters = append(opts.Filters, defaults.Filters...)
 }
 
-func (opts *exportOpts) run(dir string) error {
+func (opts *exportOpts) loadClusterResources() error {
 	clusters, err := opts.kctl.Clusters(opts.Clusters)
 	if err != nil {
-		return err
+		return err //nolint:wrapcheck
 	}
 
 	resources, err := clusters.Resources(opts.Resources, opts.filters)
 	if err != nil {
-		return err
+		return err //nolint:wrapcheck
 	}
+
 	opts.resources = resources
 
-	if len(clusters.IDs()) > 1 {
-		return opts.runMulti(dir)
-	}
-
-	return opts.runSingle(dir)
+	return nil
 }
 
-func (opts *exportOpts) runMulti(dir string) error {
+func (opts *exportOpts) loadKustomizationResources() error {
+	fileSys := &filesys.FileSystemOrOnDisk{}
+
+	path := opts.Source.Kustomization
+	if !filepath.IsAbs(path) {
+		path = filepath.Clean(filepath.Join(opts.dir, path))
+	}
+
+	src, err := source.NewKustomize(
+		opts.kctl,
+		fileSys,
+		path,
+		opts.Clusters,
+	)
+	if err != nil {
+		return err //nolint:wrapcheck
+	}
+
+	resources, err := src.Resources(opts.Resources, opts.filters)
+	if err != nil {
+		return err //nolint:wrapcheck
+	}
+
+	opts.resources = resources
+
+	return nil
+}
+
+func (opts *exportOpts) loadResources() error {
+	if opts.Source.Kustomization != "" {
+		return opts.loadKustomizationResources()
+	}
+
+	return opts.loadClusterResources()
+}
+
+func (opts *exportOpts) run() error {
+	if err := opts.loadResources(); err != nil {
+		return err
+	}
+
+	if len(opts.resources.Clusters.IDs()) > 1 {
+		return opts.runMulti()
+	}
+
+	return opts.runSingle()
+}
+
+func (opts *exportOpts) runMulti() error {
 	if opts.HelmChart.Name != "" {
-		return opts.exportCharts(dir)
+		return opts.exportCharts()
 	}
 
-	return opts.exportComponents(dir)
+	return opts.exportComponents()
 }
 
-func (opts *exportOpts) storeChartOverlays(dir, chartDir string, chart *helm.Chart) error {
+func (opts *exportOpts) storeChartOverlays(chart *helm.Chart) error {
 	for clusterID, cluster := range opts.resources.Clusters.All() {
 		fileStore := resource.FileStore{
-			Dir:        filepath.Join(dir, "overlays", cluster.Name),
+			Dir:        filepath.Join(opts.dir, "overlays", cluster.Name),
 			FileSystem: filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
 		}
 		kust := &types.Kustomization{}
 		kust.Kind = types.KustomizationKind
 
-		chartHome, err := filepath.Rel(fileStore.Dir, filepath.Dir(chartDir))
+		chartHome, err := filepath.Rel(fileStore.Dir, filepath.Dir(opts.chartDir))
 		if err != nil {
 			return fmt.Errorf("invalid path: %w", err)
 		}
@@ -144,13 +193,13 @@ func (opts *exportOpts) storeChartOverlays(dir, chartDir string, chart *helm.Cha
 	return nil
 }
 
-func (opts *exportOpts) exportCharts(dir string) error {
+func (opts *exportOpts) exportCharts() error {
 	chartMeta := opts.HelmChart
 	chart := helm.NewChart(chartMeta, opts.resources.Clusters)
-	chartDir := filepath.Join(dir, "charts", chartMeta.Name)
+	opts.chartDir = filepath.Join(opts.dir, "charts", chartMeta.Name)
 
-	if err := os.MkdirAll(chartDir, dirPerm); err != nil {
-		return fmt.Errorf("unable to create %v: %w", chartDir, err)
+	if err := os.MkdirAll(opts.chartDir, dirPerm); err != nil {
+		return fmt.Errorf("unable to create %v: %w", opts.chartDir, err)
 	}
 
 	for id, byCluster := range opts.resources.Resources {
@@ -160,29 +209,29 @@ func (opts *exportOpts) exportCharts(dir string) error {
 	}
 
 	diskFs := filesys.MakeFsOnDisk()
-	if err := chart.Store(diskFs, chartDir); err != nil {
+	if err := chart.Store(diskFs, opts.chartDir); err != nil {
 		return fmt.Errorf("unable to store the chart: %w", err)
 	}
 
-	return opts.storeChartOverlays(dir, chartDir, chart)
+	return opts.storeChartOverlays(chart)
 }
 
-func (opts *exportOpts) storeComponentsOverlays(dir, compsDir string, comps *kustomize.Components) error {
-	for id, cluster := range opts.resources.Clusters.All() {
+func (opts *exportOpts) storeComponentsOverlays(comps *kustomize.Components) error {
+	for clusterID, cluster := range opts.resources.Clusters.All() {
 		fileStore := resource.FileStore{
-			Dir:        filepath.Join(dir, "overlays", cluster.Name),
+			Dir:        filepath.Join(opts.dir, "overlays", cluster.Name),
 			FileSystem: filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
 		}
 		kust := &types.Kustomization{}
 		kust.Kind = types.KustomizationKind
 
-		compNames, err := comps.Cluster(id)
+		compNames, err := comps.Cluster(clusterID)
 		if err != nil {
 			panic(err)
 		}
 
 		for _, compName := range compNames {
-			relPath, err := filepath.Rel(fileStore.Dir, filepath.Join(compsDir, compName))
+			relPath, err := filepath.Rel(fileStore.Dir, filepath.Join(opts.compsDir, compName))
 			if err != nil {
 				panic(err)
 			}
@@ -198,9 +247,9 @@ func (opts *exportOpts) storeComponentsOverlays(dir, compsDir string, comps *kus
 	return nil
 }
 
-func (opts *exportOpts) exportComponents(dir string) error {
+func (opts *exportOpts) exportComponents() error {
 	comps := kustomize.NewComponents(opts.resources.Clusters)
-	compsDir := filepath.Join(dir, "components")
+	opts.compsDir = filepath.Join(opts.dir, "components")
 
 	for id, byCluster := range opts.resources.Resources {
 		if err := comps.Add(id, byCluster); err != nil {
@@ -209,21 +258,21 @@ func (opts *exportOpts) exportComponents(dir string) error {
 	}
 
 	diskFs := filesys.MakeFsOnDisk()
-	if err := comps.Store(diskFs, compsDir); err != nil {
+	if err := comps.Store(diskFs, opts.compsDir); err != nil {
 		return fmt.Errorf("unable to store components: %w", err)
 	}
 
-	return opts.storeComponentsOverlays(dir, compsDir, comps)
+	return opts.storeComponentsOverlays(comps)
 }
 
-func (opts *exportOpts) runSingle(dir string) error {
+func (opts *exportOpts) runSingle() error {
 	kust := &types.Kustomization{}
 	resourceStore := &resource.FileStore{
-		Dir:           dir,
+		Dir:           opts.dir,
 		FileSystem:    filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
 		NameGenerator: resource.FileName,
 		PostProcessor: func(path string, body []byte) []byte {
-			relPath, err := filepath.Rel(dir, path)
+			relPath, err := filepath.Rel(opts.dir, path)
 			if err != nil {
 				panic(err)
 			}
@@ -238,6 +287,7 @@ func (opts *exportOpts) runSingle(dir string) error {
 	}
 
 	slices.Sort(kust.Resources)
+
 	if err := resourceStore.WriteKustomization(kust); err != nil {
 		return fmt.Errorf("unable to store kustomization: %w", err)
 	}

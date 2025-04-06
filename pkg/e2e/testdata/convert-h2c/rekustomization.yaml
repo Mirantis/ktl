@@ -1,0 +1,23 @@
+source:
+  kustomization: "../import/${CLUSTER}"
+clusters:
+- names: dev-*
+  tags: dev
+- names: test-cluster-a,test-cluster-b
+  tags: test
+- names:
+  - prod-cluster-a
+  - prod-cluster-b
+  tags: prod
+filters:
+- kind: SkipFilter
+  fields:
+  - metadata.annotations.example\.com/generated
+  - metadata.annotations.dev\.example\.com/info[=flaky-tests]
+- kind: SkipFilter
+  resources:
+  - kind: Node
+  - kind: ConfigMap
+    labelSelector: "generated-by"
+  - kind: CronJob
+    name: infra-canary

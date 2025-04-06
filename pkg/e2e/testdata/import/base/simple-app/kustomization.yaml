@@ -3,7 +3,7 @@ kind: Component
 namespace: simple-app
 
 resources:
-- _ns.yaml
+- 00-ns.yaml
 - cm.yaml
 - db.yaml
 - deploy.yaml

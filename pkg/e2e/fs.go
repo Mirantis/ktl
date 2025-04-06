@@ -43,7 +43,7 @@ func ReadFsFiles(t *testing.T, fileSys fs.FS, base string) map[string]string {
 
 	got := map[string]string{}
 	walkFn := func(path string, info fs.DirEntry, _ error) error {
-		if info.IsDir() {
+		if info != nil && info.IsDir() {
 			return nil
 		}
 
@@ -58,7 +58,7 @@ func ReadFsFiles(t *testing.T, fileSys fs.FS, base string) map[string]string {
 			return fmt.Errorf("unable to copy file: %w", err)
 		}
 
-		got[strings.TrimPrefix(path[len(base):], "/")] = buffer.String()
+		got[strings.TrimPrefix(path, base+"/")] = buffer.String()
 
 		return nil
 	}

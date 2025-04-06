@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simple-app
+  namespace: simple-app
+spec:
+  template:
+    spec:
+      containers:
+      - name: simple-app
+        image: example.com/simple-app:v1.2.345

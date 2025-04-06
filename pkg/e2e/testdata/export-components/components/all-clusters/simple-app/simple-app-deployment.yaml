@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: simple-app
+  name: simple-app
+  namespace: simple-app
+spec:
+  selector:
+    matchLabels:
+      app: simple-app
+  template:
+    metadata:
+      labels:
+        app: simple-app
+    spec:
+      containers:
+      - envFrom:
+        - configMapRef:
+            name: simple-app-env
+        name: simple-app

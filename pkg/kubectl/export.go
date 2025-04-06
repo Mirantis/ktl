@@ -110,6 +110,7 @@ func (c *clusterExporter) export(rule types.ResourceSelector) (map[resid.ResId]*
 		if len(rule.Names.Select([]string{id.Name})) == 0 {
 			continue
 		}
+
 		byResID[id] = resNode
 	}
 

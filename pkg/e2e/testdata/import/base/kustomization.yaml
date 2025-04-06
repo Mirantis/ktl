@@ -1,5 +1,5 @@
 kind: Component
 
 components:
-- _cluster
+- 00-cluster
 - simple-app

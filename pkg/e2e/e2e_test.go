@@ -1,8 +1,9 @@
 package e2e_test
 
 import (
-	_ "embed"
+	"embed"
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,9 +12,42 @@ import (
 	"github.com/Mirantis/rekustomize/pkg/cmd"
 	"github.com/Mirantis/rekustomize/pkg/e2e"
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
-	"github.com/Mirantis/rekustomize/pkg/types"
 	"github.com/google/go-cmp/cmp"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
+)
+
+var (
+	//go:embed testdata/import/*
+	//go:embed testdata/convert-h2c/rekustomization.yaml
+	inputConvertH2C embed.FS
+
+	//go:embed testdata/convert-h2c/*
+	wantConvertH2C embed.FS
+
+	//go:embed testdata/export-components/rekustomization.yaml
+	inputExportComponents embed.FS
+
+	//go:embed testdata/export-components/*
+	wantExportComponents embed.FS
+
+	//go:embed testdata/export-helm/rekustomization.yaml
+	inputExportHelm embed.FS
+
+	//go:embed testdata/export-helm/*
+	//go:embed testdata/export-helm/charts/simple-app/templates/_helpers.tpl
+	wantExportHelm embed.FS
+
+	//go:embed testdata/export-simple/rekustomization.yaml
+	inputExportSimple embed.FS
+
+	//go:embed testdata/export-simple/*
+	wantExportSimple embed.FS
+
+	//go:embed testdata/export-simple-filtered/rekustomization.yaml
+	inputExportSimpleFiltered embed.FS
+
+	//go:embed testdata/export-simple-filtered/*
+	wantExportSimpleFiltered embed.FS
 )
 
 type testServer struct {
@@ -33,7 +67,7 @@ func initServers(t *testing.T, clusters []string) map[string]string {
 
 	for _, cluster := range clusters {
 		go func(name string) {
-			clusterDir := filepath.Join("..", "..", "examples", "import", name)
+			clusterDir := filepath.Join("testdata", "import", name)
 			url := e2e.K8sServer(t)
 			errs := []error{}
 			kctl := kctl.Server(url)
@@ -72,15 +106,34 @@ func TestE2E(t *testing.T) {
 	t.Run("server-version-error", testServerVersionError)
 	t.Run("server-version", testServerVersion)
 
-	scenarios := []string{
-		"export-simple",
-		"export-simple-filtered",
-		"export-helm",
-		"export-components",
+	scenarios := map[string]struct {
+		input fs.FS
+		want  fs.FS
+	}{
+		"export-simple": {
+			input: inputExportSimple,
+			want:  wantExportSimple,
+		},
+		"export-simple-filtered": {
+			input: inputExportSimpleFiltered,
+			want:  wantExportSimpleFiltered,
+		},
+		"export-helm": {
+			input: inputExportHelm,
+			want:  wantExportHelm,
+		},
+		"export-components": {
+			input: inputExportComponents,
+			want:  wantExportComponents,
+		},
+		"convert-h2c": {
+			input: inputConvertH2C,
+			want:  wantConvertH2C,
+		},
 	}
 
-	for _, scenario := range scenarios {
-		t.Run(scenario, func(t *testing.T) { testExport(t, scenario) })
+	for name, files := range scenarios {
+		t.Run(name, func(t *testing.T) { testExport(t, name, files.input, files.want) })
 	}
 }
 
@@ -121,22 +174,26 @@ func testServerVersion(t *testing.T) {
 	}
 }
 
-func testExport(t *testing.T, name string) {
+func testExport(t *testing.T, name string, inputFS, wantFS fs.FS) {
 	t.Helper()
 
+	var err error
+
+	testDir := t.TempDir()
 	diskFs := filesys.MakeFsOnDisk()
-	outDir := filepath.Join(t.TempDir(), name)
+	outDir := filepath.Join(testDir, name)
 
-	if err := os.MkdirAll(outDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-
-	cfg, err := os.ReadFile(filepath.Join("..", "..", "examples", name, types.DefaultFileName))
+	inputFS, err = fs.Sub(inputFS, "testdata")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if err := os.WriteFile(filepath.Join(outDir, types.DefaultFileName), cfg, 0o600); err != nil {
+	wantFS, err = fs.Sub(wantFS, "testdata/"+name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.CopyFS(testDir, inputFS); err != nil {
 		t.Fatal(err)
 	}
 
@@ -147,8 +204,8 @@ func testExport(t *testing.T, name string) {
 		t.Fatal(err)
 	}
 
-	got := e2e.ReadFiles(t, diskFs, outDir)
-	want := e2e.ReadFiles(t, diskFs, filepath.Join("..", "..", "examples", name))
+	got := e2e.ReadFiles(t, diskFs, outDir+"/")
+	want := e2e.ReadFsFiles(t, wantFS, ".")
 
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("unexpected result, +got -want:\n%v", diff)

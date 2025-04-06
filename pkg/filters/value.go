@@ -18,12 +18,13 @@ type ValueSetter struct {
 }
 
 func (filter *ValueSetter) Filter(input *yaml.RNode) (*yaml.RNode, error) {
-	v := filter.Value
-	if v == nil {
-		v = yaml.MakeNullNode()
+	if filter.Value == nil {
+		input.SetYNode(nil)
+
+		return input, nil
 	}
 
-	*input = *v.Copy()
+	*input = *filter.Value.Copy()
 
 	return input, nil
 }

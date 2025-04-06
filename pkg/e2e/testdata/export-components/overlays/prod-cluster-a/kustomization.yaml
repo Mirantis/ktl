@@ -1,0 +1,6 @@
+kind: Kustomization
+components:
+- ../../components/all-clusters
+- ../../components/prod_test
+- ../../components/prod
+- ../../components/prod-cluster-a

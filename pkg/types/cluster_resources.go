@@ -12,7 +12,7 @@ type ClusterResources struct {
 	Resources map[resid.ResId]map[ClusterID]*yaml.RNode
 }
 
-func (res*ClusterResources) All() iter.Seq2[resid.ResId, *yaml.RNode] {
+func (res *ClusterResources) All() iter.Seq2[resid.ResId, *yaml.RNode] {
 	return func(yield func(resid.ResId, *yaml.RNode) bool) {
 		for id, byCluster := range res.Resources {
 			for _, rnode := range byCluster {
@@ -23,4 +23,3 @@ func (res*ClusterResources) All() iter.Seq2[resid.ResId, *yaml.RNode] {
 		}
 	}
 }
-

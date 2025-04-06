@@ -13,6 +13,7 @@ type Clusters struct {
 	cmd *Cmd
 }
 
+//nolint:lll
 func (clusters *Clusters) Resources(selectors []types.ResourceSelector, filters []kio.Filter) (*types.ClusterResources, error) {
 	buffers := map[types.ClusterID]*kio.PackageBuffer{}
 	errs := &errgroup.Group{}
@@ -20,12 +21,12 @@ func (clusters *Clusters) Resources(selectors []types.ResourceSelector, filters 
 	for clusterID, cluster := range clusters.All() {
 		buffer := &kio.PackageBuffer{}
 		buffers[clusterID] = buffer
+
 		errs.Go(func() error {
 			exporter, err := newClusterExporter(
 				clusters.cmd.Cluster(cluster.Name),
 				cluster.Name,
 			)
-
 			if err != nil {
 				return err
 			}
@@ -35,7 +36,7 @@ func (clusters *Clusters) Resources(selectors []types.ResourceSelector, filters 
 	}
 
 	if err := errs.Wait(); err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
 
 	resources := map[resid.ResId]map[types.ClusterID]*yaml.RNode{}
@@ -47,12 +48,14 @@ func (clusters *Clusters) Resources(selectors []types.ResourceSelector, filters 
 	for clusterID, buffer := range buffers {
 		for _, rnode := range buffer.Nodes {
 			id := resid.FromRNode(rnode)
-			byResId, found := resources[id]
+
+			byResID, found := resources[id]
 			if !found {
-				byResId = map[types.ClusterID]*yaml.RNode{}
-				resources[id] = byResId
+				byResID = map[types.ClusterID]*yaml.RNode{}
+				resources[id] = byResID
 			}
-			byResId[clusterID] = rnode
+
+			byResID[clusterID] = rnode
 		}
 	}
 

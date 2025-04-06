@@ -17,9 +17,15 @@ type ResourceSelector struct {
 }
 
 type Rekustomization struct {
+	Source    Source             `yaml:"source"`
 	Clusters  []ClusterSelector  `yaml:"clusters"`
 	Resources []ResourceSelector `yaml:"resources"`
 	HelmChart HelmChart          `yaml:"helmChart"`
 
 	Filters []filters.KFilter `yaml:"filters"`
+}
+
+type Source struct {
+	Kustomization string `yaml:"kustomization"`
+	KubeConfig    string `yaml:"kubeconfig"`
 }

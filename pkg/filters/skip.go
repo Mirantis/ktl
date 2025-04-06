@@ -9,6 +9,8 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
+const skipAnnotation = "x-rekustomize-skip"
+
 //nolint:gochecknoinits
 func init() {
 	filters.Filters["SkipFilter"] = func() kio.Filter { return &SkipFilter{} }
@@ -31,7 +33,9 @@ func (filter *SkipFilter) Filter(input []*yaml.RNode) ([]*yaml.RNode, error) {
 	}
 
 	if len(filter.Fields) == 0 {
-		matchModify.ModifyFilters = yaml.YFilters{{Filter: &ValueSetter{}}}
+		matchModify.ModifyFilters = yaml.YFilters{{
+			Filter: yaml.SetAnnotation(skipAnnotation, "true"),
+		}}
 	}
 
 	for _, path := range filter.Fields {
@@ -50,12 +54,17 @@ func (filter *SkipFilter) Filter(input []*yaml.RNode) ([]*yaml.RNode, error) {
 
 	output := []*yaml.RNode{}
 
-	for _, rn := range input {
-		if rn.IsNilOrEmpty() {
+	for _, rnode := range input {
+		if rnode.IsNilOrEmpty() {
 			continue
 		}
 
-		output = append(output, rn)
+		shouldSkip, _ := rnode.MatchesAnnotationSelector(skipAnnotation + "=true")
+		if shouldSkip {
+			continue
+		}
+
+		output = append(output, rnode)
 	}
 
 	return output, nil

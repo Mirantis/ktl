@@ -71,6 +71,17 @@ func (cmd *Cmd) ApplyKustomization(path string) error {
 	return err
 }
 
+func (cmd *Cmd) BuildKustomization(path string) ([]*yaml.RNode, error) {
+	subcmd := cmd.SubCmd(
+		"kustomize",
+		"--enable-helm=true",
+		"--load-restrictor=LoadRestrictionsNone",
+		path,
+	)
+
+	return executeCmd(subcmd, parseRNodes, nil)
+}
+
 func (cmd *Cmd) Get(resources []string, namespace string, selectors []string, names ...string) ([]*yaml.RNode, error) {
 	args := []string{"get", "-oyaml"}
 
@@ -135,7 +146,7 @@ func (cmd *Cmd) Clusters(selectors []types.ClusterSelector) (*Clusters, error) {
 	slices.Sort(names)
 
 	clusters := &Clusters{
-		cmd: cmd,
+		cmd:          cmd,
 		ClusterIndex: types.BuildClusterIndex(names, selectors),
 	}
 
