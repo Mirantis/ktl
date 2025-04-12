@@ -13,7 +13,6 @@ import (
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
 	"github.com/Mirantis/rekustomize/pkg/kustomize"
 	"github.com/Mirantis/rekustomize/pkg/resource"
-	"github.com/Mirantis/rekustomize/pkg/source"
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
@@ -95,56 +94,19 @@ func (opts *exportOpts) setDefaults(defaults *config.Rekustomization) {
 	opts.Filters = append(opts.Filters, defaults.Filters...)
 }
 
-func (opts *exportOpts) loadClusterResources() error {
-	kubeconfig, err := source.NewKubeconfig(opts.kctl, opts.Source.Clusters)
-	if err != nil {
-		return err //nolint:wrapcheck
-	}
-
-	resources, err := kubeconfig.Resources(opts.Source.Resources, opts.filters)
-	if err != nil {
-		return err //nolint:wrapcheck
-	}
-
-	opts.resources = resources
-
-	return nil
-}
-
-func (opts *exportOpts) loadKustomizationResources() error {
-	fileSys := &filesys.FileSystemOrOnDisk{}
-
-	path := opts.Source.Kustomization
-	if !filepath.IsAbs(path) {
-		path = filepath.Clean(filepath.Join(opts.dir, path))
-	}
-
-	src, err := source.NewKustomize(
-		opts.kctl,
-		fileSys,
-		path,
-		opts.Source.Clusters,
-	)
-	if err != nil {
-		return err //nolint:wrapcheck
-	}
-
-	resources, err := src.Resources(opts.Source.Resources, opts.filters)
-	if err != nil {
-		return err //nolint:wrapcheck
-	}
-
-	opts.resources = resources
-
-	return nil
-}
-
 func (opts *exportOpts) loadResources() error {
-	if opts.Source.Kustomization != "" {
-		return opts.loadKustomizationResources()
+	opts.Source.Cmd = opts.kctl
+	opts.Source.FileSys = filesys.MakeFsOnDisk()
+	opts.Source.WorkDir = opts.dir
+
+	resources, err := opts.Source.ClusterResources(opts.filters)
+	if err != nil {
+		return err
 	}
 
-	return opts.loadClusterResources()
+	opts.resources = resources
+
+	return nil
 }
 
 func (opts *exportOpts) run() error {
