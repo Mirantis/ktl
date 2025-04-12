@@ -24,6 +24,7 @@ filters:
   resources:
   - kind: CronJob
     name: infra-canary
-helmChart:
-  name: simple-app
-  version: v1.0
+output:
+  helmChart:
+    name: simple-app
+    version: v1.0
