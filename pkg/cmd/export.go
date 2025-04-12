@@ -95,12 +95,12 @@ func (opts *exportOpts) setDefaults(defaults *types.Rekustomization) {
 }
 
 func (opts *exportOpts) loadClusterResources() error {
-	clusters, err := opts.kctl.Clusters(opts.Clusters)
+	kubeconfig, err := source.NewKubeconfig(opts.kctl, opts.Clusters)
 	if err != nil {
 		return err //nolint:wrapcheck
 	}
 
-	resources, err := clusters.Resources(opts.Resources, opts.filters)
+	resources, err := kubeconfig.Resources(opts.Resources, opts.filters)
 	if err != nil {
 		return err //nolint:wrapcheck
 	}

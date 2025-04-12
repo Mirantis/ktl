@@ -1,4 +1,4 @@
-package kubectl
+package source
 
 import (
 	"fmt"
@@ -6,14 +6,85 @@ import (
 	"maps"
 	"slices"
 
+	"github.com/Mirantis/rekustomize/pkg/kubectl"
 	"github.com/Mirantis/rekustomize/pkg/types"
+	"golang.org/x/sync/errgroup"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
+type Kubeconfig struct {
+	*types.ClusterIndex
+	cmd *kubectl.Cmd
+}
+
+func NewKubeconfig(cmd *kubectl.Cmd, selectors []types.ClusterSelector) (*Kubeconfig, error) {
+	names, err := cmd.Clusters()
+	if err != nil {
+		return nil, err
+	}
+
+	clusters := &Kubeconfig{
+		cmd:          cmd,
+		ClusterIndex: types.BuildClusterIndex(names, selectors),
+	}
+
+	return clusters, nil
+}
+
+//nolint:lll
+func (clusters *Kubeconfig) Resources(selectors []types.ResourceSelector, filters []kio.Filter) (*types.ClusterResources, error) {
+	buffers := map[types.ClusterID]*kio.PackageBuffer{}
+	errs := &errgroup.Group{}
+
+	for clusterID, cluster := range clusters.All() {
+		buffer := &kio.PackageBuffer{}
+		buffers[clusterID] = buffer
+
+		errs.Go(func() error {
+			exporter, err := newClusterExporter(
+				clusters.cmd.Cluster(cluster.Name),
+				cluster.Name,
+			)
+			if err != nil {
+				return err
+			}
+
+			return exporter.resources(buffer, selectors, filters)
+		})
+	}
+
+	if err := errs.Wait(); err != nil {
+		return nil, err //nolint:wrapcheck
+	}
+
+	resources := map[resid.ResId]map[types.ClusterID]*yaml.RNode{}
+	result := &types.ClusterResources{
+		Clusters:  clusters.ClusterIndex,
+		Resources: resources,
+	}
+
+	for clusterID, buffer := range buffers {
+		for _, rnode := range buffer.Nodes {
+			id := resid.FromRNode(rnode)
+
+			byResID, found := resources[id]
+			if !found {
+				byResID = map[types.ClusterID]*yaml.RNode{}
+				resources[id] = byResID
+			}
+
+			byResID[clusterID] = rnode
+		}
+	}
+
+	return result, nil
+}
+
+
 type clusterExporter struct {
-	cmd  *Cmd
+	cmd  *kubectl.Cmd
 	name string
 
 	clusterResources    []string
@@ -21,7 +92,7 @@ type clusterExporter struct {
 	namespaces          []string
 }
 
-func newClusterExporter(cmd *Cmd, name string) (*clusterExporter, error) {
+func newClusterExporter(cmd *kubectl.Cmd, name string) (*clusterExporter, error) {
 	clusterResources, err := cmd.APIResources(false)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get API resources list: %w", err)

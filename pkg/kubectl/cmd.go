@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Mirantis/rekustomize/pkg/types"
 	"k8s.io/kubectl/pkg/cmd/version"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -134,7 +133,7 @@ func (cmd *Cmd) Namespaces() ([]string, error) {
 	return namespaces, err
 }
 
-func (cmd *Cmd) Clusters(selectors []types.ClusterSelector) (*Clusters, error) {
+func (cmd *Cmd) Clusters() ([]string, error) {
 	subcmd := cmd.SubCmd("config", "get-clusters")
 
 	lines, err := executeCmd(subcmd, parseLines, nil)
@@ -145,12 +144,7 @@ func (cmd *Cmd) Clusters(selectors []types.ClusterSelector) (*Clusters, error) {
 	names := lines[1:]
 	slices.Sort(names)
 
-	clusters := &Clusters{
-		cmd:          cmd,
-		ClusterIndex: types.BuildClusterIndex(names, selectors),
-	}
-
-	return clusters, nil
+	return names, nil
 }
 
 func (cmd *Cmd) wrapExecErr(err error) error {
