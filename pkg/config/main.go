@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Mirantis/rekustomize/pkg/types"
+	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/filters"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -42,21 +43,42 @@ func (cfg *Rekustomization) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
-func (opts *Rekustomization) setDefaults(defaults *rekustomization) {
-	if len(opts.Source.Resources) == 0 && opts.Source.Kustomization == "" {
-		opts.Source.Resources = []types.ResourceSelector{{}}
+func (cfg *Rekustomization) setDefaults(defaults *rekustomization) {
+	if len(cfg.Source.Resources) == 0 && cfg.Source.Kustomization == "" {
+		cfg.Source.Resources = []types.ResourceSelector{{}}
 	}
 
 	labelSelectors := defaults.Source.Resources[0].LabelSelectors
 	excludeResources := defaults.Source.Resources[0].Resources.Exclude
 
-	for i := range opts.Source.Resources {
-		if len(opts.Source.Resources[i].Resources.Include) == 0 {
-			opts.Source.Resources[i].Resources.Exclude = append(opts.Source.Resources[i].Resources.Exclude, excludeResources...)
+	for i := range cfg.Source.Resources {
+		if len(cfg.Source.Resources[i].Resources.Include) == 0 {
+			cfg.Source.Resources[i].Resources.Exclude = append(cfg.Source.Resources[i].Resources.Exclude, excludeResources...)
 		}
 
-		opts.Source.Resources[i].LabelSelectors = append(opts.Source.Resources[i].LabelSelectors, labelSelectors...)
+		cfg.Source.Resources[i].LabelSelectors = append(cfg.Source.Resources[i].LabelSelectors, labelSelectors...)
 	}
 
-	opts.Filters = append(opts.Filters, defaults.Filters...)
+	cfg.Filters = append(cfg.Filters, defaults.Filters...)
+}
+
+func (cfg *Rekustomization) Run(env *Env) error {
+	cfg.Source.Cmd = env.Cmd
+	cfg.Source.WorkDir = env.WorkDir
+	cfg.Source.FileSys = env.FileSys
+	cfg.Output.FileSys = env.FileSys
+	cfg.Output.WorkDir = env.WorkDir
+
+	filters := []kio.Filter{}
+
+	for i := range cfg.Filters {
+		filters = append(filters, cfg.Filters[i].Filter)
+	}
+
+	resources, err := cfg.Source.ClusterResources(filters)
+	if err != nil {
+		return err
+	}
+
+	return cfg.Output.Store(resources)
 }

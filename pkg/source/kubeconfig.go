@@ -22,7 +22,7 @@ type Kubeconfig struct {
 func NewKubeconfig(cmd *kubectl.Cmd, selectors []types.ClusterSelector) (*Kubeconfig, error) {
 	names, err := cmd.Clusters()
 	if err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
 
 	clusters := &Kubeconfig{
@@ -81,7 +81,6 @@ func (clusters *Kubeconfig) Resources(selectors []types.ResourceSelector, filter
 
 	return result, nil
 }
-
 
 type clusterExporter struct {
 	cmd  *kubectl.Cmd

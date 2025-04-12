@@ -45,7 +45,7 @@ func (src *Source) kustomization(filters []kio.Filter) (*types.ClusterResources,
 		return nil, err //nolint:wrapcheck
 	}
 
-	return kust.Resources(src.Resources, filters)
+	return kust.Resources(src.Resources, filters) //nolint:wrapcheck
 }
 
 func (src *Source) kubeconfig(filters []kio.Filter) (*types.ClusterResources, error) {
@@ -54,5 +54,5 @@ func (src *Source) kubeconfig(filters []kio.Filter) (*types.ClusterResources, er
 		return nil, err //nolint:wrapcheck
 	}
 
-	return kubeconfig.Resources(src.Resources, filters)
+	return kubeconfig.Resources(src.Resources, filters) //nolint:wrapcheck
 }
