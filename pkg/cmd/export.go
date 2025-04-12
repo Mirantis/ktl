@@ -16,8 +16,6 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-//go:embed defaults.yaml
-var defaultsYaml []byte
 
 func exportCommand() *cobra.Command {
 	opts := &exportOpts{}
@@ -28,10 +26,6 @@ func exportCommand() *cobra.Command {
 		Long:  "TODO: export (long)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error { //nolint:revive
-			defaults := &config.Rekustomization{}
-			if err := yaml.Unmarshal(defaultsYaml, &defaults); err != nil {
-				panic(fmt.Errorf("broken defaultSkipRules: %w", err))
-			}
 			opts.dir = args[0]
 
 			cfgData, err := os.ReadFile(filepath.Join(opts.dir, "rekustomization.yaml"))
@@ -43,7 +37,6 @@ func exportCommand() *cobra.Command {
 				return fmt.Errorf("unable to parse rekustomization.yaml: %w", err)
 			}
 
-			opts.setDefaults(defaults)
 			opts.kctl = kubectl.New()
 
 			for i := range opts.Filters {
@@ -63,25 +56,6 @@ type exportOpts struct {
 	kctl      *kubectl.Cmd
 	resources *types.ClusterResources
 	filters   []kio.Filter
-}
-
-func (opts *exportOpts) setDefaults(defaults *config.Rekustomization) {
-	if len(opts.Source.Resources) == 0 && opts.Source.Kustomization == "" {
-		opts.Source.Resources = []types.ResourceSelector{{}}
-	}
-
-	labelSelectors := defaults.Source.Resources[0].LabelSelectors
-	excludeResources := defaults.Source.Resources[0].Resources.Exclude
-
-	for i := range opts.Source.Resources {
-		if len(opts.Source.Resources[i].Resources.Include) == 0 {
-			opts.Source.Resources[i].Resources.Exclude = append(opts.Source.Resources[i].Resources.Exclude, excludeResources...)
-		}
-
-		opts.Source.Resources[i].LabelSelectors = append(opts.Source.Resources[i].LabelSelectors, labelSelectors...)
-	}
-
-	opts.Filters = append(opts.Filters, defaults.Filters...)
 }
 
 func (opts *exportOpts) loadResources() error {
