@@ -1,19 +1,20 @@
-clusters:
-- names: dev-*
-  tags: dev
-- names: test-cluster-a,test-cluster-b
-  tags: test
-- names:
-  - prod-cluster-a
-  - prod-cluster-b
-  tags: prod
-resources:
-- namespaces: simple-app
-  labelSelectors: ['!generated-by']
-  apiResources:
-    exclude: jobs.batch
-- apiResources: namespaces
-  names: simple-app
+source:
+  clusters:
+  - names: dev-*
+    tags: dev
+  - names: test-cluster-a,test-cluster-b
+    tags: test
+  - names:
+    - prod-cluster-a
+    - prod-cluster-b
+    tags: prod
+  resources:
+  - namespaces: simple-app
+    labelSelectors: ['!generated-by']
+    apiResources:
+      exclude: jobs.batch
+  - apiResources: namespaces
+    names: simple-app
 filters:
 - kind: SkipFilter
   fields:

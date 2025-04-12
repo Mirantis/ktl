@@ -1,12 +1,13 @@
-clusters:
-- names: dev-cluster-a
-resources:
-- namespaces: simple-app
-  labelSelectors: ['!generated-by']
-  apiResources:
-    exclude: jobs.batch
-- apiResources: namespaces
-  names: simple-app
+source:
+  clusters:
+  - names: dev-cluster-a
+  resources:
+  - namespaces: simple-app
+    labelSelectors: ['!generated-by']
+    apiResources:
+      exclude: jobs.batch
+  - apiResources: namespaces
+    names: simple-app
 filters:
 - kind: SkipFilter
   fields:

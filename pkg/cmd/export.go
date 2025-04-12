@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"slices"
 
+	"github.com/Mirantis/rekustomize/pkg/config"
 	_ "github.com/Mirantis/rekustomize/pkg/filters" // register filters
 	"github.com/Mirantis/rekustomize/pkg/helm"
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
@@ -36,7 +37,7 @@ func exportCommand() *cobra.Command {
 		Long:  "TODO: export (long)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error { //nolint:revive
-			defaults := &types.Rekustomization{}
+			defaults := &config.Rekustomization{}
 			if err := yaml.Unmarshal(defaultsYaml, &defaults); err != nil {
 				panic(fmt.Errorf("broken defaultSkipRules: %w", err))
 			}
@@ -66,7 +67,7 @@ func exportCommand() *cobra.Command {
 }
 
 type exportOpts struct {
-	types.Rekustomization
+	config.Rekustomization
 	dir       string
 	chartDir  string
 	compsDir  string
@@ -75,32 +76,32 @@ type exportOpts struct {
 	filters   []kio.Filter
 }
 
-func (opts *exportOpts) setDefaults(defaults *types.Rekustomization) {
-	if len(opts.Resources) == 0 && opts.Source.Kustomization == "" {
-		opts.Resources = []types.ResourceSelector{{}}
+func (opts *exportOpts) setDefaults(defaults *config.Rekustomization) {
+	if len(opts.Source.Resources) == 0 && opts.Source.Kustomization == "" {
+		opts.Source.Resources = []types.ResourceSelector{{}}
 	}
 
-	labelSelectors := defaults.Resources[0].LabelSelectors
-	excludeResources := defaults.Resources[0].Resources.Exclude
+	labelSelectors := defaults.Source.Resources[0].LabelSelectors
+	excludeResources := defaults.Source.Resources[0].Resources.Exclude
 
-	for i := range opts.Resources {
-		if len(opts.Resources[i].Resources.Include) == 0 {
-			opts.Resources[i].Resources.Exclude = append(opts.Resources[i].Resources.Exclude, excludeResources...)
+	for i := range opts.Source.Resources {
+		if len(opts.Source.Resources[i].Resources.Include) == 0 {
+			opts.Source.Resources[i].Resources.Exclude = append(opts.Source.Resources[i].Resources.Exclude, excludeResources...)
 		}
 
-		opts.Resources[i].LabelSelectors = append(opts.Resources[i].LabelSelectors, labelSelectors...)
+		opts.Source.Resources[i].LabelSelectors = append(opts.Source.Resources[i].LabelSelectors, labelSelectors...)
 	}
 
 	opts.Filters = append(opts.Filters, defaults.Filters...)
 }
 
 func (opts *exportOpts) loadClusterResources() error {
-	kubeconfig, err := source.NewKubeconfig(opts.kctl, opts.Clusters)
+	kubeconfig, err := source.NewKubeconfig(opts.kctl, opts.Source.Clusters)
 	if err != nil {
 		return err //nolint:wrapcheck
 	}
 
-	resources, err := kubeconfig.Resources(opts.Resources, opts.filters)
+	resources, err := kubeconfig.Resources(opts.Source.Resources, opts.filters)
 	if err != nil {
 		return err //nolint:wrapcheck
 	}
@@ -122,13 +123,13 @@ func (opts *exportOpts) loadKustomizationResources() error {
 		opts.kctl,
 		fileSys,
 		path,
-		opts.Clusters,
+		opts.Source.Clusters,
 	)
 	if err != nil {
 		return err //nolint:wrapcheck
 	}
 
-	resources, err := src.Resources(opts.Resources, opts.filters)
+	resources, err := src.Resources(opts.Source.Resources, opts.filters)
 	if err != nil {
 		return err //nolint:wrapcheck
 	}
