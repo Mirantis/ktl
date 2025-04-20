@@ -1,4 +1,5 @@
 source:
+  kind: Kustomize
   kustomization: "../import/${CLUSTER}"
   clusters:
   - names: dev-*

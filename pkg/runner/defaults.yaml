@@ -1,31 +1,4 @@
 # yaml-language-server: $schema=https://json.schemastore.org/any.json
-source:
-  resources:
-  - labelSelectors:
-    - "!kubernetes.io/bootstrapping"
-    apiResources:
-      exclude:
-      # namespaced
-      - "*.coordination.k8s.io"
-      - "*.discovery.k8s.io"
-      - "*.events.k8s.io"
-      - "csistoragecapacities.storage.k8s.io"
-      - "endpoints"
-      - "events"
-      - "jobs"
-      - "limitranges"
-      - "pods"
-      - "replicasets.apps"
-      # cluster
-      - "*.admissionregistration.k8s.io"
-      - "*.apiregistration.k8s.io"
-      - "*.flowcontrol.apiserver.k8s.io"
-      - "*.scheduling.k8s.io"
-      - "componentstatuses"
-      - "csinodes.storage.k8s.io"
-      - "nodes"
-      - "persistentvolumes"
-      - "volumeattachments.storage.k8s.io"
 filters:
 - kind: SkipFilter
   fields:

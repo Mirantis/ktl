@@ -3,20 +3,23 @@ package source
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 
-	"github.com/Mirantis/rekustomize/pkg/kubectl"
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"golang.org/x/sync/errgroup"
-	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/kio"
-	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 type Kustomize struct {
+	PathTemplate string                   `yaml:"kustomization"`
+	Clusters     []types.ClusterSelector  `yaml:"clusters"`
+	Resources    []types.ResourceSelector `yaml:"resources"`
+}
+
+type kustomizePkg struct {
 	idx   *types.ClusterIndex
-	cmd   *kubectl.Cmd
 	paths map[types.ClusterID]string
 }
 
@@ -32,41 +35,46 @@ func wrapKustSrcErr(err error) error {
 	return fmt.Errorf("kustomization source error: %w", err)
 }
 
-//nolint:lll
-func NewKustomize(cmd *kubectl.Cmd, fileSys filesys.FileSystem, path string, selectors []types.ClusterSelector) (*Kustomize, error) {
+// REVISIT: fix cyclop
+//
+//nolint:cyclop
+func (kust *Kustomize) packages(env *types.Env) (*kustomizePkg, error) {
+	var pathPrefix, pathSuffix string
+
+	path := kust.PathTemplate
+	if !filepath.IsAbs(path) {
+		path = filepath.Clean(filepath.Join(env.WorkDir, path))
+	}
+
 	pathParts := strings.Split(path, clusterPlaceholder)
 
-	if len(pathParts) == 1 && len(selectors) == 0 {
+	switch {
+	case len(pathParts) == 1 && len(kust.Clusters) == 0:
 		idx := types.NewClusterIndex()
 		clusterID := idx.Add(types.Cluster{})
 
-		kust := &Kustomize{
+		kpkg := &kustomizePkg{
 			idx: idx,
-			cmd: cmd,
 			paths: map[types.ClusterID]string{
 				clusterID: path,
 			},
 		}
 
-		return kust, nil
-	}
-
-	if len(pathParts) < 2 && len(selectors) > 0 {
+		return kpkg, nil
+	case len(pathParts) < 2 && len(kust.Clusters) > 0:
 		return nil, wrapKustSrcErr(errPlaceholderMissing)
-	}
-
-	if len(pathParts) > 2 { //nolint:mnd
+	case len(pathParts) > 2: //nolint:mnd
 		return nil, wrapKustSrcErr(errMultiplePlaceholders)
-	}
-
-	pathPrefix, pathSuffix := pathParts[0], ""
-	if len(pathParts) == 2 { //nolint:mnd
+	case len(pathParts) == 2: //nolint:mnd
+		pathPrefix = pathParts[0]
 		pathSuffix = pathParts[1]
+	default:
+		pathPrefix = pathParts[0]
 	}
 
 	pathPattern := strings.Join(pathParts, "*")
 
-	paths, err := fileSys.Glob(pathPattern)
+	paths, err := env.FileSys.Glob(pathPattern)
 	if err != nil {
 		return nil, wrapKustSrcErr(err)
 	}
@@ -79,22 +87,20 @@ func NewKustomize(cmd *kubectl.Cmd, fileSys filesys.FileSystem, path string, sel
 		names = append(names, name)
 	}
 
-	kust := &Kustomize{
-		idx:   types.BuildClusterIndex(names, selectors),
-		cmd:   cmd,
+	kpkg := &kustomizePkg{
+		idx:   types.BuildClusterIndex(names, kust.Clusters),
 		paths: map[types.ClusterID]string{},
 	}
 
-	for clusterID, cluster := range kust.idx.All() {
-		kust.paths[clusterID] = pathPrefix + cluster.Name + pathSuffix
+	for clusterID, cluster := range kpkg.idx.All() {
+		kpkg.paths[clusterID] = pathPrefix + cluster.Name + pathSuffix
 	}
 
-	return kust, nil
+	return kpkg, nil
 }
 
-//nolint:lll
-func (kust *Kustomize) Resources(selectors []types.ResourceSelector, filters []kio.Filter) (*types.ClusterResources, error) {
-	if len(selectors) > 0 {
+func (kust *Kustomize) Load(env *types.Env) (*State, error) {
+	if len(kust.Resources) > 0 {
 		//nolint:godox
 		// TODO: convert to filters
 		//	requires api-resource/kind mapping
@@ -102,29 +108,27 @@ func (kust *Kustomize) Resources(selectors []types.ResourceSelector, filters []k
 		return nil, wrapKustSrcErr(errResSelUnsupported)
 	}
 
-	cres := &types.ClusterResources{
-		Clusters:  kust.idx,
-		Resources: map[resid.ResId]map[types.ClusterID]*yaml.RNode{},
+	pkgs, err := kust.packages(env)
+	if err != nil {
+		return nil, err
 	}
 
 	errg := errgroup.Group{}
-	clusterRNodes := map[types.ClusterID]*kio.PackageBuffer{}
+	buffers := map[types.ClusterID]*kio.PackageBuffer{}
 
-	for clusterID, path := range kust.paths {
+	for clusterID, path := range pkgs.paths {
 		buffer := &kio.PackageBuffer{}
-		clusterRNodes[clusterID] = buffer
+		buffers[clusterID] = buffer
 
 		errg.Go(func() error {
-			rnodes, err := kust.cmd.BuildKustomization(path)
+			rnodes, err := env.Cmd.BuildKustomization(path)
 			if err != nil {
 				return err //nolint:wrapcheck
 			}
 
-			return kio.Pipeline{
-				Inputs:  []kio.Reader{&kio.PackageBuffer{Nodes: rnodes}},
-				Filters: filters,
-				Outputs: []kio.Writer{buffer},
-			}.Execute()
+			buffer.Nodes = rnodes
+
+			return nil
 		})
 	}
 
@@ -132,19 +136,13 @@ func (kust *Kustomize) Resources(selectors []types.ResourceSelector, filters []k
 		return nil, wrapKustSrcErr(err)
 	}
 
-	for clusterID, buffer := range clusterRNodes {
-		for _, rnode := range buffer.Nodes {
-			resID := resid.FromRNode(rnode)
+	resources := map[types.ClusterID][]*yaml.RNode{}
 
-			byResID, foundByID := cres.Resources[resID]
-			if !foundByID {
-				byResID = map[types.ClusterID]*yaml.RNode{}
-				cres.Resources[resID] = byResID
-			}
-
-			byResID[clusterID] = rnode
-		}
+	for clusterID, buffer := range buffers {
+		resources[clusterID] = buffer.Nodes
 	}
 
-	return cres, nil
+	state := &State{pkgs.idx, resources}
+
+	return state, nil
 }

@@ -8,6 +8,7 @@ import (
 	_ "github.com/Mirantis/rekustomize/pkg/filters" // register filters
 	"github.com/Mirantis/rekustomize/pkg/kubectl"
 	"github.com/Mirantis/rekustomize/pkg/runner"
+	"github.com/Mirantis/rekustomize/pkg/types"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
@@ -20,7 +21,7 @@ func newRunCommand() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error { //nolint:revive
 			fileName := args[0]
-			env := &runner.Env{
+			env := &types.Env{
 				WorkDir: filepath.Dir(fileName),
 				FileSys: filesys.MakeFsOnDisk(),
 				Cmd:     kubectl.New(),

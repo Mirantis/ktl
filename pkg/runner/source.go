@@ -1,58 +1,39 @@
 package runner
 
 import (
-	"path/filepath"
+	"errors"
+	"fmt"
 
-	"github.com/Mirantis/rekustomize/pkg/kubectl"
 	"github.com/Mirantis/rekustomize/pkg/source"
-	"github.com/Mirantis/rekustomize/pkg/types"
-	"sigs.k8s.io/kustomize/kyaml/filesys"
-	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 type Source struct {
-	WorkDir string
-	Cmd     *kubectl.Cmd
-	FileSys filesys.FileSystem
-
-	Kustomization string                   `yaml:"kustomization"`
-	KubeConfig    string                   `yaml:"kubeconfig"`
-	Clusters      []types.ClusterSelector  `yaml:"clusters"`
-	Resources     []types.ResourceSelector `yaml:"resources"`
+	source.Impl
 }
 
-func (src *Source) ClusterResources(filters []kio.Filter) (*types.ClusterResources, error) {
-	if src.Kustomization != "" {
-		return src.kustomization(filters)
+var errUnsupportedSource = errors.New("unsupported source")
+
+func (src *Source) UnmarshalYAML(node *yaml.Node) error {
+	meta := &yaml.TypeMeta{}
+	if err := node.Decode(meta); err != nil {
+		return err //nolint:wrapcheck
 	}
 
-	return src.kubeconfig(filters)
-}
+	switch meta.Kind {
+	case "":
+		fallthrough
+	case "KubeConfig":
+		impl := &source.Kubeconfig{}
+		src.Impl = impl
 
-func (src *Source) kustomization(filters []kio.Filter) (*types.ClusterResources, error) {
-	path := src.Kustomization
-	if !filepath.IsAbs(path) {
-		path = filepath.Clean(filepath.Join(src.WorkDir, path))
+		return node.Decode(impl) //nolint:wrapcheck
+	case "Kustomize":
+		impl := &source.Kustomize{}
+		src.Impl = impl
+
+		return node.Decode(impl) //nolint:wrapcheck
+	default:
+		return fmt.Errorf("%w: %s", errUnsupportedSource, meta.Kind)
 	}
-
-	kust, err := source.NewKustomize(
-		src.Cmd,
-		src.FileSys,
-		path,
-		src.Clusters,
-	)
-	if err != nil {
-		return nil, err //nolint:wrapcheck
-	}
-
-	return kust.Resources(src.Resources, filters) //nolint:wrapcheck
-}
-
-func (src *Source) kubeconfig(filters []kio.Filter) (*types.ClusterResources, error) {
-	kubeconfig, err := source.NewKubeconfig(src.Cmd, src.Clusters)
-	if err != nil {
-		return nil, err //nolint:wrapcheck
-	}
-
-	return kubeconfig.Resources(src.Resources, filters) //nolint:wrapcheck
 }

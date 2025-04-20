@@ -15,26 +15,38 @@ import (
 )
 
 type Kubeconfig struct {
-	*types.ClusterIndex
-	cmd *kubectl.Cmd
+	Path      string                   `yaml:"kubeconfig"`
+	Clusters  []types.ClusterSelector  `yaml:"clusters"`
+	Resources []types.ResourceSelector `yaml:"resources"`
 }
 
-func NewKubeconfig(cmd *kubectl.Cmd, selectors []types.ClusterSelector) (*Kubeconfig, error) {
+func (kcfg *Kubeconfig) UnmarshalYAML(node *yaml.Node) error {
+	type kubeconfig Kubeconfig
+
+	base := &kubeconfig{}
+	if err := node.Decode(base); err != nil {
+		return err //nolint:wrapcheck
+	}
+
+	kcfg.Path = base.Path
+	kcfg.Clusters = base.Clusters
+	kcfg.Resources = defaultResources(base.Resources)
+
+	return nil
+}
+
+func (kcfg *Kubeconfig) Load(env *types.Env) (*State, error) {
+	cmd := env.Cmd.SubCmd()
+	if kcfg.Path != "" {
+		cmd.Env = append(cmd.Env, "KUBECONFIG", kcfg.Path)
+	}
+
 	names, err := cmd.Clusters()
 	if err != nil {
 		return nil, err //nolint:wrapcheck
 	}
 
-	clusters := &Kubeconfig{
-		cmd:          cmd,
-		ClusterIndex: types.BuildClusterIndex(names, selectors),
-	}
-
-	return clusters, nil
-}
-
-//nolint:lll
-func (clusters *Kubeconfig) Resources(selectors []types.ResourceSelector, filters []kio.Filter) (*types.ClusterResources, error) {
+	clusters := types.BuildClusterIndex(names, kcfg.Clusters)
 	buffers := map[types.ClusterID]*kio.PackageBuffer{}
 	errs := &errgroup.Group{}
 
@@ -44,14 +56,21 @@ func (clusters *Kubeconfig) Resources(selectors []types.ResourceSelector, filter
 
 		errs.Go(func() error {
 			exporter, err := newClusterExporter(
-				clusters.cmd.Cluster(cluster.Name),
+				cmd.Cluster(cluster.Name),
 				cluster.Name,
 			)
 			if err != nil {
 				return err
 			}
 
-			return exporter.resources(buffer, selectors, filters)
+			nodes, err := exporter.resources(kcfg.Resources)
+			if err != nil {
+				return err
+			}
+
+			buffer.Nodes = nodes
+
+			return nil
 		})
 	}
 
@@ -59,27 +78,15 @@ func (clusters *Kubeconfig) Resources(selectors []types.ResourceSelector, filter
 		return nil, err //nolint:wrapcheck
 	}
 
-	resources := map[resid.ResId]map[types.ClusterID]*yaml.RNode{}
-	result := &types.ClusterResources{
-		Clusters:  clusters.ClusterIndex,
-		Resources: resources,
-	}
+	resources := map[types.ClusterID][]*yaml.RNode{}
 
 	for clusterID, buffer := range buffers {
-		for _, rnode := range buffer.Nodes {
-			id := resid.FromRNode(rnode)
-
-			byResID, found := resources[id]
-			if !found {
-				byResID = map[types.ClusterID]*yaml.RNode{}
-				resources[id] = byResID
-			}
-
-			byResID[clusterID] = rnode
-		}
+		resources[clusterID] = buffer.Nodes
 	}
 
-	return result, nil
+	state := &State{clusters, resources}
+
+	return state, nil
 }
 
 type clusterExporter struct {
@@ -119,33 +126,19 @@ func newClusterExporter(cmd *kubectl.Cmd, name string) (*clusterExporter, error)
 	return exporter, nil
 }
 
-func (c *clusterExporter) resources(out kio.Writer, selectors []types.ResourceSelector, filters []kio.Filter) error {
+func (c *clusterExporter) resources(selectors []types.ResourceSelector) ([]*yaml.RNode, error) {
 	nodes := map[resid.ResId]*yaml.RNode{}
 
 	for _, rule := range selectors {
 		batch, err := c.export(rule)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		maps.Insert(nodes, maps.All(batch))
 	}
 
-	inputs := []kio.Reader{&kio.PackageBuffer{
-		Nodes: slices.Collect(maps.Values(nodes)),
-	}}
-	pipeline := &kio.Pipeline{
-		Inputs:  inputs,
-		Filters: filters,
-		Outputs: []kio.Writer{out},
-	}
-
-	err := pipeline.Execute()
-	if err != nil {
-		return fmt.Errorf("export pipeline failed: %w", err)
-	}
-
-	return nil
+	return slices.Collect(maps.Values(nodes)), nil
 }
 
 func (c *clusterExporter) export(rule types.ResourceSelector) (map[resid.ResId]*yaml.RNode, error) {

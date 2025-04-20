@@ -7,6 +7,7 @@ import (
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/filters"
+	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -38,34 +39,12 @@ func (cfg *Pipeline) UnmarshalYAML(node *yaml.Node) error {
 	cfg.Source = base.Source
 	cfg.Output = base.Output
 	cfg.Filters = base.Filters
-	cfg.setDefaults(defaults)
+	cfg.Filters = append(cfg.Filters, defaults.Filters...)
 
 	return nil
 }
 
-func (cfg *Pipeline) setDefaults(defaults *rekustomization) {
-	if len(cfg.Source.Resources) == 0 && cfg.Source.Kustomization == "" {
-		cfg.Source.Resources = []types.ResourceSelector{{}}
-	}
-
-	labelSelectors := defaults.Source.Resources[0].LabelSelectors
-	excludeResources := defaults.Source.Resources[0].Resources.Exclude
-
-	for i := range cfg.Source.Resources {
-		if len(cfg.Source.Resources[i].Resources.Include) == 0 {
-			cfg.Source.Resources[i].Resources.Exclude = append(cfg.Source.Resources[i].Resources.Exclude, excludeResources...)
-		}
-
-		cfg.Source.Resources[i].LabelSelectors = append(cfg.Source.Resources[i].LabelSelectors, labelSelectors...)
-	}
-
-	cfg.Filters = append(cfg.Filters, defaults.Filters...)
-}
-
-func (cfg *Pipeline) Run(env *Env) error {
-	cfg.Source.Cmd = env.Cmd
-	cfg.Source.WorkDir = env.WorkDir
-	cfg.Source.FileSys = env.FileSys
+func (cfg *Pipeline) Run(env *types.Env) error {
 	cfg.Output.FileSys = env.FileSys
 	cfg.Output.WorkDir = env.WorkDir
 
@@ -75,10 +54,46 @@ func (cfg *Pipeline) Run(env *Env) error {
 		filters = append(filters, cfg.Filters[i].Filter)
 	}
 
-	resources, err := cfg.Source.ClusterResources(filters)
+	sres, err := cfg.Source.Load(env)
 	if err != nil {
-		return err
+		return err //nolint:wrapcheck
 	}
 
-	return cfg.Output.Store(resources)
+	ridx := map[resid.ResId]map[types.ClusterID]*yaml.RNode{}
+
+	for clusterID, nodes := range sres.Resources {
+		filtered := &kio.PackageBuffer{}
+		pipeline := &kio.Pipeline{
+			Inputs: []kio.Reader{
+				&kio.PackageBuffer{
+					Nodes: nodes,
+				},
+			},
+			Outputs: []kio.Writer{filtered},
+			Filters: filters,
+		}
+
+		if err := pipeline.Execute(); err != nil {
+			return err //nolint:wrapcheck
+		}
+
+		for _, node := range filtered.Nodes {
+			nodeID := resid.FromRNode(node)
+
+			byCluster, idFound := ridx[nodeID]
+			if !idFound {
+				byCluster = map[types.ClusterID]*yaml.RNode{}
+				ridx[nodeID] = byCluster
+			}
+
+			byCluster[clusterID] = node
+		}
+	}
+
+	cres := &types.ClusterResources{
+		Clusters:  sres.Clusters,
+		Resources: ridx,
+	}
+
+	return cfg.Output.Store(cres)
 }
