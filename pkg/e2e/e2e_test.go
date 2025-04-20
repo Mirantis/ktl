@@ -18,32 +18,32 @@ import (
 
 var (
 	//go:embed testdata/import/*
-	//go:embed testdata/convert-h2c/rekustomization.yaml
+	//go:embed testdata/convert-h2c/pipeline.yaml
 	inputConvertH2C embed.FS
 
 	//go:embed testdata/convert-h2c/*
 	wantConvertH2C embed.FS
 
-	//go:embed testdata/export-components/rekustomization.yaml
+	//go:embed testdata/export-components/pipeline.yaml
 	inputExportComponents embed.FS
 
 	//go:embed testdata/export-components/*
 	wantExportComponents embed.FS
 
-	//go:embed testdata/export-helm/rekustomization.yaml
+	//go:embed testdata/export-helm/pipeline.yaml
 	inputExportHelm embed.FS
 
 	//go:embed testdata/export-helm/*
 	//go:embed testdata/export-helm/charts/simple-app/templates/_helpers.tpl
 	wantExportHelm embed.FS
 
-	//go:embed testdata/export-simple/rekustomization.yaml
+	//go:embed testdata/export-simple/pipeline.yaml
 	inputExportSimple embed.FS
 
 	//go:embed testdata/export-simple/*
 	wantExportSimple embed.FS
 
-	//go:embed testdata/export-simple-filtered/rekustomization.yaml
+	//go:embed testdata/export-simple-filtered/pipeline.yaml
 	inputExportSimpleFiltered embed.FS
 
 	//go:embed testdata/export-simple-filtered/*
@@ -133,7 +133,7 @@ func TestE2E(t *testing.T) {
 	}
 
 	for name, files := range scenarios {
-		t.Run(name, func(t *testing.T) { testExport(t, name, files.input, files.want) })
+		t.Run(name, func(t *testing.T) { testRunCmd(t, name, files.input, files.want) })
 	}
 }
 
@@ -174,7 +174,7 @@ func testServerVersion(t *testing.T) {
 	}
 }
 
-func testExport(t *testing.T, name string, inputFS, wantFS fs.FS) {
+func testRunCmd(t *testing.T, name string, inputFS, wantFS fs.FS) {
 	t.Helper()
 
 	var err error
@@ -197,10 +197,10 @@ func testExport(t *testing.T, name string, inputFS, wantFS fs.FS) {
 		t.Fatal(err)
 	}
 
-	exportCmd := cmd.RootCommand()
-	exportCmd.SetArgs([]string{"export", outDir})
+	runCmd := cmd.NewRootCommand()
+	runCmd.SetArgs([]string{"run", outDir + "/pipeline.yaml"})
 
-	if err := exportCmd.Execute(); err != nil {
+	if err := runCmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
 

@@ -1,4 +1,4 @@
-package config
+package runner
 
 import (
 	_ "embed"
@@ -15,16 +15,16 @@ const DefaultFileName = "rekustomization.yaml"
 //go:embed defaults.yaml
 var defaultsYaml []byte
 
-type Rekustomization struct {
+type Pipeline struct {
 	Source Source `yaml:"source"`
 	Output Output `yaml:"output"`
 
 	Filters []filters.KFilter `yaml:"filters"`
 }
 
-type rekustomization Rekustomization
+type rekustomization Pipeline
 
-func (cfg *Rekustomization) UnmarshalYAML(node *yaml.Node) error {
+func (cfg *Pipeline) UnmarshalYAML(node *yaml.Node) error {
 	defaults := &rekustomization{}
 	if err := yaml.Unmarshal(defaultsYaml, &defaults); err != nil {
 		panic(fmt.Errorf("broken defaults: %w", err))
@@ -43,7 +43,7 @@ func (cfg *Rekustomization) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
-func (cfg *Rekustomization) setDefaults(defaults *rekustomization) {
+func (cfg *Pipeline) setDefaults(defaults *rekustomization) {
 	if len(cfg.Source.Resources) == 0 && cfg.Source.Kustomization == "" {
 		cfg.Source.Resources = []types.ResourceSelector{{}}
 	}
@@ -62,7 +62,7 @@ func (cfg *Rekustomization) setDefaults(defaults *rekustomization) {
 	cfg.Filters = append(cfg.Filters, defaults.Filters...)
 }
 
-func (cfg *Rekustomization) Run(env *Env) error {
+func (cfg *Pipeline) Run(env *Env) error {
 	cfg.Source.Cmd = env.Cmd
 	cfg.Source.WorkDir = env.WorkDir
 	cfg.Source.FileSys = env.FileSys

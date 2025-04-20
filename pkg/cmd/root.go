@@ -2,11 +2,11 @@ package cmd
 
 import "github.com/spf13/cobra"
 
-func RootCommand() *cobra.Command {
+func NewRootCommand() *cobra.Command {
 	root := &cobra.Command{
 		Use: "rekustomize",
 	}
-	root.AddCommand(exportCommand())
+	root.AddCommand(newRunCommand())
 
 	return root
 }

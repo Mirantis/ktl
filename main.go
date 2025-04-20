@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	root := cmd.RootCommand()
+	root := cmd.NewRootCommand()
 
 	slog.SetLogLoggerLevel(slog.LevelInfo)
 
