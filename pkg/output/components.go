@@ -19,6 +19,7 @@ import (
 
 type ComponentsOutput struct{}
 
+//nolint:lll
 func (out *ComponentsOutput) storeComponentsOverlays(env *types.Env, resources *types.ClusterResources, comps *Components, compsDir string) error {
 	for clusterID, cluster := range resources.Clusters.All() {
 		fileStore := resource.FileStore{

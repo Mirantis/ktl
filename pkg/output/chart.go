@@ -33,6 +33,7 @@ type ChartOutput struct {
 	HelmChart types.HelmChart `yaml:"helmChart"`
 }
 
+//nolint:lll
 func (out *ChartOutput) storeChartOverlays(env *types.Env, resources *types.ClusterResources, chart *Chart, chartDir string) error {
 	for clusterID, cluster := range resources.Clusters.All() {
 		fileStore := resource.FileStore{

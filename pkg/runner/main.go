@@ -97,5 +97,5 @@ func (cfg *Pipeline) Run(env *types.Env) error {
 		Resources: ridx,
 	}
 
-	return cfg.Output.Store(env, cres)
+	return cfg.Output.Store(env, cres) //nolint:wrapcheck
 }

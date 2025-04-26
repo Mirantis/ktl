@@ -13,10 +13,8 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-var (
-	//go:embed testdata/components
-	compFs embed.FS
-)
+//go:embed testdata/components
+var compFs embed.FS
 
 func TestComponents(t *testing.T) {
 	clusters := types.NewClusterIndex()

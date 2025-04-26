@@ -13,11 +13,9 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-var (
-	//go:embed testdata/chart
-	//go:embed testdata/chart/templates/_helpers.tpl
-	chartFs embed.FS
-)
+//go:embed testdata/chart
+//go:embed testdata/chart/templates/_helpers.tpl
+var chartFs embed.FS
 
 func TestChart(t *testing.T) {
 	clusters := types.NewClusterIndex()

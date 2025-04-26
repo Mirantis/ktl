@@ -7,7 +7,6 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-
 type Output struct {
 	output.Impl
 }
