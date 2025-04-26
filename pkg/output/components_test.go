@@ -1,11 +1,11 @@
-package kustomize_test
+package output_test
 
 import (
 	"embed"
 	"testing"
 
 	"github.com/Mirantis/rekustomize/pkg/e2e"
-	"github.com/Mirantis/rekustomize/pkg/kustomize"
+	"github.com/Mirantis/rekustomize/pkg/output"
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"github.com/google/go-cmp/cmp"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
@@ -16,17 +16,6 @@ import (
 var (
 	//go:embed testdata/components
 	compFs embed.FS
-
-	//go:embed testdata/dev-cluster-a.yaml
-	appDevA string
-	//go:embed testdata/test-cluster-a.yaml
-	appTestA string
-	//go:embed testdata/test-cluster-b.yaml
-	appTestB string
-	//go:embed testdata/prod-cluster-a.yaml
-	appProdA string
-	//go:embed testdata/prod-cluster-b.yaml
-	appProdB string
 )
 
 func TestComponents(t *testing.T) {
@@ -45,7 +34,7 @@ func TestComponents(t *testing.T) {
 	}
 	id := resid.FromRNode(resources[devA])
 
-	comps := kustomize.NewComponents(clusters)
+	comps := output.NewComponents(clusters)
 	if err := comps.Add(id, resources); err != nil {
 		t.Fatal(err)
 	}

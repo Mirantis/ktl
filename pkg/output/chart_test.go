@@ -1,11 +1,11 @@
-package helm_test
+package output_test
 
 import (
 	"embed"
 	"testing"
 
 	"github.com/Mirantis/rekustomize/pkg/e2e"
-	"github.com/Mirantis/rekustomize/pkg/helm"
+	"github.com/Mirantis/rekustomize/pkg/output"
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"github.com/google/go-cmp/cmp"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
@@ -17,17 +17,6 @@ var (
 	//go:embed testdata/chart
 	//go:embed testdata/chart/templates/_helpers.tpl
 	chartFs embed.FS
-
-	//go:embed testdata/dev-cluster-a.yaml
-	appDevA string
-	//go:embed testdata/test-cluster-a.yaml
-	appTestA string
-	//go:embed testdata/test-cluster-b.yaml
-	appTestB string
-	//go:embed testdata/prod-cluster-a.yaml
-	appProdA string
-	//go:embed testdata/prod-cluster-b.yaml
-	appProdB string
 )
 
 func TestChart(t *testing.T) {
@@ -50,7 +39,7 @@ func TestChart(t *testing.T) {
 		Version: "v0.1",
 	}
 
-	chart := helm.NewChart(meta, clusters)
+	chart := output.NewChart(meta, clusters)
 	id := resid.FromRNode(resources[devA])
 
 	if err := chart.Add(id, resources); err != nil {

@@ -6,8 +6,7 @@ import (
 	"path/filepath"
 	"slices"
 
-	"github.com/Mirantis/rekustomize/pkg/helm"
-	"github.com/Mirantis/rekustomize/pkg/kustomize"
+	"github.com/Mirantis/rekustomize/pkg/output"
 	"github.com/Mirantis/rekustomize/pkg/resource"
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
@@ -41,7 +40,7 @@ func (out *Output) Store(resources *types.ClusterResources) error {
 	return out.exportCharts()
 }
 
-func (out *Output) storeChartOverlays(chart *helm.Chart) error {
+func (out *Output) storeChartOverlays(chart *output.Chart) error {
 	for clusterID, cluster := range out.resources.Clusters.All() {
 		fileStore := resource.FileStore{
 			Dir:        filepath.Join(out.WorkDir, "overlays", cluster.Name),
@@ -70,7 +69,7 @@ func (out *Output) storeChartOverlays(chart *helm.Chart) error {
 
 func (out *Output) exportCharts() error {
 	chartMeta := out.HelmChart
-	chart := helm.NewChart(chartMeta, out.resources.Clusters)
+	chart := output.NewChart(chartMeta, out.resources.Clusters)
 	out.chartDir = filepath.Join(out.WorkDir, "charts", chartMeta.Name)
 
 	if err := os.MkdirAll(out.chartDir, dirPerm); err != nil {
@@ -91,7 +90,7 @@ func (out *Output) exportCharts() error {
 	return out.storeChartOverlays(chart)
 }
 
-func (out *Output) storeComponentsOverlays(comps *kustomize.Components) error {
+func (out *Output) storeComponentsOverlays(comps *output.Components) error {
 	for clusterID, cluster := range out.resources.Clusters.All() {
 		fileStore := resource.FileStore{
 			Dir:        filepath.Join(out.WorkDir, "overlays", cluster.Name),
@@ -123,7 +122,7 @@ func (out *Output) storeComponentsOverlays(comps *kustomize.Components) error {
 }
 
 func (out *Output) exportComponents() error {
-	comps := kustomize.NewComponents(out.resources.Clusters)
+	comps := output.NewComponents(out.resources.Clusters)
 	out.compsDir = filepath.Join(out.WorkDir, "components")
 
 	for id, byCluster := range out.resources.Resources {
