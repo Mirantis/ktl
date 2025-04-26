@@ -3,3 +3,6 @@ source:
   - names: dev-cluster-a
   resources:
   - namespaces: simple-app
+output:
+  kind: Kustomize
+

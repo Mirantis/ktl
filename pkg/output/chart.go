@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -27,6 +28,60 @@ var (
 	//go:embed data/_helpers.tpl
 	helpersTpl []byte
 )
+
+type ChartOutput struct {
+	HelmChart types.HelmChart `yaml:"helmChart"`
+}
+
+func (out *ChartOutput) storeChartOverlays(env *types.Env, resources *types.ClusterResources, chart *Chart, chartDir string) error {
+	for clusterID, cluster := range resources.Clusters.All() {
+		fileStore := resource.FileStore{
+			Dir:        filepath.Join(env.WorkDir, "overlays", cluster.Name),
+			FileSystem: filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
+		}
+		kust := &types.Kustomization{}
+		kust.Kind = types.KustomizationKind
+
+		chartHome, err := filepath.Rel(fileStore.Dir, filepath.Dir(chartDir))
+		if err != nil {
+			return fmt.Errorf("invalid path: %w", err)
+		}
+
+		kust.HelmCharts = []types.HelmChart{chart.Instance(clusterID)}
+		kust.HelmGlobals = &types.HelmGlobals{
+			ChartHome: chartHome,
+		}
+
+		if err := fileStore.WriteKustomization(kust); err != nil {
+			return fmt.Errorf("unable to store kustomization: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (out *ChartOutput) Store(env *types.Env, resources *types.ClusterResources) error {
+	chartMeta := out.HelmChart
+	chart := NewChart(chartMeta, resources.Clusters)
+	chartDir := filepath.Join(env.WorkDir, "charts", chartMeta.Name)
+
+	if err := os.MkdirAll(chartDir, dirPerm); err != nil {
+		return fmt.Errorf("unable to create %v: %w", chartDir, err)
+	}
+
+	for id, byCluster := range resources.Resources {
+		if err := chart.Add(id, byCluster); err != nil {
+			return fmt.Errorf("unable to add resources to the chart: %w", err)
+		}
+	}
+
+	diskFs := filesys.MakeFsOnDisk()
+	if err := chart.Store(diskFs, chartDir); err != nil {
+		return fmt.Errorf("unable to store the chart: %w", err)
+	}
+
+	return out.storeChartOverlays(env, resources, chart, chartDir)
+}
 
 type chartValues map[string]*yaml.Node
 

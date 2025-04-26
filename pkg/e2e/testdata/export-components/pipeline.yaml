@@ -24,3 +24,5 @@ filters:
   resources:
   - kind: CronJob
     name: infra-canary
+output:
+  kind: KustomizeComponents

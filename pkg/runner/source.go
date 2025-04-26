@@ -1,7 +1,6 @@
 package runner
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/Mirantis/rekustomize/pkg/source"
@@ -11,8 +10,6 @@ import (
 type Source struct {
 	source.Impl
 }
-
-var errUnsupportedSource = errors.New("unsupported source")
 
 func (src *Source) UnmarshalYAML(node *yaml.Node) error {
 	meta := &yaml.TypeMeta{}
@@ -34,6 +31,6 @@ func (src *Source) UnmarshalYAML(node *yaml.Node) error {
 
 		return node.Decode(impl) //nolint:wrapcheck
 	default:
-		return fmt.Errorf("%w: %s", errUnsupportedSource, meta.Kind)
+		return fmt.Errorf("%w: %s", errUnsupportedKind, meta.Kind)
 	}
 }

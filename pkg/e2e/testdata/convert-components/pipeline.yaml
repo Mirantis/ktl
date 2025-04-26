@@ -22,3 +22,5 @@ filters:
     labelSelector: "generated-by"
   - kind: CronJob
     name: infra-canary
+output:
+  kind: KustomizeComponents

@@ -18,11 +18,11 @@ import (
 
 var (
 	//go:embed testdata/import/*
-	//go:embed testdata/convert-h2c/pipeline.yaml
-	inputConvertH2C embed.FS
+	//go:embed testdata/convert-components/pipeline.yaml
+	inputConvertComponents embed.FS
 
-	//go:embed testdata/convert-h2c/*
-	wantConvertH2C embed.FS
+	//go:embed testdata/convert-components/*
+	wantConvertComponents embed.FS
 
 	//go:embed testdata/export-components/pipeline.yaml
 	inputExportComponents embed.FS
@@ -126,9 +126,9 @@ func TestE2E(t *testing.T) {
 			input: inputExportComponents,
 			want:  wantExportComponents,
 		},
-		"convert-h2c": {
-			input: inputConvertH2C,
-			want:  wantConvertH2C,
+		"convert-components": {
+			input: inputConvertComponents,
+			want:  wantConvertComponents,
 		},
 	}
 

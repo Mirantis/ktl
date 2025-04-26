@@ -17,6 +17,57 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
+type ComponentsOutput struct{}
+
+func (out *ComponentsOutput) storeComponentsOverlays(env *types.Env, resources *types.ClusterResources, comps *Components, compsDir string) error {
+	for clusterID, cluster := range resources.Clusters.All() {
+		fileStore := resource.FileStore{
+			Dir:        filepath.Join(env.WorkDir, "overlays", cluster.Name),
+			FileSystem: env.FileSys,
+		}
+		kust := &types.Kustomization{}
+		kust.Kind = types.KustomizationKind
+
+		compNames, err := comps.Cluster(clusterID)
+		if err != nil {
+			panic(err)
+		}
+
+		for _, compName := range compNames {
+			relPath, err := filepath.Rel(fileStore.Dir, filepath.Join(compsDir, compName))
+			if err != nil {
+				panic(err)
+			}
+
+			kust.Components = append(kust.Components, relPath)
+		}
+
+		if err := fileStore.WriteKustomization(kust); err != nil {
+			return fmt.Errorf("unable to store kustomization: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (out *ComponentsOutput) Store(env *types.Env, resources *types.ClusterResources) error {
+	comps := NewComponents(resources.Clusters)
+	compsDir := filepath.Join(env.WorkDir, "components")
+
+	for id, byCluster := range resources.Resources {
+		if err := comps.Add(id, byCluster); err != nil {
+			return fmt.Errorf("unable to add resources to the component: %w", err)
+		}
+	}
+
+	diskFs := filesys.MakeFsOnDisk()
+	if err := comps.Store(diskFs, compsDir); err != nil {
+		return fmt.Errorf("unable to store components: %w", err)
+	}
+
+	return out.storeComponentsOverlays(env, resources, comps, compsDir)
+}
+
 type component struct {
 	name      string
 	resources map[resid.ResId]*yaml.RNode

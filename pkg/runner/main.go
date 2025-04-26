@@ -2,6 +2,7 @@ package runner
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
 
 	"github.com/Mirantis/rekustomize/pkg/types"
@@ -13,8 +14,12 @@ import (
 
 const DefaultFileName = "rekustomization.yaml"
 
-//go:embed defaults.yaml
-var defaultsYaml []byte
+var (
+	//go:embed defaults.yaml
+	defaultsYaml []byte
+
+	errUnsupportedKind = errors.New("unsupported source")
+)
 
 type Pipeline struct {
 	Source Source `yaml:"source"`
@@ -45,9 +50,6 @@ func (cfg *Pipeline) UnmarshalYAML(node *yaml.Node) error {
 }
 
 func (cfg *Pipeline) Run(env *types.Env) error {
-	cfg.Output.FileSys = env.FileSys
-	cfg.Output.WorkDir = env.WorkDir
-
 	filters := []kio.Filter{}
 
 	for i := range cfg.Filters {
@@ -95,5 +97,5 @@ func (cfg *Pipeline) Run(env *types.Env) error {
 		Resources: ridx,
 	}
 
-	return cfg.Output.Store(cres)
+	return cfg.Output.Store(env, cres)
 }
