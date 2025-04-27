@@ -23,11 +23,10 @@ type kustomizePkg struct {
 	paths map[types.ClusterID]string
 }
 
-const clusterPlaceholder = `${CLUSTER}`
 
 var (
-	errPlaceholderMissing   = errors.New("missing " + clusterPlaceholder)
-	errMultiplePlaceholders = errors.New("multiple " + clusterPlaceholder)
+	errPlaceholderMissing   = errors.New("missing " + types.ClusterPlaceholder)
+	errMultiplePlaceholders = errors.New("multiple " + types.ClusterPlaceholder)
 	errResSelUnsupported    = errors.New("resource selectors not supported")
 )
 
@@ -46,7 +45,7 @@ func (kust *Kustomize) packages(env *types.Env) (*kustomizePkg, error) {
 		path = filepath.Clean(filepath.Join(env.WorkDir, path))
 	}
 
-	pathParts := strings.Split(path, clusterPlaceholder)
+	pathParts := strings.Split(path, types.ClusterPlaceholder)
 
 	switch {
 	case len(pathParts) == 1 && len(kust.Clusters) == 0:

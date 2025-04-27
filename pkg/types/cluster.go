@@ -20,6 +20,8 @@ var (
 	errIndexInvalidID = errors.New("invalid cluster ID")
 )
 
+const ClusterPlaceholder = `${CLUSTER}`
+
 type Cluster struct {
 	Name string
 	Tags []string

@@ -24,6 +24,13 @@ var (
 	//go:embed testdata/convert-components/*
 	wantConvertComponents embed.FS
 
+	//go:embed testdata/import/*
+	//go:embed testdata/convert-csv/pipeline.yaml
+	inputConvertCSV embed.FS
+
+	//go:embed testdata/convert-csv/*
+	wantConvertCSV embed.FS
+
 	//go:embed testdata/export-components/pipeline.yaml
 	inputExportComponents embed.FS
 
@@ -129,6 +136,10 @@ func TestE2E(t *testing.T) {
 		"convert-components": {
 			input: inputConvertComponents,
 			want:  wantConvertComponents,
+		},
+		"convert-csv": {
+			input: inputConvertCSV,
+			want:  wantConvertCSV,
 		},
 	}
 

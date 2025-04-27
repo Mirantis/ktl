@@ -1,0 +1,34 @@
+
+source:
+  kind: Kustomize
+  kustomization: "../import/${CLUSTER}"
+  clusters:
+  - names: dev-*
+    tags: dev
+  - names: test-cluster-a,test-cluster-b
+    tags: test
+  - names:
+    - prod-cluster-a
+    - prod-cluster-b
+    tags: prod
+filters:
+- kind: SkipFilter
+  resources:
+  - kind: Node
+  - kind: ConfigMap
+    labelSelector: "generated-by"
+  - kind: CronJob
+    name: infra-canary
+output:
+  kind: CSV
+  path: output.csv
+  columns:
+  - name: CLUSTER
+    text: "${CLUSTER}"
+  - name: KIND
+    field: kind
+  - name: NAMESPACE
+    field: metadata.namespace
+  - name: NAME
+    field: metadata.name
+
