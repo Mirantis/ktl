@@ -19,8 +19,8 @@ filters:
   - kind: CronJob
     name: infra-canary
 output:
-  kind: CSV
-  path: output.csv
+  kind: Table
+  path: output.txt
   columns:
   - name: CLUSTER
     text: "${CLUSTER}"

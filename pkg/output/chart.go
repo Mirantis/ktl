@@ -428,5 +428,7 @@ func fixComments(node *yaml.Node) {
 		fixMappingNode(node)
 	case yaml.SequenceNode:
 		fixSequenceNode(node)
+	default:
+		return
 	}
 }
