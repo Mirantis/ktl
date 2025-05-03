@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"context"
 	"os"
 	"testing"
 	"time"
@@ -29,7 +28,7 @@ func K8sServer(t *testing.T) string {
 
 	const targetPort = "8080"
 
-	ctx := context.Background()
+	ctx := t.Context()
 	req := tc.ContainerRequest{
 		Image:        kwokImage,
 		ExposedPorts: []string{targetPort + "/tcp"},

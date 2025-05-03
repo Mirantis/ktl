@@ -423,7 +423,6 @@ func fixComments(node *yaml.Node) {
 		return
 	}
 
-	//nolint:exhaust
 	switch node.Kind {
 	case yaml.MappingNode:
 		fixMappingNode(node)

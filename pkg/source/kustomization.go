@@ -23,7 +23,6 @@ type kustomizePkg struct {
 	paths map[types.ClusterID]string
 }
 
-
 var (
 	errPlaceholderMissing   = errors.New("missing " + types.ClusterPlaceholder)
 	errMultiplePlaceholders = errors.New("multiple " + types.ClusterPlaceholder)

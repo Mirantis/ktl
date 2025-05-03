@@ -82,7 +82,6 @@ func (out *CSVOutput) rows(resources *types.ClusterResources) [][]string {
 	}
 
 	slices.SortFunc(rows[1:], func(rowa, rowb []string) int {
-
 		return slices.CompareFunc(rowa, rowb, strings.Compare)
 	})
 
