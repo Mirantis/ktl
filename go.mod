@@ -9,6 +9,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/spf13/cobra v1.9.1
 	github.com/testcontainers/testcontainers-go v0.33.0
+	go.starlark.net v0.0.0-20250417143717-f57e51f710eb
 	golang.org/x/sync v0.13.0
 	k8s.io/apimachinery v0.33.0
 	k8s.io/cli-runtime v0.33.0

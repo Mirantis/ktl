@@ -34,6 +34,24 @@ func (p NodePath) String() string {
 	return strings.Join(escaped, ".")
 }
 
+func (p NodePath) IsLookup() bool {
+	for _, part := range p {
+		if yaml.IsWildcard(part) {
+			return true
+		}
+
+		if !yaml.IsListIndex(part) {
+			continue
+		}
+
+		if strings.Contains(part, "=") {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (p *NodePath) UnmarshalYAML(node *yaml.Node) error {
 	if node == nil {
 		*p = nil
