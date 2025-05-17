@@ -3,7 +3,7 @@ package runner
 import (
 	"fmt"
 
-	"github.com/Mirantis/rekustomize/pkg/source"
+	"github.com/Mirantis/ktl/pkg/source"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 

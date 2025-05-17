@@ -3,7 +3,7 @@ package types_test
 import (
 	"testing"
 
-	"github.com/Mirantis/rekustomize/pkg/types"
+	"github.com/Mirantis/ktl/pkg/types"
 )
 
 func TestClusterIndexGroup(t *testing.T) {

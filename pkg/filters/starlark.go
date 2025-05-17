@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/Mirantis/rekustomize/pkg/types"
+	"github.com/Mirantis/ktl/pkg/types"
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
 	"sigs.k8s.io/kustomize/kyaml/yaml"

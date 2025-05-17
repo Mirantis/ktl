@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Mirantis/rekustomize/pkg/filters"
+	"github.com/Mirantis/ktl/pkg/filters"
 	"github.com/google/go-cmp/cmp"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )

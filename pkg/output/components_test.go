@@ -4,9 +4,9 @@ import (
 	"embed"
 	"testing"
 
-	"github.com/Mirantis/rekustomize/pkg/e2e"
-	"github.com/Mirantis/rekustomize/pkg/output"
-	"github.com/Mirantis/rekustomize/pkg/types"
+	"github.com/Mirantis/ktl/pkg/e2e"
+	"github.com/Mirantis/ktl/pkg/output"
+	"github.com/Mirantis/ktl/pkg/types"
 	"github.com/google/go-cmp/cmp"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/resid"

@@ -1,4 +1,4 @@
-module github.com/Mirantis/rekustomize
+module github.com/Mirantis/ktl
 
 go 1.24.0
 

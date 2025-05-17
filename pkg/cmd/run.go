@@ -5,11 +5,11 @@ import (
 	"os"
 	"path/filepath"
 
-	_ "github.com/Mirantis/rekustomize/pkg/filters" // register filters
-	"github.com/Mirantis/rekustomize/pkg/fsutil"
-	"github.com/Mirantis/rekustomize/pkg/kubectl"
-	"github.com/Mirantis/rekustomize/pkg/runner"
-	"github.com/Mirantis/rekustomize/pkg/types"
+	_ "github.com/Mirantis/ktl/pkg/filters" // register filters
+	"github.com/Mirantis/ktl/pkg/fsutil"
+	"github.com/Mirantis/ktl/pkg/kubectl"
+	"github.com/Mirantis/ktl/pkg/runner"
+	"github.com/Mirantis/ktl/pkg/types"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/yaml"

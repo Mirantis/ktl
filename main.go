@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/Mirantis/rekustomize/pkg/cmd"
+	"github.com/Mirantis/ktl/pkg/cmd"
 )
 
 func main() {

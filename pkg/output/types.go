@@ -3,7 +3,7 @@ package output
 import (
 	"errors"
 
-	"github.com/Mirantis/rekustomize/pkg/types"
+	"github.com/Mirantis/ktl/pkg/types"
 )
 
 const (

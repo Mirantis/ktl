@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/Mirantis/rekustomize/pkg/types"
+	"github.com/Mirantis/ktl/pkg/types"
 	"k8s.io/cli-runtime/pkg/printers"
 )
 

@@ -3,13 +3,13 @@ package filters
 import (
 	"fmt"
 
-	"github.com/Mirantis/rekustomize/pkg/types"
+	"github.com/Mirantis/ktl/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/filters"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-const skipAnnotation = "x-rekustomize-skip"
+const skipAnnotation = "x-ktl-skip"
 
 //nolint:gochecknoinits
 func init() {

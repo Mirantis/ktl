@@ -11,9 +11,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/Mirantis/rekustomize/pkg/fsutil"
-	"github.com/Mirantis/rekustomize/pkg/resource"
-	"github.com/Mirantis/rekustomize/pkg/types"
+	"github.com/Mirantis/ktl/pkg/fsutil"
+	"github.com/Mirantis/ktl/pkg/resource"
+	"github.com/Mirantis/ktl/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/openapi"

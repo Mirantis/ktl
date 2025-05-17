@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Mirantis/rekustomize/pkg/cmd"
-	"github.com/Mirantis/rekustomize/pkg/e2e"
-	"github.com/Mirantis/rekustomize/pkg/kubectl"
+	"github.com/Mirantis/ktl/pkg/cmd"
+	"github.com/Mirantis/ktl/pkg/e2e"
+	"github.com/Mirantis/ktl/pkg/kubectl"
 	"github.com/google/go-cmp/cmp"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 )

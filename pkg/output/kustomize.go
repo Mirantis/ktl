@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/Mirantis/rekustomize/pkg/resource"
-	"github.com/Mirantis/rekustomize/pkg/types"
+	"github.com/Mirantis/ktl/pkg/resource"
+	"github.com/Mirantis/ktl/pkg/types"
 )
 
 type KustomizeOutput struct{}

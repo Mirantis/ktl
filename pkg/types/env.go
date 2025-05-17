@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/Mirantis/rekustomize/pkg/kubectl"
+	"github.com/Mirantis/ktl/pkg/kubectl"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 )
 

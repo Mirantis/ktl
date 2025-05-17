@@ -1,6 +1,6 @@
 package source
 
-import "github.com/Mirantis/rekustomize/pkg/types"
+import "github.com/Mirantis/ktl/pkg/types"
 
 //nolint:gochecknoglobals
 var defaultResourceSelector = types.ResourceSelector{

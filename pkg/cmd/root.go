@@ -4,7 +4,7 @@ import "github.com/spf13/cobra"
 
 func NewRootCommand() *cobra.Command {
 	root := &cobra.Command{
-		Use: "rekustomize",
+		Use: "ktl",
 	}
 	root.AddCommand(newRunCommand())
 

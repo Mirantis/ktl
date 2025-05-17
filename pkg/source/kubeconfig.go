@@ -6,8 +6,8 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/Mirantis/rekustomize/pkg/kubectl"
-	"github.com/Mirantis/rekustomize/pkg/types"
+	"github.com/Mirantis/ktl/pkg/kubectl"
+	"github.com/Mirantis/ktl/pkg/types"
 	"golang.org/x/sync/errgroup"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/resid"

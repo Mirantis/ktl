@@ -9,9 +9,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Mirantis/rekustomize/pkg/fsutil"
-	"github.com/Mirantis/rekustomize/pkg/resource"
-	"github.com/Mirantis/rekustomize/pkg/types"
+	"github.com/Mirantis/ktl/pkg/fsutil"
+	"github.com/Mirantis/ktl/pkg/resource"
+	"github.com/Mirantis/ktl/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/openapi"
 	"sigs.k8s.io/kustomize/kyaml/resid"
