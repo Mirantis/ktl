@@ -3,6 +3,7 @@ package filters
 import (
 	"fmt"
 
+	"github.com/Mirantis/ktl/pkg/resource"
 	"github.com/Mirantis/ktl/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/filters"
@@ -20,7 +21,7 @@ type SkipFilter struct {
 	Kind      string            `yaml:"kind"`
 	Resources []*types.Selector `yaml:"resources"`
 	Except    []*types.Selector `yaml:"except"`
-	Fields    []types.NodePath  `yaml:"fields"`
+	Fields    []resource.Query  `yaml:"fields"`
 }
 
 func (filter *SkipFilter) Filter(input []*yaml.RNode) ([]*yaml.RNode, error) {

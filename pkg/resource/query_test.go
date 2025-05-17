@@ -1,16 +1,16 @@
-package types_test
+package resource_test
 
 import (
 	"testing"
 
-	"github.com/Mirantis/ktl/pkg/types"
+	"github.com/Mirantis/ktl/pkg/resource"
 	"github.com/google/go-cmp/cmp"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 func TestNodePathString(t *testing.T) {
 	tests := map[string]struct {
-		input types.NodePath
+		input resource.Query
 		want  string
 	}{
 		`nil`: {
@@ -18,23 +18,23 @@ func TestNodePathString(t *testing.T) {
 			"",
 		},
 		`empty`: {
-			types.NodePath{},
+			resource.Query{},
 			"",
 		},
 		`simple`: {
-			types.NodePath{"a", "b", "c"},
+			resource.Query{"a", "b", "c"},
 			"a.b.c",
 		},
 		`escaped`: {
-			types.NodePath{"a.b", "c"},
+			resource.Query{"a.b", "c"},
 			"[a.b].c",
 		},
 		`filter`: {
-			types.NodePath{"[a=b]", "c"},
+			resource.Query{"[a=b]", "c"},
 			"[a=b].c",
 		},
 		`filter-with-dot`: {
-			types.NodePath{"[a=b.1]", "c"},
+			resource.Query{"[a=b.1]", "c"},
 			"[a=b.1].c",
 		},
 	}
@@ -52,34 +52,34 @@ func TestNodePathUnmarshalYAML(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
-		Got     types.NodePath `yaml:"got"`
-		want    types.NodePath
+		Got     resource.Query `yaml:"got"`
+		want    resource.Query
 		wantErr bool
 	}{
 		{
 			name:  "list",
 			input: `got: [ a, b, c ]`,
-			want:  types.NodePath{"a", "b", "c"},
+			want:  resource.Query{"a", "b", "c"},
 		},
 		{
 			name:  "text",
 			input: `got: a.b.c`,
-			want:  types.NodePath{"a", "b", "c"},
+			want:  resource.Query{"a", "b", "c"},
 		},
 		{
 			name:  "condition",
 			input: `got: a.[b=1].c`,
-			want:  types.NodePath{"a", "[b=1]", "c"},
+			want:  resource.Query{"a", "[b=1]", "c"},
 		},
 		{
 			name:  "glob",
 			input: `got: a.*.b`,
-			want:  types.NodePath{"a", "*", "b"},
+			want:  resource.Query{"a", "*", "b"},
 		},
 		{
 			name:  "mixed",
 			input: `got: a[b=1].*.[c=2]d`,
-			want:  types.NodePath{"a[b=1]", "*", "[c=2]d"},
+			want:  resource.Query{"a[b=1]", "*", "[c=2]d"},
 		},
 	}
 	for _, test := range tests {
@@ -107,44 +107,44 @@ func TestNodePathUnmarshalYAML(t *testing.T) {
 func TestNodePathNormalize(t *testing.T) {
 	tests := []struct {
 		name  string
-		input types.NodePath
-		wantP types.NodePath
+		input resource.Query
+		wantP resource.Query
 		wantC []string
 		wantE bool
 	}{
 		{
 			name:  "no-conditions",
-			input: types.NodePath{"a", "b", "c"},
-			wantP: types.NodePath{"a", "b", "c"},
+			input: resource.Query{"a", "b", "c"},
+			wantP: resource.Query{"a", "b", "c"},
 			wantC: []string{"", "", ""},
 		},
 		{
 			name:  "prefix-only",
-			input: types.NodePath{"[a=1]b", "*", "[c=2]d"},
-			wantP: types.NodePath{"b", "*", "d"},
+			input: resource.Query{"[a=1]b", "*", "[c=2]d"},
+			wantP: resource.Query{"b", "*", "d"},
 			wantC: []string{"[a=1]", "", "[c=2]"},
 		},
 		{
 			name:  "glob",
-			input: types.NodePath{"a", "[b=1]", "c"},
-			wantP: types.NodePath{"a", "*", "c"},
+			input: resource.Query{"a", "[b=1]", "c"},
+			wantP: resource.Query{"a", "*", "c"},
 			wantC: []string{"", "", "[b=1]"},
 		},
 		{
 			name:  "overflow",
-			input: types.NodePath{"a", "b[c=1,d=2]"},
-			wantP: types.NodePath{"a", "b", "c"},
+			input: resource.Query{"a", "b[c=1,d=2]"},
+			wantP: resource.Query{"a", "b", "c"},
 			wantC: []string{"", "", "[c=1,d=2]"},
 		},
 		{
 			name:  "merge",
-			input: types.NodePath{"a[b=1]", "[c=2]d"},
-			wantP: types.NodePath{"a", "d"},
+			input: resource.Query{"a[b=1]", "[c=2]d"},
+			wantP: resource.Query{"a", "d"},
 			wantC: []string{"", "[b=1,c=2]"},
 		},
 		{
 			name:  "error",
-			input: types.NodePath{"a[b=1]", "[c=2]", "d"},
+			input: resource.Query{"a[b=1]", "[c=2]", "d"},
 			wantE: true,
 		},
 	}

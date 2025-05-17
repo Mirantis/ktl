@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/Mirantis/ktl/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 type Builder struct {
-	path  types.NodePath
+	path  Query
 	nodes []*yaml.RNode
 
 	Hit, Miss int
@@ -37,7 +36,7 @@ func (b *Builder) RNode() *yaml.RNode {
 	return b.nodes[0]
 }
 
-func (b *Builder) skipCommon(path types.NodePath) (*yaml.RNode, types.NodePath) {
+func (b *Builder) skipCommon(path Query) (*yaml.RNode, Query) {
 	common := 0
 
 	for i := range min(len(path), len(b.path)) {
@@ -65,7 +64,7 @@ func (b *Builder) skipCommon(path types.NodePath) (*yaml.RNode, types.NodePath) 
 	return b.nodes[common], path[common:]
 }
 
-func (b *Builder) Add(path types.NodePath, kind yaml.Kind) (*yaml.RNode, error) {
+func (b *Builder) Add(path Query, kind yaml.Kind) (*yaml.RNode, error) {
 	root, sub := b.skipCommon(path)
 
 	resNode, err := root.Pipe(yaml.LookupCreate(kind, sub...))
@@ -78,7 +77,7 @@ func (b *Builder) Add(path types.NodePath, kind yaml.Kind) (*yaml.RNode, error) 
 	return resNode, nil
 }
 
-func (b *Builder) Set(path types.NodePath, node *yaml.Node) (*yaml.RNode, error) {
+func (b *Builder) Set(path Query, node *yaml.Node) (*yaml.RNode, error) {
 	resNode, err := b.Add(path, node.Kind)
 	if err != nil {
 		return nil, err

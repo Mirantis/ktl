@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/Mirantis/ktl/pkg/filters"
-	"github.com/Mirantis/ktl/pkg/types"
+	"github.com/Mirantis/ktl/pkg/resource"
 	"github.com/google/go-cmp/cmp"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -15,14 +15,14 @@ func TestClearAll(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		path    types.NodePath
+		path    resource.Query
 		input   string
 		want    string
 		wantErr bool
 	}{
 		{
 			name: "no-conditions",
-			path: types.NodePath{"a", "b"},
+			path: resource.Query{"a", "b"},
 			input: `a:
   b: 1
   c: 2
@@ -33,7 +33,7 @@ func TestClearAll(t *testing.T) {
 		},
 		{
 			name: "tail-condition",
-			path: types.NodePath{"a", "b[=1]"},
+			path: resource.Query{"a", "b[=1]"},
 			input: `a:
   b: 1
   c: 2
@@ -44,7 +44,7 @@ func TestClearAll(t *testing.T) {
 		},
 		{
 			name: "tail-condition-no-match",
-			path: types.NodePath{"a", "b[=0]"},
+			path: resource.Query{"a", "b[=0]"},
 			input: `a:
   b: 1
   c: 2
@@ -56,7 +56,7 @@ func TestClearAll(t *testing.T) {
 		},
 		{
 			name: "tail-condition-no-match",
-			path: types.NodePath{"a", "b[=0]"},
+			path: resource.Query{"a", "b[=0]"},
 			input: `a:
   b: 1
   c: 2
@@ -68,7 +68,7 @@ func TestClearAll(t *testing.T) {
 		},
 		{
 			name: "list",
-			path: types.NodePath{"a", "b[=[\"ABcD\"]]"},
+			path: resource.Query{"a", "b[=[\"ABcD\"]]"},
 			input: `a:
   b: [ "ABcD" ]
   c: 2

@@ -250,7 +250,7 @@ func (chart *Chart) Instances(clusters ...types.ClusterID) []types.HelmChart {
 	return helmCharts
 }
 
-func variableName(id resid.ResId, path types.NodePath) string {
+func variableName(id resid.ResId, path resource.Query) string {
 	name := fmt.Sprintf("%s/%s/%s.%s", id.Namespace, id.Kind, id.Name, path)
 	name = strings.TrimPrefix(name, "/")
 	name = strings.TrimSuffix(name, ".")

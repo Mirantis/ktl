@@ -48,7 +48,7 @@ func (it *Iterator) Error() error {
 	return it.err
 }
 
-func (it *Iterator) Path() types.NodePath {
+func (it *Iterator) Path() Query {
 	return it.current.path
 }
 
@@ -108,7 +108,7 @@ func (it *Iterator) Next() bool {
 
 type iteratorState struct {
 	schema  *openapi.ResourceSchema
-	path    types.NodePath
+	path    Query
 	values  []*yaml.Node
 	indices []int
 	kind    yaml.Kind

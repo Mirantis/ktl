@@ -9,13 +9,14 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/Mirantis/ktl/pkg/resource"
 	"github.com/Mirantis/ktl/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 type ValueRef struct {
 	Name  string         `yaml:"name"`
-	Field types.NodePath `yaml:"field"`
+	Field resource.Query `yaml:"field"`
 	Text  string         `yaml:"text"`
 }
 

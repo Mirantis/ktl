@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Mirantis/ktl/pkg/types"
+	"github.com/Mirantis/ktl/pkg/resource"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -33,7 +33,7 @@ func makeFieldMatcher(field, value string) *yaml.FilterMatcher {
 	return filterMatcher
 }
 
-func ClearAll(p types.NodePath) (*yaml.TeePiper, error) {
+func ClearAll(p resource.Query) (*yaml.TeePiper, error) {
 	path, cond, err := p.Normalize()
 	if err != nil {
 		return nil, fmt.Errorf("invalid path %s: %w", p, err)

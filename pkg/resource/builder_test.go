@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/Mirantis/ktl/pkg/resource"
-	"github.com/Mirantis/ktl/pkg/types"
 	"github.com/google/go-cmp/cmp"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -12,18 +11,18 @@ import (
 func TestBuilder(t *testing.T) {
 	// REVISIT: split for more robust hit/miss testing
 	items := []struct {
-		path  types.NodePath
+		path  resource.Query
 		kind  yaml.Kind
 		value *yaml.Node
 	}{
-		{types.NodePath{"a"}, 0, yaml.NewMapRNode(nil).YNode()},
-		{types.NodePath{"a", "b"}, 0, yaml.NewStringRNode("v1").YNode()},
-		{types.NodePath{"x", "y", "z"}, yaml.SequenceNode, nil},
-		{types.NodePath{"x", "y", "z", "[name=u]"}, yaml.MappingNode, nil},
-		{types.NodePath{"x", "y", "z", "[name=u]", "v"}, 0, yaml.NewStringRNode("v2").YNode()},
-		{types.NodePath{"x", "y", "z", "[name=w]"}, yaml.MappingNode, nil},
-		{types.NodePath{"x", "y", "z", "[name=w]", "v"}, 0, yaml.NewStringRNode("v3").YNode()},
-		{types.NodePath{"x", "l"}, 0, yaml.NewStringRNode("out-of-order").YNode()},
+		{resource.Query{"a"}, 0, yaml.NewMapRNode(nil).YNode()},
+		{resource.Query{"a", "b"}, 0, yaml.NewStringRNode("v1").YNode()},
+		{resource.Query{"x", "y", "z"}, yaml.SequenceNode, nil},
+		{resource.Query{"x", "y", "z", "[name=u]"}, yaml.MappingNode, nil},
+		{resource.Query{"x", "y", "z", "[name=u]", "v"}, 0, yaml.NewStringRNode("v2").YNode()},
+		{resource.Query{"x", "y", "z", "[name=w]"}, yaml.MappingNode, nil},
+		{resource.Query{"x", "y", "z", "[name=w]", "v"}, 0, yaml.NewStringRNode("v3").YNode()},
+		{resource.Query{"x", "l"}, 0, yaml.NewStringRNode("out-of-order").YNode()},
 	}
 
 	builder := resource.NewNodeBuilder(yaml.NewMapRNode(nil))

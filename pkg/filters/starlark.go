@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/Mirantis/ktl/pkg/types"
+	"github.com/Mirantis/ktl/pkg/resource"
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
@@ -132,7 +132,7 @@ type sNodeMapping struct {
 	*sNode
 }
 
-func (node *sNodeMapping) match(path types.NodePath, create yaml.Kind) (*yaml.RNode, error) {
+func (node *sNodeMapping) match(path resource.Query, create yaml.Kind) (*yaml.RNode, error) {
 	matcher := &yaml.PathMatcher{
 		Path:   path,
 		Create: create,
@@ -142,7 +142,7 @@ func (node *sNodeMapping) match(path types.NodePath, create yaml.Kind) (*yaml.RN
 }
 
 func (node *sNodeMapping) Get(key starlark.Value) (starlark.Value, bool, error) {
-	path, err := slToPath(key)
+	path, err := slToQuery(key)
 	if err != nil {
 		return nil, false, err
 	}
@@ -226,8 +226,8 @@ func (node *sNodeMapping) SetField(name string, value starlark.Value) error {
 	return node.PipeE(yaml.SetField(name, rnode))
 }
 
-func slToPath(key starlark.Value) (types.NodePath, error) {
-	var path types.NodePath
+func slToQuery(key starlark.Value) (resource.Query, error) {
+	var path resource.Query
 
 	keyBytes := []byte(key.String())
 	if err := yaml.Unmarshal(keyBytes, &path); err != nil {

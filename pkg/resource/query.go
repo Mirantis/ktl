@@ -1,4 +1,4 @@
-package types
+package resource
 
 import (
 	"errors"
@@ -12,11 +12,11 @@ import (
 
 var errNodePathInvalid = errors.New("invalid node path")
 
-// NodePath represents YAML node path.
-type NodePath []string //nolint:recvcheck
+// Query represents YAML node path.
+type Query []string //nolint:recvcheck
 
 // String returns a text representation of the path.
-func (p NodePath) String() string {
+func (p Query) String() string {
 	if len(p) == 0 {
 		return ""
 	}
@@ -34,7 +34,7 @@ func (p NodePath) String() string {
 	return strings.Join(escaped, ".")
 }
 
-func (p NodePath) IsLookup() bool {
+func (p Query) IsLookup() bool {
 	for _, part := range p {
 		if yaml.IsWildcard(part) {
 			return true
@@ -52,7 +52,7 @@ func (p NodePath) IsLookup() bool {
 	return false
 }
 
-func (p *NodePath) UnmarshalYAML(node *yaml.Node) error {
+func (p *Query) UnmarshalYAML(node *yaml.Node) error {
 	if node == nil {
 		*p = nil
 
@@ -71,7 +71,7 @@ func (p *NodePath) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
-func (p *NodePath) unmarshalScalar(node *yaml.Node) error {
+func (p *Query) unmarshalScalar(node *yaml.Node) error {
 	var path string
 	if err := node.Decode(&path); err != nil {
 		return fmt.Errorf("invalid node path: %w", err)
@@ -124,7 +124,7 @@ func mergeConditions(left, right string) string {
 	return strings.TrimSuffix(left, "]") + "," + strings.TrimPrefix(right, "[")
 }
 
-func (p NodePath) Normalize() (NodePath, []string, error) {
+func (p Query) Normalize() (Query, []string, error) {
 	path := slices.Clone(p)
 	conditions := make([]string, len(path))
 
