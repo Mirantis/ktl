@@ -38,14 +38,14 @@ func TestComponents(t *testing.T) {
 	}
 
 	gotFs := filesys.MakeFsInMemory()
-	if err := comps.Store(gotFs, "/"); err != nil {
+	if err := comps.Store(gotFs); err != nil {
 		t.Fatal(err)
 	}
 
-	got := e2e.ReadFiles(t, gotFs, "/")
+	got := e2e.ReadFiles(t, gotFs, ".")
 	want := e2e.ReadFsFiles(t, compFs, "testdata/components")
 
 	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("chart mismatch, +got -want:\n%s", diff)
+		t.Errorf("components mismatch, +got -want:\n%s", diff)
 	}
 }

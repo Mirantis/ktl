@@ -7,11 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"maps"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 
+	"github.com/Mirantis/rekustomize/pkg/fsutil"
 	"github.com/Mirantis/rekustomize/pkg/resource"
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -36,14 +36,14 @@ type ChartOutput struct {
 //nolint:lll
 func (out *ChartOutput) storeChartOverlays(env *types.Env, resources *types.ClusterResources, chart *Chart, chartDir string) error {
 	for clusterID, cluster := range resources.Clusters.All() {
+		overlayDir := filepath.Join("overlays", cluster.Name)
 		fileStore := resource.FileStore{
-			Dir:        filepath.Join(env.WorkDir, "overlays", cluster.Name),
-			FileSystem: filesys.FileSystemOrOnDisk{FileSystem: filesys.MakeFsOnDisk()},
+			FileSystem: fsutil.Sub(env.FileSys, overlayDir),
 		}
 		kust := &types.Kustomization{}
 		kust.Kind = types.KustomizationKind
 
-		chartHome, err := filepath.Rel(fileStore.Dir, filepath.Dir(chartDir))
+		chartHome, err := filepath.Rel(overlayDir, filepath.Dir(chartDir))
 		if err != nil {
 			return fmt.Errorf("invalid path: %w", err)
 		}
@@ -64,10 +64,11 @@ func (out *ChartOutput) storeChartOverlays(env *types.Env, resources *types.Clus
 func (out *ChartOutput) Store(env *types.Env, resources *types.ClusterResources) error {
 	chartMeta := out.HelmChart
 	chart := NewChart(chartMeta, resources.Clusters)
-	chartDir := filepath.Join(env.WorkDir, "charts", chartMeta.Name)
+	chartDir := filepath.Join("charts", chartMeta.Name)
+	chartFS := fsutil.Sub(env.FileSys, chartDir)
 
-	if err := os.MkdirAll(chartDir, dirPerm); err != nil {
-		return fmt.Errorf("unable to create %v: %w", chartDir, err)
+	if err := chartFS.MkdirAll("."); err != nil {
+		return fmt.Errorf("unable to create charts dir: %w", err)
 	}
 
 	for id, byCluster := range resources.Resources {
@@ -76,8 +77,7 @@ func (out *ChartOutput) Store(env *types.Env, resources *types.ClusterResources)
 		}
 	}
 
-	diskFs := filesys.MakeFsOnDisk()
-	if err := chart.Store(diskFs, chartDir); err != nil {
+	if err := chart.Store(chartFS, "."); err != nil {
 		return fmt.Errorf("unable to store the chart: %w", err)
 	}
 
@@ -142,8 +142,7 @@ func (chart *Chart) templateName(id resid.ResId) string {
 func (chart *Chart) storeTemplates(fileSys filesys.FileSystem, dir string) error {
 	templatePrefix := []byte("# HELM" + chart.token + ": ")
 	store := &resource.FileStore{
-		Dir:           filepath.Join(dir, "templates"),
-		FileSystem:    fileSys,
+		FileSystem:    fsutil.Sub(fileSys, filepath.Join(dir, "templates")),
 		NameGenerator: chart.templateName,
 		PostProcessor: func(_ string, body []byte) []byte {
 			return bytes.ReplaceAll(body, templatePrefix, []byte{})
@@ -157,7 +156,7 @@ func (chart *Chart) storeTemplates(fileSys filesys.FileSystem, dir string) error
 		return fmt.Errorf("%s: %w", errMsgTemplates, err)
 	}
 
-	err = fileSys.WriteFile(filepath.Join(store.Dir, "_helpers.tpl"), helpersTpl)
+	err = store.WriteFile("_helpers.tpl", helpersTpl)
 	if err != nil {
 		return fmt.Errorf("%s: %w", errMsgTemplates, err)
 	}

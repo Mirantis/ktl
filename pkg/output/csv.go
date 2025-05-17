@@ -3,6 +3,7 @@ package output
 import (
 	"bytes"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"slices"
@@ -88,10 +89,12 @@ func (out *CSVOutput) rows(resources *types.ClusterResources) [][]string {
 	return rows
 }
 
+var errAbsPath = errors.New("absolute path not supported")
+
 func (out *CSVOutput) Store(env *types.Env, resources *types.ClusterResources) error {
 	path := out.Path
-	if !filepath.IsAbs(path) {
-		path = filepath.Clean(filepath.Join(env.WorkDir, path))
+	if filepath.IsAbs(path) {
+		return fmt.Errorf("invalid csv output path: %w", errAbsPath)
 	}
 
 	buffer := bytes.NewBuffer(nil)

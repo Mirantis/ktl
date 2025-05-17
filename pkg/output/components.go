@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/Mirantis/rekustomize/pkg/fsutil"
 	"github.com/Mirantis/rekustomize/pkg/resource"
 	"github.com/Mirantis/rekustomize/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
@@ -22,9 +23,9 @@ type ComponentsOutput struct{}
 //nolint:lll
 func (out *ComponentsOutput) storeComponentsOverlays(env *types.Env, resources *types.ClusterResources, comps *Components, compsDir string) error {
 	for clusterID, cluster := range resources.Clusters.All() {
+		overlayDir := filepath.Join("overlays", cluster.Name)
 		fileStore := resource.FileStore{
-			Dir:        filepath.Join(env.WorkDir, "overlays", cluster.Name),
-			FileSystem: env.FileSys,
+			FileSystem: fsutil.Sub(env.FileSys, overlayDir),
 		}
 		kust := &types.Kustomization{}
 		kust.Kind = types.KustomizationKind
@@ -35,7 +36,7 @@ func (out *ComponentsOutput) storeComponentsOverlays(env *types.Env, resources *
 		}
 
 		for _, compName := range compNames {
-			relPath, err := filepath.Rel(fileStore.Dir, filepath.Join(compsDir, compName))
+			relPath, err := filepath.Rel(overlayDir, filepath.Join(compsDir, compName))
 			if err != nil {
 				panic(err)
 			}
@@ -52,8 +53,9 @@ func (out *ComponentsOutput) storeComponentsOverlays(env *types.Env, resources *
 }
 
 func (out *ComponentsOutput) Store(env *types.Env, resources *types.ClusterResources) error {
+	const compsDir = "components"
 	comps := NewComponents(resources.Clusters)
-	compsDir := filepath.Join(env.WorkDir, "components")
+	compsFS := fsutil.Sub(env.FileSys, compsDir)
 
 	for id, byCluster := range resources.Resources {
 		if err := comps.Add(id, byCluster); err != nil {
@@ -61,8 +63,7 @@ func (out *ComponentsOutput) Store(env *types.Env, resources *types.ClusterResou
 		}
 	}
 
-	diskFs := filesys.MakeFsOnDisk()
-	if err := comps.Store(diskFs, compsDir); err != nil {
+	if err := comps.Store(compsFS); err != nil {
 		return fmt.Errorf("unable to store components: %w", err)
 	}
 
@@ -76,19 +77,14 @@ type component struct {
 	clusters  []types.ClusterID
 }
 
-func (comp *component) store(fileSys filesys.FileSystem, dir string) error {
+func (comp *component) store(fileSys filesys.FileSystem) error {
 	kust := &types.Kustomization{}
 	kust.Kind = types.ComponentKind
 	resourceStore := &resource.FileStore{
-		Dir:           dir,
 		FileSystem:    fileSys,
 		NameGenerator: resource.FileName,
 		PostProcessor: func(path string, body []byte) []byte {
-			relPath, err := filepath.Rel(dir, path)
-			if err != nil {
-				panic(err)
-			}
-			kust.Resources = append(kust.Resources, relPath)
+			kust.Resources = append(kust.Resources, path)
 
 			return body
 		},
@@ -100,15 +96,10 @@ func (comp *component) store(fileSys filesys.FileSystem, dir string) error {
 
 	patches := []string{}
 	patchStore := &resource.FileStore{
-		Dir:           dir,
 		FileSystem:    fileSys,
 		NameGenerator: resource.FileName,
 		PostProcessor: func(path string, body []byte) []byte {
-			relPath, err := filepath.Rel(dir, path)
-			if err != nil {
-				panic(err)
-			}
-			patches = append(patches, relPath)
+			patches = append(patches, path)
 
 			return body
 		},
@@ -227,9 +218,9 @@ func (comps *Components) Add(resID resid.ResId, resources map[types.ClusterID]*y
 	return nil
 }
 
-func (comps *Components) Store(fileSys filesys.FileSystem, dir string) error {
+func (comps *Components) Store(fileSys filesys.FileSystem) error {
 	for name, comp := range comps.byName {
-		if err := comp.store(fileSys, filepath.Join(dir, name)); err != nil {
+		if err := comp.store(fsutil.Sub(fileSys, name)); err != nil {
 			return fmt.Errorf("unable to store component %s: %w", name, err)
 		}
 	}

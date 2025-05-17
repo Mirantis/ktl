@@ -3,6 +3,7 @@ package output
 import (
 	"bytes"
 	"encoding/csv"
+	"fmt"
 	"path/filepath"
 
 	"github.com/Mirantis/rekustomize/pkg/types"
@@ -15,8 +16,8 @@ type TableOutput struct {
 
 func (out *TableOutput) Store(env *types.Env, resources *types.ClusterResources) error {
 	path := out.Path
-	if !filepath.IsAbs(path) {
-		path = filepath.Clean(filepath.Join(env.WorkDir, path))
+	if filepath.IsAbs(path) {
+		return fmt.Errorf("invalid table output path: %w", errAbsPath)
 	}
 
 	buffer := bytes.NewBuffer(nil)

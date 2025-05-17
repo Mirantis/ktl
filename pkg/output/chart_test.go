@@ -45,11 +45,11 @@ func TestChart(t *testing.T) {
 	}
 
 	gotFs := filesys.MakeFsInMemory()
-	if err := chart.Store(gotFs, "/"); err != nil {
+	if err := chart.Store(gotFs, "."); err != nil {
 		t.Fatal(err)
 	}
 
-	got := e2e.ReadFiles(t, gotFs, "/")
+	got := e2e.ReadFiles(t, gotFs, ".")
 	want := e2e.ReadFsFiles(t, chartFs, "testdata/chart")
 
 	if diff := cmp.Diff(want, got); diff != "" {

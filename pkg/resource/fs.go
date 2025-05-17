@@ -17,7 +17,6 @@ import (
 )
 
 type FileStore struct {
-	Dir string
 	filesys.FileSystem
 	NameGenerator func(resid.ResId) string
 	PostProcessor func(string, []byte) []byte
@@ -27,7 +26,7 @@ func (store *FileStore) WriteAll(nodes iter.Seq2[resid.ResId, *yaml.RNode]) erro
 	buf := &bytes.Buffer{}
 
 	for resID, resNode := range nodes {
-		path := filepath.Join(store.Dir, store.NameGenerator(resID))
+		path := store.NameGenerator(resID)
 		if err := store.MkdirAll(filepath.Dir(path)); err != nil {
 			return fmt.Errorf("unable to initialize dir for %v: %w", path, err)
 		}
@@ -62,11 +61,11 @@ func (store *FileStore) WriteKustomization(kust *types.Kustomization) error {
 		return fmt.Errorf("unable to generate kustomization.yaml: %w", err)
 	}
 
-	if err := store.MkdirAll(store.Dir); err != nil {
-		return fmt.Errorf("unable to initialize %q dir: %w", store.Dir, err)
+	if err := store.MkdirAll("."); err != nil {
+		return fmt.Errorf("unable to initialize dir: %w", err)
 	}
 
-	kustPath := filepath.Join(store.Dir, konfig.DefaultKustomizationFileName())
+	kustPath := konfig.DefaultKustomizationFileName()
 	if err := store.WriteFile(kustPath, kustBytes); err != nil {
 		return fmt.Errorf("unable to store %q: %w", kustPath, err)
 	}

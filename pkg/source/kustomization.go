@@ -33,6 +33,8 @@ func wrapKustSrcErr(err error) error {
 	return fmt.Errorf("kustomization source error: %w", err)
 }
 
+var errAbsPath = errors.New("absolute path not allowed")
+
 // REVISIT: fix cyclop
 //
 //nolint:cyclop
@@ -40,8 +42,8 @@ func (kust *Kustomize) packages(env *types.Env) (*kustomizePkg, error) {
 	var pathPrefix, pathSuffix string
 
 	path := kust.PathTemplate
-	if !filepath.IsAbs(path) {
-		path = filepath.Clean(filepath.Join(env.WorkDir, path))
+	if filepath.IsAbs(path) {
+		return nil, fmt.Errorf("invalid kustomization path: %w", errAbsPath)
 	}
 
 	pathParts := strings.Split(path, types.ClusterPlaceholder)
@@ -91,7 +93,14 @@ func (kust *Kustomize) packages(env *types.Env) (*kustomizePkg, error) {
 	}
 
 	for clusterID, cluster := range kpkg.idx.All() {
-		kpkg.paths[clusterID] = pathPrefix + cluster.Name + pathSuffix
+		envPath := pathPrefix + cluster.Name + pathSuffix
+
+		absPath, name, err := env.FileSys.CleanedAbs(envPath)
+		if err != nil {
+			return nil, err
+		}
+
+		kpkg.paths[clusterID] = filepath.Join(string(absPath), name)
 	}
 
 	return kpkg, nil
