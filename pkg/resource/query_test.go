@@ -1,16 +1,15 @@
-package resource_test
+package resource
 
 import (
 	"testing"
 
-	"github.com/Mirantis/ktl/pkg/resource"
 	"github.com/google/go-cmp/cmp"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 func TestNodePathString(t *testing.T) {
 	tests := map[string]struct {
-		input resource.Query
+		input Query
 		want  string
 	}{
 		`nil`: {
@@ -18,23 +17,23 @@ func TestNodePathString(t *testing.T) {
 			"",
 		},
 		`empty`: {
-			resource.Query{},
+			Query{},
 			"",
 		},
 		`simple`: {
-			resource.Query{"a", "b", "c"},
+			Query{"a", "b", "c"},
 			"a.b.c",
 		},
 		`escaped`: {
-			resource.Query{"a.b", "c"},
+			Query{"a.b", "c"},
 			"[a.b].c",
 		},
 		`filter`: {
-			resource.Query{"[a=b]", "c"},
+			Query{"[a=b]", "c"},
 			"[a=b].c",
 		},
 		`filter-with-dot`: {
-			resource.Query{"[a=b.1]", "c"},
+			Query{"[a=b.1]", "c"},
 			"[a=b.1].c",
 		},
 	}
@@ -52,34 +51,34 @@ func TestNodePathUnmarshalYAML(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
-		Got     resource.Query `yaml:"got"`
-		want    resource.Query
+		Got     Query `yaml:"got"`
+		want    Query
 		wantErr bool
 	}{
 		{
 			name:  "list",
 			input: `got: [ a, b, c ]`,
-			want:  resource.Query{"a", "b", "c"},
+			want:  Query{"a", "b", "c"},
 		},
 		{
 			name:  "text",
 			input: `got: a.b.c`,
-			want:  resource.Query{"a", "b", "c"},
+			want:  Query{"a", "b", "c"},
 		},
 		{
 			name:  "condition",
 			input: `got: a.[b=1].c`,
-			want:  resource.Query{"a", "[b=1]", "c"},
+			want:  Query{"a", "[b=1]", "c"},
 		},
 		{
 			name:  "glob",
 			input: `got: a.*.b`,
-			want:  resource.Query{"a", "*", "b"},
+			want:  Query{"a", "*", "b"},
 		},
 		{
 			name:  "mixed",
 			input: `got: a[b=1].*.[c=2]d`,
-			want:  resource.Query{"a[b=1]", "*", "[c=2]d"},
+			want:  Query{"a[b=1]", "*", "[c=2]d"},
 		},
 	}
 	for _, test := range tests {
@@ -107,44 +106,44 @@ func TestNodePathUnmarshalYAML(t *testing.T) {
 func TestNodePathNormalize(t *testing.T) {
 	tests := []struct {
 		name  string
-		input resource.Query
-		wantP resource.Query
+		input Query
+		wantP Query
 		wantC []string
 		wantE bool
 	}{
 		{
 			name:  "no-conditions",
-			input: resource.Query{"a", "b", "c"},
-			wantP: resource.Query{"a", "b", "c"},
+			input: Query{"a", "b", "c"},
+			wantP: Query{"a", "b", "c"},
 			wantC: []string{"", "", ""},
 		},
 		{
 			name:  "prefix-only",
-			input: resource.Query{"[a=1]b", "*", "[c=2]d"},
-			wantP: resource.Query{"b", "*", "d"},
+			input: Query{"[a=1]b", "*", "[c=2]d"},
+			wantP: Query{"b", "*", "d"},
 			wantC: []string{"[a=1]", "", "[c=2]"},
 		},
 		{
 			name:  "glob",
-			input: resource.Query{"a", "[b=1]", "c"},
-			wantP: resource.Query{"a", "*", "c"},
+			input: Query{"a", "[b=1]", "c"},
+			wantP: Query{"a", "*", "c"},
 			wantC: []string{"", "", "[b=1]"},
 		},
 		{
 			name:  "overflow",
-			input: resource.Query{"a", "b[c=1,d=2]"},
-			wantP: resource.Query{"a", "b", "c"},
+			input: Query{"a", "b[c=1,d=2]"},
+			wantP: Query{"a", "b", "c"},
 			wantC: []string{"", "", "[c=1,d=2]"},
 		},
 		{
 			name:  "merge",
-			input: resource.Query{"a[b=1]", "[c=2]d"},
-			wantP: resource.Query{"a", "d"},
+			input: Query{"a[b=1]", "[c=2]d"},
+			wantP: Query{"a", "d"},
 			wantC: []string{"", "[b=1,c=2]"},
 		},
 		{
 			name:  "error",
-			input: resource.Query{"a[b=1]", "[c=2]", "d"},
+			input: Query{"a[b=1]", "[c=2]", "d"},
 			wantE: true,
 		},
 	}
@@ -170,6 +169,122 @@ func TestNodePathNormalize(t *testing.T) {
 
 			if diff := cmp.Diff(test.wantC, gotC); diff != "" {
 				t.Errorf("conditions -want +got:\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestQueriesAdd(t *testing.T) {
+	tests := []struct {
+		name  string
+		input []Query
+		want  *Queries[int]
+	}{
+		{
+			name: "no-overlap",
+			input: []Query{
+				{"x", "y", "z"},
+				{"a", "b", "c"},
+			},
+			want: &Queries[int]{
+				prefix: Query{},
+				queries: []Queries[int]{
+					{prefix: Query{"x", "y", "z"}, meta: 1},
+					{prefix: Query{"a", "b", "c"}, meta: 2},
+				},
+			},
+		},
+		{
+			name: "override",
+			input: []Query{
+				{"a", "b", "c"},
+				{"a", "b", "c"},
+			},
+			want: &Queries[int]{
+				prefix: Query{"a", "b", "c"},
+				meta:   2,
+			},
+		},
+		{
+			name: "split-mid",
+			input: []Query{
+				{"a", "b", "1"},
+				{"a", "b", "2"},
+			},
+			want: &Queries[int]{
+				prefix: Query{"a", "b"},
+				queries: []Queries[int]{
+					{prefix: Query{"1"}, meta: 1},
+					{prefix: Query{"2"}, meta: 2},
+				},
+			},
+		},
+		{
+			name: "split-end",
+			input: []Query{
+				{"a", "b"},
+				{"a", "b", "c"},
+			},
+			want: &Queries[int]{
+				prefix: Query{"a", "b"},
+				queries: []Queries[int]{
+					{prefix: Query{}, meta: 1},
+					{prefix: Query{"c"}, meta: 2},
+				},
+			},
+		},
+		{
+			name: "split-end2",
+			input: []Query{
+				{"a", "b", "c"},
+				{"a", "b"},
+			},
+			want: &Queries[int]{
+				prefix: Query{"a", "b"},
+				queries: []Queries[int]{
+					{prefix: Query{"c"}, meta: 1},
+					{prefix: Query{}, meta: 2},
+				},
+			},
+		},
+		{
+			name: "split-deep",
+			input: []Query{
+				{"a"},
+				{"a", "b"},
+				{"a", "c", "d"},
+			},
+			want: &Queries[int]{
+				prefix: Query{"a"},
+				queries: []Queries[int]{
+					{
+						prefix: Query{},
+						meta:   1,
+					},
+					{
+						prefix: Query{"b"},
+						meta:   2,
+					},
+					{
+						prefix: Query{"c","d"},
+						meta:   3,
+					},
+				},
+			},
+		},
+	}
+
+	allowUnexported := cmp.AllowUnexported(Queries[int]{})
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			qq := &Queries[int]{}
+			for i, q := range test.input {
+				qq.Add(q, i+1)
+			}
+
+			if diff := cmp.Diff(test.want, qq, allowUnexported); diff != "" {
+				t.Fatalf("-want +got:\n%s", diff)
 			}
 		})
 	}

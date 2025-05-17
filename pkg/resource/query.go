@@ -3,6 +3,7 @@ package resource
 import (
 	"errors"
 	"fmt"
+	"iter"
 	"slices"
 	"strings"
 
@@ -34,22 +35,20 @@ func (p Query) String() string {
 	return strings.Join(escaped, ".")
 }
 
-func (p Query) IsLookup() bool {
-	for _, part := range p {
-		if yaml.IsWildcard(part) {
-			return true
-		}
+func (p Query) IsWildcard() bool {
+	return slices.ContainsFunc(p, yaml.IsWildcard)
+}
 
-		if !yaml.IsListIndex(part) {
-			continue
-		}
-
-		if strings.Contains(part, "=") {
-			return true
-		}
+func isListIndexLookup(p string) bool {
+	if !yaml.IsListIndex(p) {
+		return false
 	}
 
-	return false
+	return strings.Contains(p, "=")
+}
+
+func (p Query) IsLookup() bool {
+	return p.IsWildcard() || slices.ContainsFunc(p, isListIndexLookup)
 }
 
 func (p *Query) UnmarshalYAML(node *yaml.Node) error {
@@ -157,4 +156,88 @@ func (p Query) Normalize() (Query, []string, error) {
 	}
 
 	return path, conditions, nil
+}
+
+type Queries[M any] struct {
+	prefix  Query
+	meta    M
+	queries []Queries[M]
+}
+
+func (qq *Queries[M]) lcp(query Query) int {
+	maxlcp := min(len(query), len(qq.prefix))
+	for lcp := range maxlcp {
+		if qq.prefix[lcp] != query[lcp] {
+			return lcp
+		}
+	}
+
+	return maxlcp
+}
+
+func (qq *Queries[M]) Add(query Query, meta M) {
+	lcp := qq.lcp(query)
+
+	equals := lcp == max(len(query), len(qq.prefix))
+	if equals || qq.prefix == nil {
+		qq.prefix = query
+		qq.meta = meta
+		return
+	}
+
+	if lcp < len(qq.prefix) || len(qq.queries) == 0 {
+		qq.split(lcp)
+	}
+
+	qq.addSub(query[lcp:], meta)
+}
+
+func (qq *Queries[M]) split(idx int) {
+	var empty M
+	left, right := qq.prefix[:idx], qq.prefix[idx:]
+
+	subq := Queries[M]{
+		prefix:  right,
+		meta:    qq.meta,
+		queries: qq.queries,
+	}
+
+	qq.prefix = left
+	qq.queries = []Queries[M]{subq}
+	qq.meta = empty
+
+	return
+}
+
+func (qq *Queries[M]) addSub(query Query, meta M) {
+	for _, subq := range qq.queries {
+		if !subq.prefixMatch(query) {
+			continue
+		}
+
+		subq.Add(query, meta)
+
+		return
+	}
+
+	qq.queries = append(qq.queries, Queries[M]{
+		prefix: query,
+		meta:   meta,
+	})
+}
+
+func (qq *Queries[M]) prefixMatch(query Query) bool {
+	if len(query) == 0 && len(qq.prefix) == 0 {
+		return true
+	}
+
+	if len(query) == 0 || len(qq.prefix) == 0 {
+		return false
+	}
+
+	return query[0] == qq.prefix[0]
+}
+
+func (qq *Queries[M]) Scan(node *yaml.RNode) iter.Seq2[M, *yaml.RNode] {
+	panic("not implemented")
 }
