@@ -161,7 +161,7 @@ func (p Query) Normalize() (Query, []string, error) {
 type Queries[M any] struct {
 	prefix  Query
 	meta    M
-	queries []Queries[M]
+	queries []*Queries[M]
 }
 
 func (qq *Queries[M]) lcp(query Query) int {
@@ -196,14 +196,14 @@ func (qq *Queries[M]) split(idx int) {
 	var empty M
 	left, right := qq.prefix[:idx], qq.prefix[idx:]
 
-	subq := Queries[M]{
+	subq := &Queries[M]{
 		prefix:  right,
 		meta:    qq.meta,
 		queries: qq.queries,
 	}
 
 	qq.prefix = left
-	qq.queries = []Queries[M]{subq}
+	qq.queries = []*Queries[M]{subq}
 	qq.meta = empty
 
 	return
@@ -220,7 +220,7 @@ func (qq *Queries[M]) addSub(query Query, meta M) {
 		return
 	}
 
-	qq.queries = append(qq.queries, Queries[M]{
+	qq.queries = append(qq.queries, &Queries[M]{
 		prefix: query,
 		meta:   meta,
 	})
@@ -239,5 +239,59 @@ func (qq *Queries[M]) prefixMatch(query Query) bool {
 }
 
 func (qq *Queries[M]) Scan(node *yaml.RNode) iter.Seq2[M, *yaml.RNode] {
-	panic("not implemented")
+	return func(yield func(M, *yaml.RNode) bool) {
+		for match := range qq.matchPrefix(node) {
+			if len(qq.queries) == 0 {
+				if !yield(qq.meta, match) {
+					return
+				}
+				continue
+			}
+
+			for _, subQuery := range qq.queries {
+				for meta, node := range subQuery.Scan(match) {
+					if !yield(meta, node) {
+						return
+					}
+				}
+			}
+		}
+	}
+}
+
+func (qq *Queries[M]) matchPrefix(node *yaml.RNode) iter.Seq[*yaml.RNode] {
+	return func(yield func(*yaml.RNode) bool) {
+		if len(qq.prefix) == 0 {
+			yield(node)
+			return
+		}
+
+		//REVISIT: PathMatcher can only match a single [key=value]
+		matcher := &yaml.PathMatcher{Path: qq.prefix}
+
+		match, err := node.Pipe(matcher)
+		if err != nil {
+			panic(fmt.Errorf("broken matcher: %w", err))
+		}
+
+		matches, err := match.Elements()
+		if err != nil {
+			panic(fmt.Errorf("broken match: %w", err))
+		}
+
+		for _, matchNode := range matches {
+			if !yield(matchNode) {
+				return
+			}
+		}
+	}
+}
+
+func NewQueries[M any](queries iter.Seq2[M, Query]) *Queries[M] {
+	qq := &Queries[M]{}
+	for meta, query := range queries {
+		qq.Add(query, meta)
+	}
+
+	return qq
 }

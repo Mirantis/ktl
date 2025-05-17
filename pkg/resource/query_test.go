@@ -1,6 +1,8 @@
 package resource
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -188,7 +190,7 @@ func TestQueriesAdd(t *testing.T) {
 			},
 			want: &Queries[int]{
 				prefix: Query{},
-				queries: []Queries[int]{
+				queries: []*Queries[int]{
 					{prefix: Query{"x", "y", "z"}, meta: 1},
 					{prefix: Query{"a", "b", "c"}, meta: 2},
 				},
@@ -213,7 +215,7 @@ func TestQueriesAdd(t *testing.T) {
 			},
 			want: &Queries[int]{
 				prefix: Query{"a", "b"},
-				queries: []Queries[int]{
+				queries: []*Queries[int]{
 					{prefix: Query{"1"}, meta: 1},
 					{prefix: Query{"2"}, meta: 2},
 				},
@@ -227,7 +229,7 @@ func TestQueriesAdd(t *testing.T) {
 			},
 			want: &Queries[int]{
 				prefix: Query{"a", "b"},
-				queries: []Queries[int]{
+				queries: []*Queries[int]{
 					{prefix: Query{}, meta: 1},
 					{prefix: Query{"c"}, meta: 2},
 				},
@@ -241,7 +243,7 @@ func TestQueriesAdd(t *testing.T) {
 			},
 			want: &Queries[int]{
 				prefix: Query{"a", "b"},
-				queries: []Queries[int]{
+				queries: []*Queries[int]{
 					{prefix: Query{"c"}, meta: 1},
 					{prefix: Query{}, meta: 2},
 				},
@@ -256,7 +258,7 @@ func TestQueriesAdd(t *testing.T) {
 			},
 			want: &Queries[int]{
 				prefix: Query{"a"},
-				queries: []Queries[int]{
+				queries: []*Queries[int]{
 					{
 						prefix: Query{},
 						meta:   1,
@@ -266,8 +268,58 @@ func TestQueriesAdd(t *testing.T) {
 						meta:   2,
 					},
 					{
-						prefix: Query{"c","d"},
+						prefix: Query{"c", "d"},
 						meta:   3,
+					},
+				},
+			},
+		},
+		{
+			name: "deployment",
+			input: []Query{
+				{"metadata", "name"},
+				{"spec", "template", "spec", "containers", "*", "name"},
+				{"spec", "template", "spec", "containers", "*", "image"},
+				{"spec", "template", "spec", "containers", "*", "args", "*"},
+				{"spec", "template", "spec", "containers", "*", "env", "*", "name"},
+				{"spec", "template", "spec", "containers", "*", "env", "*", "value"},
+			},
+			want: &Queries[int]{
+				prefix: Query{},
+				queries: []*Queries[int]{
+					{
+						prefix: Query{"metadata", "name"},
+						meta:   1,
+					},
+					{
+						prefix: Query{"spec", "template", "spec", "containers", "*"},
+						queries: []*Queries[int]{
+							{
+								prefix: Query{"name"},
+								meta:   2,
+							},
+							{
+								prefix: Query{"image"},
+								meta:   3,
+							},
+							{
+								prefix: Query{"args", "*"},
+								meta:   4,
+							},
+							{
+								prefix: Query{"env", "*"},
+								queries: []*Queries[int]{
+									{
+										prefix: Query{"name"},
+										meta:   5,
+									},
+									{
+										prefix: Query{"value"},
+										meta:   6,
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -287,5 +339,96 @@ func TestQueriesAdd(t *testing.T) {
 				t.Fatalf("-want +got:\n%s", diff)
 			}
 		})
+	}
+}
+
+func TestQueriesScan(t *testing.T) {
+	node := yaml.MustParse(`
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-name
+spec:
+  template:
+    spec:
+      containers:
+      - name: app-container
+        image: app-image
+        args: ["arg1","arg2"]
+        env:
+        - name: A
+          value: 1
+        - name: B
+          value: 2
+      - name: sidecar-container
+        image: sidecar-image
+        env:
+        - name: C
+          value: 3
+`)
+
+	queries := &Queries[string]{
+		prefix: Query{},
+		queries: []*Queries[string]{
+			{
+				prefix: Query{"metadata", "name"},
+				meta:   "name",
+			},
+			{
+				prefix: Query{"spec", "template", "spec", "containers", "*"},
+				queries: []*Queries[string]{
+					{
+						prefix: Query{"name"},
+						meta:   "container-name",
+					},
+					{
+						prefix: Query{"image"},
+						meta:   "container-image",
+					},
+					{
+						prefix: Query{"args", "*"},
+						meta:   "arg",
+					},
+					{
+						prefix: Query{"env", "*"},
+						queries: []*Queries[string]{
+							{
+								prefix: Query{"name"},
+								meta:   "env-name",
+							},
+							{
+								prefix: Query{"value"},
+								meta:   "env-value",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	want := []string{
+		"name:app-name",
+		"container-name:app-container",
+		"container-image:app-image",
+		`arg:"arg1"`,
+		`arg:"arg2"`,
+		"env-name:A",
+		"env-value:1",
+		"env-name:B",
+		"env-value:2",
+		"container-name:sidecar-container",
+		"container-image:sidecar-image",
+		"env-name:C",
+		"env-value:3",
+	}
+
+	got := []string{}
+	for k, v := range queries.Scan(node) {
+		vs, _ := v.String()
+		got = append(got, fmt.Sprintf("%v:%s", k, strings.TrimSpace(vs)))
+	}
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("-want +got:\n%s", diff)
 	}
 }
