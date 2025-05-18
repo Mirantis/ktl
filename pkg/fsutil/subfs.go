@@ -35,7 +35,7 @@ func (fsys *subFileSystem) path(path string) string {
 }
 
 func (fsys *subFileSystem) Create(path string) (filesys.File, error) {
-	return fsys.Create(fsys.path(path))
+	return fsys.delegate.Create(fsys.path(path))
 }
 
 func (fsys *subFileSystem) Mkdir(path string) error {

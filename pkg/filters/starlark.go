@@ -1,14 +1,23 @@
 package filters
 
 import (
+	"fmt"
+	"iter"
 	"log/slog"
 	"strings"
 
 	"github.com/Mirantis/ktl/pkg/resource"
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
+	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/kio/filters"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
+
+//nolint:gochecknoinits
+func init() {
+	filters.Filters["Starlark"] = func() kio.Filter { return &StarlarkFilter{} }
+}
 
 type StarlarkFilter struct {
 	Kind   string `yaml:"kind"`
@@ -16,14 +25,20 @@ type StarlarkFilter struct {
 }
 
 func (filter *StarlarkFilter) Filter(input []*yaml.RNode) ([]*yaml.RNode, error) {
+	const (
+		resourcesKey = "resources"
+		outputKey    = "output"
+	)
 	snodes := []starlark.Value{}
+	output := []*yaml.RNode{}
 
 	for _, rnode := range input {
 		snodes = append(snodes, newSNode(rnode))
 	}
 
 	slPredeclared := starlark.StringDict{
-		"resources": starlark.NewList(snodes),
+		resourcesKey: starlark.NewList(snodes),
+		outputKey:    starlark.NewList(nil),
 	}
 	slOpts := &syntax.FileOptions{
 		TopLevelControl: true,
@@ -43,7 +58,44 @@ func (filter *StarlarkFilter) Filter(input []*yaml.RNode) ([]*yaml.RNode, error)
 		slPredeclared,
 	)
 
-	return input, err
+	slOutput, ok := slPredeclared[outputKey].(starlark.Iterable)
+	if !ok {
+		return nil, fmt.Errorf("starlark filter returned unsupported %q", outputKey)
+	}
+
+	for slItem := range slListAll(slOutput) {
+		switch item := slItem.(type) {
+		case *sNodeMapping:
+			output = append(output, item.RNode)
+		case *sNodeSequence:
+			output = append(output, item.RNode)
+		case *sNode:
+			output = append(output, item.RNode)
+		default:
+			parsed, err := yaml.Parse(item.String())
+			if err != nil {
+				return nil, fmt.Errorf("starlark result parsing error: %w", err)
+			}
+			parsed.YNode().Style = 0
+			output = append(output, parsed)
+		}
+	}
+
+	return output, err
+}
+
+func slListAll(input starlark.Iterable) iter.Seq[starlark.Value] {
+	return func(yield func(starlark.Value) bool) {
+		var value starlark.Value
+		it := input.Iterate()
+		defer it.Done()
+
+		for it.Next(&value) {
+			if !yield(value) {
+				return
+			}
+		}
+	}
 }
 
 var (

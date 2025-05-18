@@ -86,8 +86,10 @@ func (out *CSVOutput) rows(resources *types.ClusterResources) [][]string {
 			row, queries, offsets := out.initRow(len(rows)-1, &cluster)
 
 			for colIdx, valueNode := range queries.Scan(node) {
-				value, _ := valueNode.String()
-				value = strings.TrimSpace(value)
+				value, _ := yaml.String(valueNode.YNode(), yaml.Trim)
+				if strings.HasPrefix(value, `"`) && strings.HasSuffix(value, `"`) {
+					value = strings.Trim(value, `"`)
+				}
 
 				if offsets[colIdx] > len(rows)-1 {
 					rows = append(rows, slices.Clone(row))

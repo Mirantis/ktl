@@ -7,11 +7,6 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-//nolint:gochecknoinits
-func init() {
-	yaml.Filters["ValueSetter"] = func() yaml.Filter { return &ValueSetter{} }
-}
-
 type ValueSetter struct {
 	Kind  string      `yaml:"kind"`
 	Value *yaml.RNode `yaml:"value"`

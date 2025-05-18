@@ -48,6 +48,9 @@ e: f
 ---
 g: h
 i: 1
+---
+"x": "y"
+"z": 0
 `
 	filter := &filters.StarlarkFilter{
 		Script: `
@@ -63,6 +66,12 @@ for r in resources:
 	m.match = "found"
   for nm in r["a.d.[k=dk3]"]:
     nm.nomatch = "found"
+
+output.extend(resources)
+output.append({
+  "x": "y",
+  "z": 0,
+})
 `,
 	}
 

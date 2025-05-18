@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"bytes"
 	"embed"
 	"errors"
 	"io/fs"
@@ -32,6 +33,16 @@ var (
 	wantConvertCSV embed.FS
 
 	//go:embed testdata/import/*
+	//go:embed testdata/convert-starlark/pipeline.yaml
+	inputConvertStarlark embed.FS
+
+	//go:embed testdata/convert-starlark/pipeline.yaml
+	wantConvertStarlark embed.FS
+
+	//go:embed testdata/convert-starlark/stdout.txt
+	wantConvertStarlarkStdout string
+
+	//go:embed testdata/import/*
 	//go:embed testdata/convert-table/pipeline.yaml
 	inputConvertTable embed.FS
 
@@ -47,8 +58,7 @@ var (
 	//go:embed testdata/export-helm/pipeline.yaml
 	inputExportHelm embed.FS
 
-	//go:embed testdata/export-helm/*
-	//go:embed testdata/export-helm/charts/simple-app/templates/_helpers.tpl
+	//go:embed all:testdata/export-helm/*
 	wantExportHelm embed.FS
 
 	//go:embed testdata/export-simple/pipeline.yaml
@@ -121,8 +131,9 @@ func TestE2E(t *testing.T) {
 	t.Run("server-version", testServerVersion)
 
 	scenarios := map[string]struct {
-		input fs.FS
-		want  fs.FS
+		input      fs.FS
+		want       fs.FS
+		wantStdout string
 	}{
 		"export-simple": {
 			input: inputExportSimple,
@@ -148,14 +159,26 @@ func TestE2E(t *testing.T) {
 			input: inputConvertCSV,
 			want:  wantConvertCSV,
 		},
+		"convert-starlark": {
+			input:      inputConvertStarlark,
+			want:       wantConvertStarlark,
+			wantStdout: wantConvertStarlarkStdout,
+		},
 		"convert-table": {
 			input: inputConvertTable,
 			want:  wantConvertTable,
 		},
 	}
 
-	for name, files := range scenarios {
-		t.Run(name, func(t *testing.T) { testRunCmd(t, name, files.input, files.want) })
+	for name, test := range scenarios {
+		t.Run(name, func(t *testing.T) {
+			testRunCmd(
+				t, name,
+				test.input,
+				test.want,
+				test.wantStdout,
+			)
+		})
 	}
 }
 
@@ -196,7 +219,7 @@ func testServerVersion(t *testing.T) {
 	}
 }
 
-func testRunCmd(t *testing.T, name string, inputFS, wantFS fs.FS) {
+func testRunCmd(t *testing.T, name string, inputFS, wantFS fs.FS, wantOut string) {
 	t.Helper()
 
 	var err error
@@ -219,8 +242,10 @@ func testRunCmd(t *testing.T, name string, inputFS, wantFS fs.FS) {
 		t.Fatal(err)
 	}
 
+	gotOut := bytes.NewBuffer(nil)
 	runCmd := cmd.NewRootCommand()
 	runCmd.SetArgs([]string{"run", outDir + "/pipeline.yaml"})
+	runCmd.SetOut(gotOut)
 
 	if err := runCmd.Execute(); err != nil {
 		t.Fatal(err)
@@ -231,5 +256,9 @@ func testRunCmd(t *testing.T, name string, inputFS, wantFS fs.FS) {
 
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("unexpected result, +got -want:\n%v", diff)
+	}
+
+	if diff := cmp.Diff(wantOut, gotOut.String()); diff != "" {
+		t.Errorf("unexpected stdout, +got -want:\n%v", diff)
 	}
 }

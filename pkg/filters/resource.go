@@ -8,11 +8,6 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-//nolint:gochecknoinits
-func init() {
-	yaml.Filters["ResourceMatcher"] = func() yaml.Filter { return &ResourceMatcher{} }
-}
-
 type ResourceMatcher struct {
 	Kind      string            `yaml:"kind"`
 	Resources []*types.Selector `yaml:"resources"`

@@ -23,9 +23,13 @@ func newRunCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error { //nolint:revive
 			fileName := args[0]
 			workDir := filepath.Dir(fileName)
+			fileSys := fsutil.Stdio(
+				fsutil.Sub(filesys.MakeFsOnDisk(), workDir),
+				cmd.InOrStdin(), cmd.OutOrStdout(),
+			)
 			env := &types.Env{
 				WorkDir: workDir,
-				FileSys: fsutil.Sub(filesys.MakeFsOnDisk(), workDir),
+				FileSys: fileSys,
 				Cmd:     kubectl.New(),
 			}
 

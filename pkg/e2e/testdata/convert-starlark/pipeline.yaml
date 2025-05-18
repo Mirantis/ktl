@@ -1,0 +1,31 @@
+source:
+  kind: Kustomize
+  kustomization: "../import/${CLUSTER}"
+  clusters:
+  - names: "*"
+filters:
+- kind: Starlark
+  script: |
+    for res in resources:
+      if str(res.kind) != "Deployment":
+        continue
+      output.append(res)
+
+    output.append({
+      "kind": "GeneratedKind",
+      "metadata": {
+        "name": "generated-name",
+      }
+    })
+output:
+  kind: Table
+  columns:
+  - name: CLUSTER
+    text: "${CLUSTER}"
+  - name: KIND
+    field: kind
+  - name: NAMESPACE
+    field: metadata.namespace
+  - name: NAME
+    field: metadata.name
+
