@@ -12,6 +12,7 @@ import (
 
 	"github.com/Mirantis/ktl/pkg/cmd"
 	"github.com/Mirantis/ktl/pkg/e2e"
+	_ "github.com/Mirantis/ktl/pkg/filters" // register filters
 	"github.com/Mirantis/ktl/pkg/kubectl"
 	"github.com/google/go-cmp/cmp"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
@@ -72,6 +73,19 @@ var (
 
 	//go:embed testdata/export-simple-filtered/*
 	wantExportSimpleFiltered embed.FS
+
+	//go:embed testdata/import/*
+	//go:embed testdata/mcp-deployment-containers/pipeline.yaml
+	inputMCPDeploymentContainers embed.FS
+
+	//go:embed testdata/mcp-deployment-containers/pipeline.yaml
+	wantMCPDeploymentContainers embed.FS
+
+	//go:embed testdata/mcp-deployment-containers/stdout.csv
+	wantMCPDeploymentContainersStdout string
+
+	//go:embed testdata/mcp-deployment-containers/describe.txt
+	wantMCPDeploymentContainersDescribe string
 )
 
 type testServer struct {
@@ -131,49 +145,83 @@ func TestE2E(t *testing.T) {
 	t.Run("server-version", testServerVersion)
 
 	scenarios := map[string]struct {
+		dir        string
+		args       []string
 		input      fs.FS
 		want       fs.FS
 		wantStdout string
 	}{
 		"export-simple": {
+			dir:   "export-simple",
+			args:  []string{"run"},
 			input: inputExportSimple,
 			want:  wantExportSimple,
 		},
 		"export-simple-filtered": {
+			dir:   "export-simple-filtered",
+			args:  []string{"run"},
 			input: inputExportSimpleFiltered,
 			want:  wantExportSimpleFiltered,
 		},
 		"export-helm": {
+			dir:   "export-helm",
+			args:  []string{"run"},
 			input: inputExportHelm,
 			want:  wantExportHelm,
 		},
 		"export-components": {
+			dir:   "export-components",
+			args:  []string{"run"},
 			input: inputExportComponents,
 			want:  wantExportComponents,
 		},
 		"convert-components": {
+			dir:   "convert-components",
+			args:  []string{"run"},
 			input: inputConvertComponents,
 			want:  wantConvertComponents,
 		},
 		"convert-csv": {
+			dir:   "convert-csv",
+			args:  []string{"run"},
 			input: inputConvertCSV,
 			want:  wantConvertCSV,
 		},
 		"convert-starlark": {
+			dir:        "convert-starlark",
+			args:       []string{"run"},
 			input:      inputConvertStarlark,
 			want:       wantConvertStarlark,
 			wantStdout: wantConvertStarlarkStdout,
 		},
 		"convert-table": {
+			dir:   "convert-table",
+			args:  []string{"run"},
 			input: inputConvertTable,
 			want:  wantConvertTable,
+		},
+		"mcp-deployment-containers": {
+			dir:        "mcp-deployment-containers",
+			args:       []string{"run"},
+			input:      inputMCPDeploymentContainers,
+			want:       wantMCPDeploymentContainers,
+			wantStdout: wantMCPDeploymentContainersStdout,
+		},
+		"mcp-deployment-containers-describe": {
+			dir:        "mcp-deployment-containers",
+			args:       []string{"mcp", "describe"},
+			input:      inputMCPDeploymentContainers,
+			want:       wantMCPDeploymentContainers,
+			wantStdout: wantMCPDeploymentContainersDescribe,
 		},
 	}
 
 	for name, test := range scenarios {
 		t.Run(name, func(t *testing.T) {
-			testRunCmd(
-				t, name,
+			testPipelineCmd(
+				t,
+				test.dir,
+				test.args,
 				test.input,
 				test.want,
 				test.wantStdout,
@@ -219,21 +267,21 @@ func testServerVersion(t *testing.T) {
 	}
 }
 
-func testRunCmd(t *testing.T, name string, inputFS, wantFS fs.FS, wantOut string) {
+func testPipelineCmd(t *testing.T, dir string, args []string, inputFS, wantFS fs.FS, wantOut string) {
 	t.Helper()
 
 	var err error
 
 	testDir := t.TempDir()
 	diskFs := filesys.MakeFsOnDisk()
-	outDir := filepath.Join(testDir, name)
+	outDir := filepath.Join(testDir, dir)
 
 	inputFS, err = fs.Sub(inputFS, "testdata")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	wantFS, err = fs.Sub(wantFS, "testdata/"+name)
+	wantFS, err = fs.Sub(wantFS, "testdata/"+dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,7 +292,7 @@ func testRunCmd(t *testing.T, name string, inputFS, wantFS fs.FS, wantOut string
 
 	gotOut := bytes.NewBuffer(nil)
 	runCmd := cmd.NewRootCommand()
-	runCmd.SetArgs([]string{"run", outDir + "/pipeline.yaml"})
+	runCmd.SetArgs(append(args, outDir+"/pipeline.yaml"))
 	runCmd.SetOut(gotOut)
 
 	if err := runCmd.Execute(); err != nil {

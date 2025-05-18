@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/Mirantis/ktl/pkg/cmd"
+	_ "github.com/Mirantis/ktl/pkg/filters" // register filters
 )
 
 func main() {

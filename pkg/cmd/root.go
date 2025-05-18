@@ -7,6 +7,7 @@ func NewRootCommand() *cobra.Command {
 		Use: "ktl",
 	}
 	root.AddCommand(newRunCommand())
+	root.AddCommand(newMCPCommand())
 
 	return root
 }

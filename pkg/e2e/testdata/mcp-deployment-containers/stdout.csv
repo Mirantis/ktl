@@ -1,0 +1,13 @@
+CLUSTER,NAMESPACE,NAME,CONTAINER,IMAGE
+dev-cluster-a,simple-app,simple-app,sidecar,example.com/sidecar:v1
+dev-cluster-a,simple-app,simple-app,simple-app,example.com/simple-app:a92bbcbf624c
+prod-cluster-a,simple-app,simple-app,sidecar,example.com/sidecar:v1
+prod-cluster-a,simple-app,simple-app,simple-app,example.com/simple-app:v1.2.345
+prod-cluster-a,simple-app,simple-app-db,db,db:v2.0
+prod-cluster-b,simple-app,simple-app,sidecar,example.com/sidecar:v1
+prod-cluster-b,simple-app,simple-app,simple-app,example.com/simple-app:v1.2.345
+prod-cluster-b,simple-app,simple-app-db,db,db:v2.0
+test-cluster-a,simple-app,simple-app,sidecar,example.com/sidecar:v1
+test-cluster-a,simple-app,simple-app,simple-app,example.com/simple-app:v1.2.345
+test-cluster-b,simple-app,simple-app,sidecar,example.com/sidecar:v1
+test-cluster-b,simple-app,simple-app,simple-app,example.com/simple-app:v1.2.345

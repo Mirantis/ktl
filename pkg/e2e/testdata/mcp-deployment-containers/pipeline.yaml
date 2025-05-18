@@ -1,0 +1,27 @@
+source:
+  clusters:
+  - names: "*"
+  resources:
+  - apiResources: deployments.apps
+output:
+  kind: MCPTool
+  description: |-
+    List containers and their images for
+    all deployments in all known K8s clusters
+  columns:
+  - name: CLUSTER
+    text: "${CLUSTER}"
+    description: Cluster name
+  - name: NAMESPACE
+    field: metadata.namespace
+    description: Namespace name
+  - name: NAME
+    field: metadata.name
+    description: Deployment name
+  - name: CONTAINER
+    field: spec.template.spec.containers.*.name
+    description: Container name
+  - name: IMAGE
+    field: spec.template.spec.containers.*.image
+    description: Container image
+

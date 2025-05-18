@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 
-	_ "github.com/Mirantis/ktl/pkg/filters" // register filters
 	"github.com/Mirantis/ktl/pkg/fsutil"
 	"github.com/Mirantis/ktl/pkg/kubectl"
 	"github.com/Mirantis/ktl/pkg/runner"

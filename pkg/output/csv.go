@@ -15,9 +15,10 @@ import (
 )
 
 type ValueRef struct {
-	Name  string         `yaml:"name"`
-	Field resource.Query `yaml:"field"`
-	Text  string         `yaml:"text"`
+	Name        string         `yaml:"name"`
+	Description string         `yaml:"description"`
+	Field       resource.Query `yaml:"field"`
+	Text        string         `yaml:"text"`
 }
 
 func (ref *ValueRef) UnmarshalYAML(node *yaml.Node) error {
