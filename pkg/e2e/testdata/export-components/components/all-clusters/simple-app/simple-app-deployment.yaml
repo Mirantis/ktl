@@ -19,3 +19,5 @@ spec:
         - configMapRef:
             name: simple-app-env
         name: simple-app
+      - image: example.com/sidecar:v1
+        name: sidecar

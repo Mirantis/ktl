@@ -22,3 +22,5 @@ spec:
             name: simple-app-env
         image: example.com/simple-app:a92bbcbf624c
         name: simple-app
+      - image: example.com/sidecar:v1
+        name: sidecar

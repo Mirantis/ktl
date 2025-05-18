@@ -38,26 +38,36 @@ func (ref *ValueRef) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
-func (ref *ValueRef) resolve(cluster *types.Cluster, node *yaml.RNode) string {
+func (ref *ValueRef) text(cluster *types.Cluster) string {
 	if len(ref.Text) > 0 {
 		return strings.ReplaceAll(ref.Text, types.ClusterPlaceholder, cluster.Name)
 	}
 
-	if len(ref.Field) == 0 {
-		return ""
-	}
-
-	vnode, _ := node.Pipe(yaml.Lookup(ref.Field...))
-	if vnode.IsNilOrEmpty() {
-		return ""
-	}
-
-	return strings.TrimSpace(vnode.MustString())
+	return ""
 }
 
 type CSVOutput struct {
 	Columns []ValueRef `yaml:"columns"`
 	Path    string     `yaml:"path"`
+}
+
+func (out *CSVOutput) initRow(offset int, cluster *types.Cluster) ([]string, *resource.Queries[int], []int) {
+	row := make([]string, len(out.Columns))
+	offsets := make([]int, len(out.Columns))
+	queries := &resource.Queries[int]{}
+
+	for colIdx, col := range out.Columns {
+		row[colIdx] = col.text(cluster)
+		offsets[colIdx] = offset
+
+		if len(col.Field) == 0 {
+			continue
+		}
+
+		queries.Add(col.Field, colIdx)
+	}
+
+	return row, queries, offsets
 }
 
 func (out *CSVOutput) rows(resources *types.ClusterResources) [][]string {
@@ -72,14 +82,30 @@ func (out *CSVOutput) rows(resources *types.ClusterResources) [][]string {
 
 	for _, byCluster := range resources.Resources {
 		for clusterID, node := range byCluster {
-			row := make([]string, len(out.Columns))
-
 			cluster := resources.Clusters.Cluster(clusterID)
-			for colIdx, ref := range out.Columns {
-				row[colIdx] = ref.resolve(&cluster, node)
+			row, queries, offsets := out.initRow(len(rows)-1, &cluster)
+
+			for colIdx, valueNode := range queries.Scan(node) {
+				value, _ := valueNode.String()
+				value = strings.TrimSpace(value)
+
+				if offsets[colIdx] > len(rows)-1 {
+					rows = append(rows, slices.Clone(row))
+					for oIdx := range offsets {
+						offsets[oIdx] = len(rows) - 1
+					}
+				}
+
+				row[colIdx] = value
+				offsets[colIdx]++
 			}
 
-			rows = append(rows, row)
+			for colIdx := range offsets {
+				if offsets[colIdx] > len(rows)-1 {
+					rows = append(rows, slices.Clone(row))
+					break
+				}
+			}
 		}
 	}
 

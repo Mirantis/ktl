@@ -12,22 +12,20 @@ source:
     tags: prod
 filters:
 - kind: SkipFilter
-  resources:
-  - kind: Node
-  - kind: ConfigMap
-    labelSelector: "generated-by"
-  - kind: CronJob
-    name: infra-canary
+  except:
+  - kind: Deployment
 output:
   kind: CSV
   path: output.csv
   columns:
   - name: CLUSTER
     text: "${CLUSTER}"
-  - name: KIND
-    field: kind
   - name: NAMESPACE
     field: metadata.namespace
   - name: NAME
     field: metadata.name
+  - name: CONTAINER
+    field: spec.template.spec.containers.*.name
+  - name: IMAGE
+    field: spec.template.spec.containers.*.image
 

@@ -30,3 +30,5 @@ spec:
             name: simple-app-env
         image: {{ index .Values.global "simple-app/Deployment/simple-app.spec.template.spec.containers.[name=simple-app].image" }}
         name: simple-app
+      - image: example.com/sidecar:v1
+        name: sidecar
