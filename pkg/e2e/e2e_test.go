@@ -86,6 +86,9 @@ var (
 
 	//go:embed testdata/mcp-deployment-containers/describe.txt
 	wantMCPDeploymentContainersDescribe string
+
+	//go:embed testdata/query/output.txt
+	wantQueryOutput string
 )
 
 type testServer struct {
@@ -228,6 +231,8 @@ func TestE2E(t *testing.T) {
 			)
 		})
 	}
+
+	t.Run("test-query", testQuery)
 }
 
 func testClientVersion(t *testing.T) {
@@ -307,6 +312,26 @@ func testPipelineCmd(t *testing.T, dir string, args []string, inputFS, wantFS fs
 	}
 
 	if diff := cmp.Diff(wantOut, gotOut.String()); diff != "" {
+		t.Errorf("unexpected stdout, +got -want:\n%v", diff)
+	}
+}
+
+func testQuery(t *testing.T) {
+	gotOut := bytes.NewBuffer(nil)
+	runCmd := cmd.NewRootCommand()
+	runCmd.SetArgs([]string{
+		"query", "*",
+		`str(it.kind) == "Service"`,
+		"or",
+		`it["spec.template.spec.containers.[image=db:.*]"]`,
+	})
+	runCmd.SetOut(gotOut)
+
+	if err := runCmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(wantQueryOutput, gotOut.String()); diff != "" {
 		t.Errorf("unexpected stdout, +got -want:\n%v", diff)
 	}
 }

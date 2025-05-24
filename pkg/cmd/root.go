@@ -8,6 +8,7 @@ func NewRootCommand() *cobra.Command {
 	}
 	root.AddCommand(newRunCommand())
 	root.AddCommand(newMCPCommand())
+	root.AddCommand(newQueryCommand())
 
 	return root
 }
