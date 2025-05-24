@@ -2,14 +2,7 @@ source:
   kind: Kustomize
   kustomization: "../import/${CLUSTER}"
   clusters:
-  - names: dev-*
-    tags: dev
-  - names: test-cluster-a,test-cluster-b
-    tags: test
-  - names:
-    - prod-cluster-a
-    - prod-cluster-b
-    tags: prod
+  - names: "*-*"
 filters:
 - kind: SkipFilter
   except:

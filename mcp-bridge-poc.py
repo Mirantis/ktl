@@ -8,18 +8,18 @@ TOOL_DIR = CWD / "pkg" / "e2e" / "testdata"
 TOOL_PREFIX = "mcp-"
 
 
-@mcp.resource("reports://")
-def reports() -> str:
+@mcp.tool()
+def list_reports() -> str:
     """
-    Resource that lists all available reports.
+    Lists all available report names.
 
-    Use the 'describe' resource to obtain the description.
+    Use the 'describe_report' tool to obtain the description.
     Use the 'report' tool to obtain the contents.
     """
 
     names = [
-        name.removeprefix(TOOL_PREFIX)
-        for name in TOOL_DIR.glob(TOOL_PREFIX)
+        tool_path.name.removeprefix(TOOL_PREFIX)
+        for tool_path in TOOL_DIR.glob(f"{TOOL_PREFIX}*")
     ]
 
     return "\n".join([
@@ -29,10 +29,10 @@ def reports() -> str:
     ])
 
 
-@mcp.resource("describe://{report}")
-def describe(name: str) -> str:
+@mcp.tool()
+def describe_report(name: str) -> str:
     """
-    Resource that returns the description of the report.
+    Show the description of the named report.
 
     Args:
       name: Name of the report
@@ -41,7 +41,7 @@ def describe(name: str) -> str:
     report_path = TOOL_DIR / f"{TOOL_PREFIX}{name}" / "pipeline.yaml"
 
     return check_output(
-            ["go", "run", ".", "mcp", "describe", report_path],
+            ["go", "run", ".", "mcp", "describe", str(report_path)],
             cwd=CWD, encoding='utf8',
     )
 
@@ -50,7 +50,10 @@ def report(name: str) -> str:
     """
     Generate named K8s report and return the result in CSV format.
 
-    Make sure to check the description via the 'describe' resource.
+    Make sure to check the list of available reports via the
+    'list_reports' tool.
+
+    Make sure to check the description via the 'describe_report' tool.
 
     Args:
       name: Name of the report
@@ -59,7 +62,7 @@ def report(name: str) -> str:
     report_path = TOOL_DIR / f"{TOOL_PREFIX}{name}" / "pipeline.yaml"
 
     content =  check_output(
-            ["go", "run", ".", "run", report_path],
+            ["go", "run", ".", "run", str(report_path)],
             cwd=CWD, encoding='utf8',
     )
 

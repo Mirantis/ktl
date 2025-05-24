@@ -11,3 +11,5 @@ go.work.sum
 # env file
 .env
 
+# python / uv
+__pycache__
