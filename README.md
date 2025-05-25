@@ -1,213 +1,198 @@
-# rekustomize (Technical Preview / Aplha)
+# `ktl` - K8s manifest generator, transformer, and analyzer
 
-`rekustomize` lets you generate
-[`kustomize`](https://github.com/kubernetes-sigs/kustomize) manifests. With
-`rekustomize` you can:
+`ktl` is a versatile CLI tool for working with Kubernetes manifests. It can pull
+resource definitions from live clusters or static files, apply various
+transformations, and output results in various formats like *Kustomize*, *Helm*,
+*CSV* and more.
 
-- [x] **Export** resource manifests from live cluster using supported formats:
-  - [x] **kustomize components**
-    ([example](examples/export-components/rekustomization.yaml))
-  - [x] **helm charts** ([example](examples/export-helm/rekustomization.yaml))
-- [x] **Filter** exported resources or attributes based on customizable rules
-  ([example](examples/export-simple-filtered/rekustomization.yaml))
-- [x] **Deduplicate** manifests to ensure
-  [DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself) principle
-- [ ] **Re-format** existing manifests to follow customizable styles and to
-  optimize duplicated manifests
-- [ ] **Convert** existing manifests between formats, e.g. from **helm chart**
-  to **kustomize components**
+Think of it as your Swiss Army knife for:
+- Migrating live cluster resources to deployment & *GitOps* tools like
+  `k0rdent`, `Flux`, `ArgoCD`, and others
+- Normalizing and converting manifests
+- Querying and analyzing resources across multiple clusters
+- Creating Model Context Protocol (MCP) tools to enrich LLM context
 
-## Deduplication of resources and attributes
+## Usage Scenarios
 
-`rekustomize` truly shines when it's used to generate manifests for multiple
-clusters at once. It will group correlad resources together and will also
-efficiently handle multiple versions of the same resource.
+### Migration & manifest generation tool
 
-### Helm template
+Convert your live cluster state into reproducible *Kustomize* packages or *Helm*
+charts. Perfect for streamlining migration to services like `k0rdent`, `Flux` or
+`ArgoCD`.
 
-This [template](examples/export-helm/charts/simple-app/templates/simple-app-deployment.yaml)
-shows how `rekustomize` can handle multiple versions of the same resource:
-
-```
-spec:
-  {{- if index .Values.global "simple-app/Deployment/simple-app.spec.replicas" }}
-  replicas: {{ index .Values.global "simple-app/Deployment/simple-app.spec.replicas" }}
-  {{- end }} # simple-app/Deployment/simple-app.spec.replicas
-  template:
-    spec:
-      containers:
-      - image: {{ index .Values.global "simple-app/Deployment/simple-app.spec.template.spec.containers.[name=simple-app].image" }}
-        name: simple-app
+```bash
+$ ktl run generate.yaml
 ```
 
-[values.yaml](examples/export-helm/charts/simple-app/values.yaml)
-defines presets to group values from different resources:
+Example of `generate.yaml` to generate a *Kustomize* components package with all
+resources from the `simple-app` namespace, except for specific resources:
 
-```
-preset_values:
-  prod:
-    simple-app/ConfigMap/simple-app-env.data.ENV_VAR2: prod-value
-    simple-app/Deployment/simple-app.spec.replicas: 5
-  prod_test:
-    simple-app/Deployment/simple-app.spec.template.spec.containers.[name=simple-app].image: example.com/simple-app:v1.2.345
-  test:
-    simple-app/ConfigMap/simple-app-env.data.ENV_VAR2: test-value
-    simple-app/Deployment/simple-app.spec.replicas: 3
-```
-
-The generated **presets** are then assigned to each corresponding cluster:
-- [test-cluster-a](examples/export-helm/overlays/test-cluster-a/kustomization.yaml):
-
-```
-  valuesInline:
-    presets:
-    - prod_test
-    - test
-```
-
-- [prod-cluster-b](examples/export-helm/overlays/prod-cluster-b/kustomization.yaml):
-
-```
-  valuesInline:
-    presets:
-    - prod
-    - prod_test
-```
-
-Values, that are unique to a cluster are also supported:
-- [prod-cluster-a](examples/export-helm/overlays/prod-cluster-a/kustomization.yaml):
-```
-  valuesInline:
-    global:
-      simple-app/ConfigMap/simple-app-env.data.ENV_VAR3: prod-cluster-a-value
-```
-
-### Kustomize components
-
-If you use **kustomize components** format, similar overrides will be generated
-as strategic-merge patches:
-
-- [components/prod](examples/export-components/components/prod/simple-app/simple-app-deployment.yaml):
-
-```
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: simple-app
-  namespace: simple-app
-spec:
-  replicas: 5
-```
-
-- [components/test](examples/export-components/components/test/simple-app/simple-app-deployment.yaml):
-
-```
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: simple-app
-  namespace: simple-app
-spec:
-  replicas: 3
-```
-
-- [components/prod_test](examples/export-components/components/prod_test/simple-app/simple-app-deployment.yaml)
-
-```
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: simple-app
-  namespace: simple-app
-spec:
-  template:
-    spec:
-      containers:
-      - name: simple-app
-        image: example.com/simple-app:v1.2.345
-```
-
-## `rekustomization.yaml`
-
-To start using `rekustomize`, create a new folder with a `rekustomization.yaml`
-file where you can configure `rekustomize` behavior. Here's a breakdown of the
-**helm chart** [example](examples/export-helm/rekustomization.yaml):
-
-### Cluster selector
-
-By default `rekustomize` will use clusters defined in your `KUBECONFIG` file.
-You can select clusters using shell-like patterns:
-
-```
-clusters:
-- names: dev-* # shell-like pattern
-  tags: dev
-- names: test-cluster-a,test-cluster-* # comma-separated list
-  tags: test
-- names: # yaml list
-  - prod-cluster-a
-  - prod-cluster-*
-  tags: prod
-```
-
-In the future versions `rekustomize` will be able to use cluster metadata/labels
-from external sources, such as **ClusterAPI**, **k0rdent**, **ArgoCD** or
-**Flux**.
-
-### Resource selector
-
-By default, `rekustomize` will generate manifests for all resources from all
-namespaces, excluding a [pre-defined](pkg/cmd/defaults.yaml) list of dynamic
-resources, like `pods` or `events`. You can customize that behavior in the
-`export` section:
-
-```
-export:
-- namespaces: simple-app
-  labelSelectors: ['!generated-by']
-  apiResources:
-    exclude: jobs.batch
-- apiResources: namespaces
-  names: simple-app
-```
-
-### Resource attribute cleanup
-
-If your live cluster resources contain attributes that you don't want to be
-included in the generated manifests, you can use `SkipFilter` to remove such
-unwanted attributes or values. The following example will remove any
-`'example.com/generated'` annotations and `'dev.example.com/info'` annotations
-with the value of `'flaky-tests'`:
-
-```
-filters:
-- kind: SkipFilter
-  fields:
-  - metadata.annotations.example\.com/generated
-  - metadata.annotations.dev\.example\.com/info[=flaky-tests]
-```
-
-### Resource filters
-
-You can also use `SkipFilter` to exclude entire resources from the generated
-manifests - to further refine [resource selection](#resource-selector):
-
-```
+```yaml
+source:
+  kind: KubeConfig
+  clusters:
+  - names: dev-*
+    tags: dev
+  - names: test-cluster-a,test-cluster-b
+    tags: test
+  - names:
+    - 'prod-*'
+    - '*-prod-*'
+    tags: prod
+  resources:
+  - namespaces: simple-app
 filters:
 - kind: SkipFilter
   resources:
   - kind: CronJob
     name: infra-canary
+output:
+  kind: KustomizeComponents
 ```
 
-### Chart metadata
+If you prefer *Helm* chart, just change the `output`:
 
-This section defines metadata for the generated chart:
-
+```yaml
+output:
+  kind: HelmChart
+  helmChart:
+    name: simple-app
+    version: v1.0
 ```
-helmChart:
-  name: simple-app
-  version: v1.0
+
+### Manifest cleanup, conversion & optimization tool
+
+```bash
+$ ktl run convert.yaml
 ```
 
-If no `helmChart` is specified, `rekustomize` will generate manifests in **kustomize components** format
+Normalize and optimize your existing manifests while also removing unwanted
+fields:
+
+```yaml
+source:
+  kind: Kustomize
+  kustomization: "path-to/${CLUSTER}"
+  clusters:
+  - names: dev-*
+    tags: dev
+  - names: test-cluster-a,test-cluster-b
+    tags: test
+  - names:
+    - prod-cluster-a
+    - prod-cluster-b
+    tags: prod
+filters:
+- kind: SkipFilter
+  fields:
+  - metadata.annotations.example\.com/generated
+  - metadata.annotations.dev\.example\.com/info[=flaky-tests]
+output:
+  kind: KustomizeComponents
+```
+
+Or convert to a *Helm* chart with `output`:
+
+```yaml
+output:
+  kind: HelmChart
+  helmChart:
+    name: converted-app
+    version: v1.0
+```
+
+### Query and analysis tool
+
+Use the `query` command to find matching resources:
+
+```bash
+$ ktl query 'deployments.apps,daemonsets' \
+  --clusters 'dev-*' \
+  'it["spec.template.spec.containers.[image=db:.*]"]'
+```
+
+Or use the `run` command for more advanced filtering using the
+[Starlark](https://github.com/bazelbuild/starlark) Python dialect:
+
+```bash
+$ ktl run query.yaml
+```
+
+`query.yaml`:
+
+```yaml
+source:
+  kind: KubeConfig
+  clusters:
+  - names: dev-*
+    tags: dev
+  - names: test-cluster-a,test-cluster-b
+    tags: test
+  - names:
+    - 'prod-*'
+    - '*-prod-*'
+    tags: prod
+  resources:
+  - namespaces: simple-app
+filters:
+- kind: Starlark
+  script: |
+    for it in resources:
+      if not it["spec.template.spec.containers.[image=db:.*]"]:
+        continue
+      if "test" in str(it.metadata.name):
+        continue
+      output.append(res)
+output:
+  kind: Table
+  columns:
+  - name: CLUSTER
+    text: "${CLUSTER}"
+  - name: KIND
+    field: kind
+  - name: NAMESPACE
+    field: metadata.namespace
+  - name: NAME
+    field: metadata.name
+  - name: CONTAINER
+    field: spec.template.spec.containers.*.name
+  - name: IMAGE
+    field: spec.template.spec.containers.*.image
+```
+
+### MCP tool (proof-of-concept)
+
+Create MCP tools that can provide your LLM with information about resources on
+your clusters. Combine with the above `query` filters for advanced scenarios.
+
+*NOTE*: currently the MCP server is implemented as `mcp-bridge-poc.py` script, but
+the future versions will provide it as part of the `ktl` binary.
+
+```yaml
+source:
+  clusters:
+  - names: "*"
+  resources:
+  - apiResources: deployments.apps
+output:
+  kind: MCPTool
+  description: |-
+    List containers and their images for
+    all deployments in all known K8s clusters
+  columns:
+  - name: CLUSTER
+    text: "${CLUSTER}"
+    description: Cluster name
+  - name: NAMESPACE
+    field: metadata.namespace
+    description: Namespace name
+  - name: NAME
+    field: metadata.name
+    description: Deployment name
+  - name: CONTAINER
+    field: spec.template.spec.containers.*.name
+    description: Container name
+  - name: IMAGE
+    field: spec.template.spec.containers.*.image
+    description: Container image
+```
