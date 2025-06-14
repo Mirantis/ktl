@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+package apis;
+option go_package = "github.com/Mirantis/ktl/pkg/apis";
+
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+
+service KTL {
+  rpc Config(google.protobuf.Empty) returns (Pipeline) {
+    option (google.api.http) = {
+      get: "/config"
+    };
+  }
+}
+
+// Pipeline defines the combination of source, filters and output.
+message Pipeline {
+  Source source = 1;
+  repeated Filter filters = 2;
+  Output output = 3;
+}
+
+message Source {
+  optional KubeConfigSource kubeconfig = 1;
+  optional KustomizeSource kustomize = 2;
+}
+
+message KubeConfigSource {
+  optional string path = 1;
+  repeated ClusterSelector clusters = 2;
+  repeated ResourceMatcher resources = 3;
+}
+
+message KustomizeSource {
+  string path = 1;
+  repeated ClusterSelector clusters = 2;
+}
+
+message ClusterSelector {
+  optional PatternSelector match_names = 1;
+  optional string alias = 2;
+}
+
+message ResourceMatcher {
+  optional PatternSelector match_names = 1;
+  optional PatternSelector match_namespaces = 2;
+  optional PatternSelector match_api_resources = 3;
+  repeated string label_selectors = 4;
+}
+
+message PatternSelector {
+  repeated string include = 1;
+  repeated string exclude = 2;
+}
+
+message Filter {
+  optional SkipFilter skip = 1;
+  optional StarlarkFilter starlark = 2;
+}
+
+message StarlarkFilter {
+  string script = 1;
+}
+
+message SkipFilter {
+  optional ResourceMatcher resources = 1;
+  repeated string fields = 2;
+}
+
+message ResourceSelector {
+  optional string group = 1;
+  optional string version = 2;
+  optional string kind = 3;
+  optional string name = 4;
+  optional string namespace = 5;
+  optional string annotation_selector = 6;
+  optional string label_selector = 7;
+}
+
+message Output {
+  optional KustomizeOutput kustomize = 1;
+  optional KustomizeComponentsOutput kustomize_components = 2;
+  optional HelmChartOutput helm_chart = 3;
+  optional ColumnarFileOutput csv = 4;
+  optional ColumnarFileOutput table = 5;
+  optional MCPToolOutput mcp_tool = 6;
+}
+
+message KustomizeOutput {
+}
+
+message KustomizeComponentsOutput {
+}
+
+message HelmChartOutput {
+  string name = 1;
+  string version = 2;
+}
+
+message ColumnarFileOutput {
+  optional string path = 1;
+  repeated ColumnOutput columns = 2;
+}
+
+message MCPToolOutput {
+  string description = 1;
+  repeated ColumnOutput columns = 2;
+}
+
+message ColumnOutput {
+  string name = 1;
+  optional string description = 2;
+  optional string field = 3;
+  optional string text = 4;
+}

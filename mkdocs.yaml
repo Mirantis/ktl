@@ -1,0 +1,7 @@
+site_name: KTL
+site_url: https://mirantis.github.com/ktl
+theme:
+  name: material
+plugins:
+  - search
+  - neoteroi.mkdocsoad

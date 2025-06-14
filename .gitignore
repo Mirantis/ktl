@@ -11,5 +11,7 @@ go.work.sum
 # env file
 .env
 
-# python / uv
+# python / uv / mkdocs
 __pycache__
+/site
+

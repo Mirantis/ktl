@@ -1,0 +1,160 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+  title: KTL API
+  version: beta1
+paths: {}
+components:
+  schemas:
+    ClusterSelector:
+      type: object
+      properties:
+        matchNames:
+          $ref: '#/components/schemas/PatternSelector'
+        alias:
+          type: string
+    ColumnOutput:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        field:
+          type: string
+        text:
+          type: string
+    ColumnarFileOutput:
+      type: object
+      properties:
+        path:
+          type: string
+        columns:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColumnOutput'
+    Filter:
+      type: object
+      properties:
+        skip:
+          $ref: '#/components/schemas/SkipFilter'
+        starlark:
+          $ref: '#/components/schemas/StarlarkFilter'
+    HelmChartOutput:
+      type: object
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+    KubeConfigSource:
+      type: object
+      properties:
+        path:
+          type: string
+        clusters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClusterSelector'
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceMatcher'
+    KustomizeComponentsOutput:
+      type: object
+      properties: {}
+    KustomizeOutput:
+      type: object
+      properties: {}
+    KustomizeSource:
+      type: object
+      properties:
+        path:
+          type: string
+        clusters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClusterSelector'
+    MCPToolOutput:
+      type: object
+      properties:
+        description:
+          type: string
+        columns:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColumnOutput'
+    Output:
+      type: object
+      properties:
+        kustomize:
+          $ref: '#/components/schemas/KustomizeOutput'
+        kustomizeComponents:
+          $ref: '#/components/schemas/KustomizeComponentsOutput'
+        helmChart:
+          $ref: '#/components/schemas/HelmChartOutput'
+        csv:
+          $ref: '#/components/schemas/ColumnarFileOutput'
+        table:
+          $ref: '#/components/schemas/ColumnarFileOutput'
+        mcpTool:
+          $ref: '#/components/schemas/MCPToolOutput'
+    PatternSelector:
+      type: object
+      properties:
+        include:
+          type: array
+          items:
+            type: string
+        exclude:
+          type: array
+          items:
+            type: string
+    Pipeline:
+      type: object
+      properties:
+        source:
+          $ref: '#/components/schemas/Source'
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/Filter'
+        output:
+          $ref: '#/components/schemas/Output'
+      description: Pipeline defines the combination of source, filters and output.
+    ResourceMatcher:
+      type: object
+      properties:
+        matchNames:
+          $ref: '#/components/schemas/PatternSelector'
+        matchNamespaces:
+          $ref: '#/components/schemas/PatternSelector'
+        matchApiResources:
+          $ref: '#/components/schemas/PatternSelector'
+        labelSelectors:
+          type: array
+          items:
+            type: string
+    SkipFilter:
+      type: object
+      properties:
+        resources:
+          $ref: '#/components/schemas/ResourceMatcher'
+        fields:
+          type: array
+          items:
+            type: string
+    Source:
+      type: object
+      properties:
+        kubeconfig:
+          $ref: '#/components/schemas/KubeConfigSource'
+        kustomize:
+          $ref: '#/components/schemas/KustomizeSource'
+    StarlarkFilter:
+      type: object
+      properties:
+        script:
+          type: string
