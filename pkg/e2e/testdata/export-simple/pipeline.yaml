@@ -1,8 +1,11 @@
 source:
-  clusters:
-  - names: dev-cluster-a
-  resources:
-  - namespaces: simple-app
+  kubeconfig:
+    clusters:
+    - matchNames:
+        include: [ dev-cluster-a ]
+    resources:
+    - matchNamespaces:
+        include: [ simple-app ]
 output:
-  kind: Kustomize
+  kustomize: {}
 

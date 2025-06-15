@@ -6,6 +6,7 @@ import (
 	"maps"
 	"slices"
 
+	"github.com/Mirantis/ktl/pkg/apis"
 	"github.com/Mirantis/ktl/pkg/kubectl"
 	"github.com/Mirantis/ktl/pkg/types"
 	"golang.org/x/sync/errgroup"
@@ -13,6 +14,33 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
+
+func newKubeconfig(spec *apis.KubeConfigSource) (*Kubeconfig, error) {
+	result := &Kubeconfig{}
+	result.Path = spec.GetPath()
+
+	for _, csSpec := range spec.GetClusters() {
+		cs, err := types.NewClusterSelector(csSpec)
+		if err != nil {
+			return nil, err
+		}
+
+		result.Clusters = append(result.Clusters, cs)
+	}
+
+	for _, rsSpec := range spec.GetResources() {
+		rs, err := types.NewResourceSelector(rsSpec)
+		if err != nil {
+			return nil, err
+		}
+
+		result.Resources = append(result.Resources, rs)
+	}
+
+	result.Resources = defaultResources(result.Resources)
+
+	return result, nil
+}
 
 type Kubeconfig struct {
 	Path      string                   `yaml:"kubeconfig"`

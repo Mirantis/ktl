@@ -5,13 +5,15 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Mirantis/ktl/pkg/apis"
 	"github.com/Mirantis/ktl/pkg/fsutil"
 	"github.com/Mirantis/ktl/pkg/kubectl"
 	"github.com/Mirantis/ktl/pkg/runner"
 	"github.com/Mirantis/ktl/pkg/types"
 	"github.com/spf13/cobra"
+	"google.golang.org/protobuf/encoding/protojson"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
-	"sigs.k8s.io/kustomize/kyaml/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 func newRunCommand() *cobra.Command {
@@ -37,9 +39,20 @@ func newRunCommand() *cobra.Command {
 				return fmt.Errorf("unable to read %s: %w", fileName, err)
 			}
 
-			pipeline := &runner.Pipeline{}
-			if err := yaml.Unmarshal(pipelineBytes, pipeline); err != nil {
-				return fmt.Errorf("unable to parse %s: %w", fileName, err)
+			pipelineJSON, err := yaml.YAMLToJSON(pipelineBytes)
+			if err != nil {
+				return err
+			}
+
+			pipelineSpec := &apis.Pipeline{}
+
+			if err := protojson.Unmarshal(pipelineJSON, pipelineSpec); err != nil {
+				return err
+			}
+
+			pipeline, err := runner.NewPipeline(pipelineSpec)
+			if err != nil {
+				return err
 			}
 
 			return pipeline.Run(env)

@@ -142,11 +142,34 @@ components:
           type: array
           items:
             type: string
+    ResourceSelector:
+      type: object
+      properties:
+        group:
+          type: string
+        version:
+          type: string
+        kind:
+          type: string
+        name:
+          type: string
+        namespace:
+          type: string
+        annotationSelector:
+          type: string
+        labelSelector:
+          type: string
     SkipFilter:
       type: object
       properties:
         resources:
-          $ref: '#/components/schemas/ResourceMatcher'
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceSelector'
+        keepResources:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceSelector'
         fields:
           type: array
           items:

@@ -1,28 +1,36 @@
 source:
-  clusters:
-  - names: dev-*
-    tags: dev
-  - names: test-cluster-a,test-cluster-b
-    tags: test
-  - names:
-    - prod-cluster-a
-    - prod-cluster-b
-    tags: prod
-  resources:
-  - namespaces: simple-app
-    labelSelectors: ['!generated-by']
-    apiResources:
-      exclude: jobs.batch
-  - apiResources: namespaces
-    names: simple-app
+  kubeconfig:
+    clusters:
+    - matchNames:
+        include: [ dev-* ]
+      alias: dev
+    - matchNames:
+        include: [ test-cluster-a, test-cluster-b ]
+      alias: test
+    - matchNames:
+        include:
+        - prod-cluster-a
+        - prod-cluster-b
+      alias: prod
+    resources:
+    - matchNamespaces:
+        include: [ simple-app ]
+      labelSelectors: ['!generated-by']
+      matchApiResources:
+        exclude: [ jobs.batch ]
+    - matchApiResources:
+        include: [ namespaces ]
+      matchNames:
+        include: [ simple-app ]
 filters:
-- kind: SkipFilter
-  fields:
-  - metadata.annotations.example\.com/generated
-  - metadata.annotations.dev\.example\.com/info[=flaky-tests]
-- kind: SkipFilter
-  resources:
-  - kind: CronJob
-    name: infra-canary
+- skip:
+    fields:
+    - metadata.annotations.example\.com/generated
+    - metadata.annotations.dev\.example\.com/info[=flaky-tests]
+- skip:
+    resources:
+    - kind: CronJob
+      name: infra-canary
 output:
-  kind: KustomizeComponents
+  kustomizeComponents: {}
+

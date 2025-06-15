@@ -4,9 +4,14 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/Mirantis/ktl/pkg/apis"
 	"github.com/Mirantis/ktl/pkg/resource"
 	"github.com/Mirantis/ktl/pkg/types"
 )
+
+func newKustomizeOutput(_ *apis.KustomizeOutput) (*KustomizeOutput, error) {
+	return &KustomizeOutput{}, nil
+}
 
 type KustomizeOutput struct{}
 

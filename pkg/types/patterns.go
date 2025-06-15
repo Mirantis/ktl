@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/Mirantis/ktl/pkg/apis"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -91,6 +92,26 @@ func (p Patterns) Match(name string) bool {
 	}
 
 	return false
+}
+
+func NewPatternSelector(spec *apis.PatternSelector) (PatternSelector, error) {
+	ps := PatternSelector{}
+
+	for _, p := range spec.GetInclude() {
+		if _, err := path.Match(p, ""); err != nil {
+			return ps, fmt.Errorf("invalid pattern: %w", err)
+		}
+		ps.Include = append(ps.Include, p)
+	}
+
+	for _, p := range spec.GetExclude() {
+		if _, err := path.Match(p, ""); err != nil {
+			return ps, fmt.Errorf("invalid pattern: %w", err)
+		}
+		ps.Exclude = append(ps.Exclude, p)
+	}
+
+	return ps, nil
 }
 
 type PatternSelector struct {

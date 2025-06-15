@@ -6,9 +6,19 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/Mirantis/ktl/pkg/apis"
 	"github.com/Mirantis/ktl/pkg/types"
 	"k8s.io/cli-runtime/pkg/printers"
 )
+
+func newTableOutput(spec *apis.ColumnarFileOutput) (*TableOutput, error) {
+	impl, err := newCSVOutput(spec)
+	if err != nil {
+		return nil, err
+	}
+
+	return &TableOutput{*impl}, nil
+}
 
 type TableOutput struct {
 	CSVOutput `yaml:",inline"`

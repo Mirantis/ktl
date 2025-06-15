@@ -6,10 +6,12 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/Mirantis/ktl/pkg/apis"
 	"github.com/Mirantis/ktl/pkg/output"
 	"github.com/Mirantis/ktl/pkg/runner"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/kustomize/kyaml/yaml"
+	"google.golang.org/protobuf/encoding/protojson"
+	"sigs.k8s.io/yaml"
 )
 
 func newMCPCommand() *cobra.Command {
@@ -35,9 +37,20 @@ func newMCPDescribeCommand() *cobra.Command {
 			}
 			slog.Info("mcp describe", "pipeline", pipelineBytes, "file", fileName)
 
-			pipeline := &runner.Pipeline{}
-			if err := yaml.Unmarshal(pipelineBytes, pipeline); err != nil {
-				return fmt.Errorf("unable to parse %s: %w", fileName, err)
+			pipelineJSON, err := yaml.YAMLToJSON(pipelineBytes)
+			if err != nil {
+				return err
+			}
+
+			pipelineSpec := &apis.Pipeline{}
+
+			if err := protojson.Unmarshal(pipelineJSON, pipelineSpec); err != nil {
+				return err
+			}
+
+			pipeline, err := runner.NewPipeline(pipelineSpec)
+			if err != nil {
+				return err
 			}
 
 			mcptool, ok := pipeline.Output.Impl.(*output.MCPToolOutput)

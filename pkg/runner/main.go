@@ -5,9 +5,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Mirantis/ktl/pkg/apis"
+	"github.com/Mirantis/ktl/pkg/filters"
+	"github.com/Mirantis/ktl/pkg/output"
+	"github.com/Mirantis/ktl/pkg/source"
 	"github.com/Mirantis/ktl/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/kio"
-	"sigs.k8s.io/kustomize/kyaml/kio/filters"
+	kfilters "sigs.k8s.io/kustomize/kyaml/kio/filters"
 	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -25,7 +29,7 @@ type Pipeline struct {
 	Source Source `yaml:"source"`
 	Output Output `yaml:"output"`
 
-	Filters []filters.KFilter `yaml:"filters"`
+	Filters []kfilters.KFilter `yaml:"filters"`
 }
 
 type rekustomization Pipeline
@@ -47,6 +51,40 @@ func (cfg *Pipeline) UnmarshalYAML(node *yaml.Node) error {
 	cfg.Filters = append(cfg.Filters, defaults.Filters...)
 
 	return nil
+}
+
+func NewPipeline(spec *apis.Pipeline) (*Pipeline, error) {
+	pipeline := &Pipeline{}
+
+	defaults := &rekustomization{}
+	if err := yaml.Unmarshal(defaultsYaml, &defaults); err != nil {
+		panic(fmt.Errorf("broken defaults: %w", err))
+	}
+
+	src, err := source.New(spec.GetSource())
+	if err != nil {
+		return nil, err
+	}
+
+	out, err := output.New(spec.GetOutput())
+	if err != nil {
+		return nil, err
+	}
+
+	for _, filterSpec := range spec.GetFilters() {
+		filter, err := filters.New(filterSpec)
+		if err != nil {
+			return nil, err
+		}
+
+		pipeline.Filters = append(pipeline.Filters, filter)
+	}
+
+	pipeline.Source = Source{src}
+	pipeline.Output = Output{out}
+	pipeline.Filters = append(pipeline.Filters, defaults.Filters...)
+
+	return pipeline, nil
 }
 
 func (cfg *Pipeline) Run(env *types.Env) error {

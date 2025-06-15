@@ -3,6 +3,7 @@ package filters
 import (
 	"fmt"
 
+	"github.com/Mirantis/ktl/pkg/apis"
 	"github.com/Mirantis/ktl/pkg/resource"
 	"github.com/Mirantis/ktl/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -15,6 +16,41 @@ const skipAnnotation = "x-ktl-skip"
 //nolint:gochecknoinits
 func init() {
 	filters.Filters["SkipFilter"] = func() kio.Filter { return &SkipFilter{} }
+}
+
+func newSelectors(specs []*apis.ResourceSelector) []*types.Selector {
+	result := []*types.Selector{}
+	for _, rsSpec := range specs {
+		rs := &types.Selector{}
+		rs.Group = rsSpec.GetGroup()
+		rs.Version = rsSpec.GetVersion()
+		rs.Kind = rsSpec.GetKind()
+		rs.Name = rsSpec.GetName()
+		rs.Namespace = rsSpec.GetNamespace()
+		rs.LabelSelector = rsSpec.GetLabelSelector()
+		rs.AnnotationSelector = rsSpec.GetAnnotationSelector()
+		result = append(result, rs)
+	}
+
+	return result
+}
+
+func newSkipFilter(spec *apis.SkipFilter) (*SkipFilter, error) {
+	sf := &SkipFilter{}
+
+	sf.Resources = newSelectors(spec.GetResources())
+	sf.Except = newSelectors(spec.GetKeepResources())
+
+	for _, fSpec := range spec.GetFields() {
+		q := resource.Query{}
+		err := q.UnmarshalYAML(yaml.NewStringRNode(fSpec).YNode())
+		if err != nil {
+			return nil, err
+		}
+		sf.Fields = append(sf.Fields, q)
+	}
+
+	return sf, nil
 }
 
 type SkipFilter struct {

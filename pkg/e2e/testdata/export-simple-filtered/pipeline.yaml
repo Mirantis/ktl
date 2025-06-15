@@ -1,21 +1,26 @@
 source:
-  clusters:
-  - names: dev-cluster-a
-  resources:
-  - namespaces: simple-app
-    labelSelectors: ['!generated-by']
-    apiResources:
-      exclude: jobs.batch
-  - apiResources: namespaces
-    names: simple-app
+  kubeconfig:
+    clusters:
+    - matchNames:
+        include: [ dev-cluster-a ]
+    resources:
+    - matchNamespaces:
+        include: [ simple-app ]
+      labelSelectors: ['!generated-by']
+      matchApiResources:
+        exclude: [ jobs.batch ]
+    - matchApiResources:
+        include: [ namespaces ]
+      matchNames:
+        include: [ simple-app ]
 filters:
-- kind: SkipFilter
-  fields:
-  - metadata.annotations.example\.com/generated
-  - metadata.annotations.dev\.example\.com/info[=flaky-tests]
-- kind: SkipFilter
-  resources:
-  - kind: CronJob
-    name: infra-canary
+- skip:
+    fields:
+    - metadata.annotations.example\.com/generated
+    - metadata.annotations.dev\.example\.com/info[=flaky-tests]
+- skip:
+    resources:
+    - kind: CronJob
+      name: infra-canary
 output:
-  kind: Kustomize
+  kustomize: {}

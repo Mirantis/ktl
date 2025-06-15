@@ -1,26 +1,30 @@
 source:
-  kind: Kustomize
-  kustomization: "../import/${CLUSTER}"
-  clusters:
-  - names: dev-*
-    tags: dev
-  - names: test-cluster-a,test-cluster-b
-    tags: test
-  - names:
-    - prod-cluster-a
-    - prod-cluster-b
-    tags: prod
+  kustomize:
+    path: "../import/${CLUSTER}"
+    clusters:
+    - matchNames:
+        include: [ dev-* ]
+      alias: dev
+    - matchNames:
+        include: [ test-cluster-a, test-cluster-b ]
+      alias: test
+    - matchNames:
+        include:
+        - prod-cluster-a
+        - prod-cluster-b
+      alias: prod
 filters:
-- kind: SkipFilter
-  fields:
-  - metadata.annotations.example\.com/generated
-  - metadata.annotations.dev\.example\.com/info[=flaky-tests]
-- kind: SkipFilter
-  resources:
-  - kind: Node
-  - kind: ConfigMap
-    labelSelector: "generated-by"
-  - kind: CronJob
-    name: infra-canary
+- skip:
+    fields:
+    - metadata.annotations.example\.com/generated
+    - metadata.annotations.dev\.example\.com/info[=flaky-tests]
+- skip:
+    resources:
+    - kind: Node
+    - kind: ConfigMap
+      labelSelector: "generated-by"
+    - kind: CronJob
+      name: infra-canary
 output:
-  kind: KustomizeComponents
+  kustomizeComponents: {}
+

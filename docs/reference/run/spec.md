@@ -13,7 +13,7 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| match_names | [PatternSelector](#apis-PatternSelector) | optional |  |
+| matchNames | [PatternSelector](#apis-PatternSelector) | optional |  |
 | alias | [string](#string) | optional |  |
 
 
@@ -165,11 +165,11 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | kustomize | [KustomizeOutput](#apis-KustomizeOutput) | optional |  |
-| kustomize_components | [KustomizeComponentsOutput](#apis-KustomizeComponentsOutput) | optional |  |
-| helm_chart | [HelmChartOutput](#apis-HelmChartOutput) | optional |  |
+| kustomizeComponents | [KustomizeComponentsOutput](#apis-KustomizeComponentsOutput) | optional |  |
+| helmChart | [HelmChartOutput](#apis-HelmChartOutput) | optional |  |
 | csv | [ColumnarFileOutput](#apis-ColumnarFileOutput) | optional |  |
 | table | [ColumnarFileOutput](#apis-ColumnarFileOutput) | optional |  |
-| mcp_tool | [MCPToolOutput](#apis-MCPToolOutput) | optional |  |
+| mcpTool | [MCPToolOutput](#apis-MCPToolOutput) | optional |  |
 
 
 
@@ -217,10 +217,10 @@ Pipeline defines the combination of source, filters and output.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| match_names | [PatternSelector](#apis-PatternSelector) | optional |  |
-| match_namespaces | [PatternSelector](#apis-PatternSelector) | optional |  |
-| match_api_resources | [PatternSelector](#apis-PatternSelector) | optional |  |
-| label_selectors | [string](#string) | repeated |  |
+| matchNames | [PatternSelector](#apis-PatternSelector) | optional |  |
+| matchNamespaces | [PatternSelector](#apis-PatternSelector) | optional |  |
+| matchApiResources | [PatternSelector](#apis-PatternSelector) | optional |  |
+| labelSelectors | [string](#string) | repeated |  |
 
 
 
@@ -240,8 +240,8 @@ Pipeline defines the combination of source, filters and output.
 | kind | [string](#string) | optional |  |
 | name | [string](#string) | optional |  |
 | namespace | [string](#string) | optional |  |
-| annotation_selector | [string](#string) | optional |  |
-| label_selector | [string](#string) | optional |  |
+| annotationSelector | [string](#string) | optional |  |
+| labelSelector | [string](#string) | optional |  |
 
 
 
@@ -256,7 +256,8 @@ Pipeline defines the combination of source, filters and output.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| resources | [ResourceMatcher](#apis-ResourceMatcher) | optional |  |
+| resources | [ResourceSelector](#apis-ResourceSelector) | repeated |  |
+| keepResources | [ResourceSelector](#apis-ResourceSelector) | repeated |  |
 | fields | [string](#string) | repeated |  |
 
 

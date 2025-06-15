@@ -70,8 +70,9 @@ message StarlarkFilter {
 }
 
 message SkipFilter {
-  optional ResourceMatcher resources = 1;
-  repeated string fields = 2;
+  repeated ResourceSelector resources = 1;
+  repeated ResourceSelector keep_resources = 2;
+  repeated string fields = 3;
 }
 
 message ResourceSelector {

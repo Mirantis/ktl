@@ -521,8 +521,9 @@ func (x *StarlarkFilter) GetScript() string {
 
 type SkipFilter struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Resources     *ResourceMatcher       `protobuf:"bytes,1,opt,name=resources,proto3,oneof" json:"resources,omitempty"`
-	Fields        []string               `protobuf:"bytes,2,rep,name=fields,proto3" json:"fields,omitempty"`
+	Resources     []*ResourceSelector    `protobuf:"bytes,1,rep,name=resources,proto3" json:"resources,omitempty"`
+	KeepResources []*ResourceSelector    `protobuf:"bytes,2,rep,name=keep_resources,json=keepResources,proto3" json:"keep_resources,omitempty"`
+	Fields        []string               `protobuf:"bytes,3,rep,name=fields,proto3" json:"fields,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -557,9 +558,16 @@ func (*SkipFilter) Descriptor() ([]byte, []int) {
 	return file_run_proto_rawDescGZIP(), []int{9}
 }
 
-func (x *SkipFilter) GetResources() *ResourceMatcher {
+func (x *SkipFilter) GetResources() []*ResourceSelector {
 	if x != nil {
 		return x.Resources
+	}
+	return nil
+}
+
+func (x *SkipFilter) GetKeepResources() []*ResourceSelector {
+	if x != nil {
+		return x.KeepResources
 	}
 	return nil
 }
@@ -1092,13 +1100,12 @@ const file_run_proto_rawDesc = "" +
 	"\x05_skipB\v\n" +
 	"\t_starlark\"(\n" +
 	"\x0eStarlarkFilter\x12\x16\n" +
-	"\x06script\x18\x01 \x01(\tR\x06script\"l\n" +
+	"\x06script\x18\x01 \x01(\tR\x06script\"\x99\x01\n" +
 	"\n" +
-	"SkipFilter\x128\n" +
-	"\tresources\x18\x01 \x01(\v2\x15.apis.ResourceMatcherH\x00R\tresources\x88\x01\x01\x12\x16\n" +
-	"\x06fields\x18\x02 \x03(\tR\x06fieldsB\f\n" +
-	"\n" +
-	"_resources\"\xe4\x02\n" +
+	"SkipFilter\x124\n" +
+	"\tresources\x18\x01 \x03(\v2\x16.apis.ResourceSelectorR\tresources\x12=\n" +
+	"\x0ekeep_resources\x18\x02 \x03(\v2\x16.apis.ResourceSelectorR\rkeepResources\x12\x16\n" +
+	"\x06fields\x18\x03 \x03(\tR\x06fields\"\xe4\x02\n" +
 	"\x10ResourceSelector\x12\x19\n" +
 	"\x05group\x18\x01 \x01(\tH\x00R\x05group\x88\x01\x01\x12\x1d\n" +
 	"\aversion\x18\x02 \x01(\tH\x01R\aversion\x88\x01\x01\x12\x17\n" +
@@ -1203,22 +1210,23 @@ var file_run_proto_depIdxs = []int32{
 	6,  // 11: apis.ResourceMatcher.match_api_resources:type_name -> apis.PatternSelector
 	9,  // 12: apis.Filter.skip:type_name -> apis.SkipFilter
 	8,  // 13: apis.Filter.starlark:type_name -> apis.StarlarkFilter
-	5,  // 14: apis.SkipFilter.resources:type_name -> apis.ResourceMatcher
-	12, // 15: apis.Output.kustomize:type_name -> apis.KustomizeOutput
-	13, // 16: apis.Output.kustomize_components:type_name -> apis.KustomizeComponentsOutput
-	14, // 17: apis.Output.helm_chart:type_name -> apis.HelmChartOutput
-	15, // 18: apis.Output.csv:type_name -> apis.ColumnarFileOutput
-	15, // 19: apis.Output.table:type_name -> apis.ColumnarFileOutput
-	16, // 20: apis.Output.mcp_tool:type_name -> apis.MCPToolOutput
-	17, // 21: apis.ColumnarFileOutput.columns:type_name -> apis.ColumnOutput
-	17, // 22: apis.MCPToolOutput.columns:type_name -> apis.ColumnOutput
-	18, // 23: apis.KTL.Config:input_type -> google.protobuf.Empty
-	0,  // 24: apis.KTL.Config:output_type -> apis.Pipeline
-	24, // [24:25] is the sub-list for method output_type
-	23, // [23:24] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	10, // 14: apis.SkipFilter.resources:type_name -> apis.ResourceSelector
+	10, // 15: apis.SkipFilter.keep_resources:type_name -> apis.ResourceSelector
+	12, // 16: apis.Output.kustomize:type_name -> apis.KustomizeOutput
+	13, // 17: apis.Output.kustomize_components:type_name -> apis.KustomizeComponentsOutput
+	14, // 18: apis.Output.helm_chart:type_name -> apis.HelmChartOutput
+	15, // 19: apis.Output.csv:type_name -> apis.ColumnarFileOutput
+	15, // 20: apis.Output.table:type_name -> apis.ColumnarFileOutput
+	16, // 21: apis.Output.mcp_tool:type_name -> apis.MCPToolOutput
+	17, // 22: apis.ColumnarFileOutput.columns:type_name -> apis.ColumnOutput
+	17, // 23: apis.MCPToolOutput.columns:type_name -> apis.ColumnOutput
+	18, // 24: apis.KTL.Config:input_type -> google.protobuf.Empty
+	0,  // 25: apis.KTL.Config:output_type -> apis.Pipeline
+	25, // [25:26] is the sub-list for method output_type
+	24, // [24:25] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_run_proto_init() }
@@ -1231,7 +1239,6 @@ func file_run_proto_init() {
 	file_run_proto_msgTypes[4].OneofWrappers = []any{}
 	file_run_proto_msgTypes[5].OneofWrappers = []any{}
 	file_run_proto_msgTypes[7].OneofWrappers = []any{}
-	file_run_proto_msgTypes[9].OneofWrappers = []any{}
 	file_run_proto_msgTypes[10].OneofWrappers = []any{}
 	file_run_proto_msgTypes[11].OneofWrappers = []any{}
 	file_run_proto_msgTypes[15].OneofWrappers = []any{}

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Mirantis/ktl/pkg/apis"
 	"github.com/Mirantis/ktl/pkg/types"
 	"golang.org/x/sync/errgroup"
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -16,6 +17,23 @@ type Kustomize struct {
 	PathTemplate string                   `yaml:"kustomization"`
 	Clusters     []types.ClusterSelector  `yaml:"clusters"`
 	Resources    []types.ResourceSelector `yaml:"resources"`
+}
+
+func newKustomize(spec*apis.KustomizeSource) (*Kustomize, error) {
+	impl := &Kustomize{
+		PathTemplate: spec.GetPath(),
+	}
+
+	for _, csSpec := range spec.GetClusters() {
+		cs, err := types.NewClusterSelector(csSpec)
+		if err != nil {
+			return nil, err
+		}
+
+		impl.Clusters = append(impl.Clusters, cs)
+	}
+
+	return impl, nil
 }
 
 type kustomizePkg struct {

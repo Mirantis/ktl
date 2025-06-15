@@ -1,33 +1,36 @@
 source:
-  kind: Kustomize
-  kustomization: "../import/${CLUSTER}"
-  clusters:
-  - names: dev-*
-    tags: dev
-  - names: test-cluster-a,test-cluster-b
-    tags: test
-  - names:
-    - prod-cluster-a
-    - prod-cluster-b
-    tags: prod
+  kustomize:
+    path: "../import/${CLUSTER}"
+    clusters:
+    - matchNames:
+        include: [ dev-* ]
+      alias: dev
+    - matchNames:
+        include: [ test-cluster-a, test-cluster-b ]
+      alias: test
+    - matchNames:
+        include:
+        - prod-cluster-a
+        - prod-cluster-b
+      alias: prod
 filters:
-- kind: SkipFilter
-  resources:
-  - kind: Node
-  - kind: ConfigMap
-    labelSelector: "generated-by"
-  - kind: CronJob
-    name: infra-canary
+- skip:
+    resources:
+    - kind: Node
+    - kind: ConfigMap
+      labelSelector: "generated-by"
+    - kind: CronJob
+      name: infra-canary
 output:
-  kind: Table
-  path: output.txt
-  columns:
-  - name: CLUSTER
-    text: "${CLUSTER}"
-  - name: KIND
-    field: kind
-  - name: NAMESPACE
-    field: metadata.namespace
-  - name: NAME
-    field: metadata.name
+  table:
+    path: output.txt
+    columns:
+    - name: CLUSTER
+      text: "${CLUSTER}"
+    - name: KIND
+      field: kind
+    - name: NAMESPACE
+      field: metadata.namespace
+    - name: NAME
+      field: metadata.name
 

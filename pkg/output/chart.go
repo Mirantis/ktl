@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/Mirantis/ktl/pkg/apis"
 	"github.com/Mirantis/ktl/pkg/fsutil"
 	"github.com/Mirantis/ktl/pkg/resource"
 	"github.com/Mirantis/ktl/pkg/types"
@@ -28,6 +29,15 @@ var (
 	//go:embed data/_helpers.tpl
 	helpersTpl []byte
 )
+
+func newChartOutput(spec *apis.HelmChartOutput) (*ChartOutput, error) {
+	hc := types.HelmChart{
+		Name: spec.GetName(),
+		Version: spec.GetVersion(),
+	}
+
+	return &ChartOutput{hc}, nil
+}
 
 type ChartOutput struct {
 	HelmChart types.HelmChart `yaml:"helmChart"`

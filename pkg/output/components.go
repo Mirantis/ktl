@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/Mirantis/ktl/pkg/apis"
 	"github.com/Mirantis/ktl/pkg/fsutil"
 	"github.com/Mirantis/ktl/pkg/resource"
 	"github.com/Mirantis/ktl/pkg/types"
@@ -17,6 +18,10 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
+
+func newComponentsOutput(_ *apis.KustomizeComponentsOutput) (*ComponentsOutput, error) {
+	return &ComponentsOutput{}, nil
+}
 
 type ComponentsOutput struct{}
 

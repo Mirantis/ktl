@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/Mirantis/ktl/pkg/apis"
 	"github.com/Mirantis/ktl/pkg/resource"
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
@@ -17,6 +18,13 @@ import (
 //nolint:gochecknoinits
 func init() {
 	filters.Filters["Starlark"] = func() kio.Filter { return &StarlarkFilter{} }
+}
+
+func newStarlarkFilter(spec *apis.StarlarkFilter) (*StarlarkFilter, error) {
+	return &StarlarkFilter{
+		Kind:   "Starlark",
+		Script: spec.GetScript(),
+	}, nil
 }
 
 type StarlarkFilter struct {

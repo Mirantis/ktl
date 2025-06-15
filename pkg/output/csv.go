@@ -9,10 +9,28 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/Mirantis/ktl/pkg/apis"
 	"github.com/Mirantis/ktl/pkg/resource"
 	"github.com/Mirantis/ktl/pkg/types"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
+
+func newValueRef(spec *apis.ColumnOutput) (ValueRef, error) {
+	q := resource.Query{}
+
+	if f := spec.GetField(); len(f) > 0 {
+		if err := q.UnmarshalYAML(yaml.NewStringRNode(f).YNode()); err != nil {
+			return ValueRef{}, err
+		}
+	}
+
+	return ValueRef{
+		Name:        spec.GetName(),
+		Description: spec.GetDescription(),
+		Field:       q,
+		Text:        spec.GetText(),
+	}, nil
+}
 
 type ValueRef struct {
 	Name        string         `yaml:"name"`
@@ -45,6 +63,22 @@ func (ref *ValueRef) text(cluster *types.Cluster) string {
 	}
 
 	return ""
+}
+
+func newCSVOutput(spec *apis.ColumnarFileOutput) (*CSVOutput, error) {
+	impl := &CSVOutput{
+		Path: spec.GetPath(),
+	}
+
+	for _, colSpec := range spec.GetColumns() {
+		ref, err := newValueRef(colSpec)
+		if err != nil {
+			return nil, err
+		}
+		impl.Columns = append(impl.Columns, ref)
+	}
+
+	return impl, nil
 }
 
 type CSVOutput struct {

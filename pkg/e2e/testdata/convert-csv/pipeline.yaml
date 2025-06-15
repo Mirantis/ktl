@@ -1,24 +1,25 @@
 source:
-  kind: Kustomize
-  kustomization: "../import/${CLUSTER}"
-  clusters:
-  - names: "*-*"
+  kustomize:
+    path: "../import/${CLUSTER}"
+    clusters:
+    - matchNames:
+        include: [ "*-*" ]
 filters:
-- kind: SkipFilter
-  except:
-  - kind: Deployment
+- skip:
+    keepResources:
+    - kind: Deployment
 output:
-  kind: CSV
-  path: output.csv
-  columns:
-  - name: CLUSTER
-    text: "${CLUSTER}"
-  - name: NAMESPACE
-    field: metadata.namespace
-  - name: NAME
-    field: metadata.name
-  - name: CONTAINER
-    field: spec.template.spec.containers.*.name
-  - name: IMAGE
-    field: spec.template.spec.containers.*.image
+  csv:
+    path: output.csv
+    columns:
+    - name: CLUSTER
+      text: "${CLUSTER}"
+    - name: NAMESPACE
+      field: metadata.namespace
+    - name: NAME
+      field: metadata.name
+    - name: CONTAINER
+      field: spec.template.spec.containers.*.name
+    - name: IMAGE
+      field: spec.template.spec.containers.*.image
 
