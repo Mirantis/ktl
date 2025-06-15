@@ -12,5 +12,5 @@ Think of it as your Swiss Army knife for:
 - Querying and analyzing resources across multiple clusters
 - Creating Model Context Protocol (MCP) tools to enrich LLM context
 
-👉[Read the Docs](https://mirantis.github.com/ktl)
+👉[Read the Docs](https://mirantis.github.io/ktl/)
 

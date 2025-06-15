@@ -1,5 +1,5 @@
 site_name: KTL
-site_url: https://mirantis.github.com/ktl
+site_url: https://mirantis.github.io/ktl/
 plugins:
   - search
 markdown_extensions:
