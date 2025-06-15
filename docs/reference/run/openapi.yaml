@@ -116,13 +116,18 @@ components:
       type: object
       properties:
         source:
-          $ref: '#/components/schemas/Source'
+          allOf:
+            - $ref: '#/components/schemas/Source'
+          description: Source specifies the origin of the manifests
         filters:
           type: array
           items:
             $ref: '#/components/schemas/Filter'
+          description: Filters transform the manifests
         output:
-          $ref: '#/components/schemas/Output'
+          allOf:
+            - $ref: '#/components/schemas/Output'
+          description: Output specifies the format of the result
       description: Pipeline defines the combination of source, filters and output.
     ResourceMatcher:
       type: object

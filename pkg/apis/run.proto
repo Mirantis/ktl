@@ -16,8 +16,14 @@ service KTL {
 
 // Pipeline defines the combination of source, filters and output.
 message Pipeline {
+
+  // Source specifies the origin of the manifests
   Source source = 1;
+
+  // Filters transform the manifests
   repeated Filter filters = 2;
+
+  // Output specifies the format of the result
   Output output = 3;
 }
 

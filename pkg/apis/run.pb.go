@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v5.29.3
-// source: config.proto
+// source: run.proto
 
 package apis
 
@@ -25,17 +25,20 @@ const (
 
 // Pipeline defines the combination of source, filters and output.
 type Pipeline struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Source        *Source                `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
-	Filters       []*Filter              `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
-	Output        *Output                `protobuf:"bytes,3,opt,name=output,proto3" json:"output,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Source specifies the origin of the manifests
+	Source *Source `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
+	// Filters transform the manifests
+	Filters []*Filter `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
+	// Output specifies the format of the result
+	Output        *Output `protobuf:"bytes,3,opt,name=output,proto3" json:"output,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Pipeline) Reset() {
 	*x = Pipeline{}
-	mi := &file_config_proto_msgTypes[0]
+	mi := &file_run_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -47,7 +50,7 @@ func (x *Pipeline) String() string {
 func (*Pipeline) ProtoMessage() {}
 
 func (x *Pipeline) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[0]
+	mi := &file_run_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -60,7 +63,7 @@ func (x *Pipeline) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Pipeline.ProtoReflect.Descriptor instead.
 func (*Pipeline) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{0}
+	return file_run_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Pipeline) GetSource() *Source {
@@ -94,7 +97,7 @@ type Source struct {
 
 func (x *Source) Reset() {
 	*x = Source{}
-	mi := &file_config_proto_msgTypes[1]
+	mi := &file_run_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -106,7 +109,7 @@ func (x *Source) String() string {
 func (*Source) ProtoMessage() {}
 
 func (x *Source) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[1]
+	mi := &file_run_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -119,7 +122,7 @@ func (x *Source) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Source.ProtoReflect.Descriptor instead.
 func (*Source) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{1}
+	return file_run_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Source) GetKubeconfig() *KubeConfigSource {
@@ -147,7 +150,7 @@ type KubeConfigSource struct {
 
 func (x *KubeConfigSource) Reset() {
 	*x = KubeConfigSource{}
-	mi := &file_config_proto_msgTypes[2]
+	mi := &file_run_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -159,7 +162,7 @@ func (x *KubeConfigSource) String() string {
 func (*KubeConfigSource) ProtoMessage() {}
 
 func (x *KubeConfigSource) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[2]
+	mi := &file_run_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -172,7 +175,7 @@ func (x *KubeConfigSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KubeConfigSource.ProtoReflect.Descriptor instead.
 func (*KubeConfigSource) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{2}
+	return file_run_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *KubeConfigSource) GetPath() string {
@@ -206,7 +209,7 @@ type KustomizeSource struct {
 
 func (x *KustomizeSource) Reset() {
 	*x = KustomizeSource{}
-	mi := &file_config_proto_msgTypes[3]
+	mi := &file_run_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -218,7 +221,7 @@ func (x *KustomizeSource) String() string {
 func (*KustomizeSource) ProtoMessage() {}
 
 func (x *KustomizeSource) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[3]
+	mi := &file_run_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -231,7 +234,7 @@ func (x *KustomizeSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KustomizeSource.ProtoReflect.Descriptor instead.
 func (*KustomizeSource) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{3}
+	return file_run_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *KustomizeSource) GetPath() string {
@@ -258,7 +261,7 @@ type ClusterSelector struct {
 
 func (x *ClusterSelector) Reset() {
 	*x = ClusterSelector{}
-	mi := &file_config_proto_msgTypes[4]
+	mi := &file_run_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -270,7 +273,7 @@ func (x *ClusterSelector) String() string {
 func (*ClusterSelector) ProtoMessage() {}
 
 func (x *ClusterSelector) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[4]
+	mi := &file_run_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -283,7 +286,7 @@ func (x *ClusterSelector) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClusterSelector.ProtoReflect.Descriptor instead.
 func (*ClusterSelector) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{4}
+	return file_run_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ClusterSelector) GetMatchNames() *PatternSelector {
@@ -312,7 +315,7 @@ type ResourceMatcher struct {
 
 func (x *ResourceMatcher) Reset() {
 	*x = ResourceMatcher{}
-	mi := &file_config_proto_msgTypes[5]
+	mi := &file_run_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -324,7 +327,7 @@ func (x *ResourceMatcher) String() string {
 func (*ResourceMatcher) ProtoMessage() {}
 
 func (x *ResourceMatcher) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[5]
+	mi := &file_run_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -337,7 +340,7 @@ func (x *ResourceMatcher) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResourceMatcher.ProtoReflect.Descriptor instead.
 func (*ResourceMatcher) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{5}
+	return file_run_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ResourceMatcher) GetMatchNames() *PatternSelector {
@@ -378,7 +381,7 @@ type PatternSelector struct {
 
 func (x *PatternSelector) Reset() {
 	*x = PatternSelector{}
-	mi := &file_config_proto_msgTypes[6]
+	mi := &file_run_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -390,7 +393,7 @@ func (x *PatternSelector) String() string {
 func (*PatternSelector) ProtoMessage() {}
 
 func (x *PatternSelector) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[6]
+	mi := &file_run_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -403,7 +406,7 @@ func (x *PatternSelector) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PatternSelector.ProtoReflect.Descriptor instead.
 func (*PatternSelector) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{6}
+	return file_run_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *PatternSelector) GetInclude() []string {
@@ -430,7 +433,7 @@ type Filter struct {
 
 func (x *Filter) Reset() {
 	*x = Filter{}
-	mi := &file_config_proto_msgTypes[7]
+	mi := &file_run_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -442,7 +445,7 @@ func (x *Filter) String() string {
 func (*Filter) ProtoMessage() {}
 
 func (x *Filter) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[7]
+	mi := &file_run_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -455,7 +458,7 @@ func (x *Filter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Filter.ProtoReflect.Descriptor instead.
 func (*Filter) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{7}
+	return file_run_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *Filter) GetSkip() *SkipFilter {
@@ -481,7 +484,7 @@ type StarlarkFilter struct {
 
 func (x *StarlarkFilter) Reset() {
 	*x = StarlarkFilter{}
-	mi := &file_config_proto_msgTypes[8]
+	mi := &file_run_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -493,7 +496,7 @@ func (x *StarlarkFilter) String() string {
 func (*StarlarkFilter) ProtoMessage() {}
 
 func (x *StarlarkFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[8]
+	mi := &file_run_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -506,7 +509,7 @@ func (x *StarlarkFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StarlarkFilter.ProtoReflect.Descriptor instead.
 func (*StarlarkFilter) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{8}
+	return file_run_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *StarlarkFilter) GetScript() string {
@@ -526,7 +529,7 @@ type SkipFilter struct {
 
 func (x *SkipFilter) Reset() {
 	*x = SkipFilter{}
-	mi := &file_config_proto_msgTypes[9]
+	mi := &file_run_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -538,7 +541,7 @@ func (x *SkipFilter) String() string {
 func (*SkipFilter) ProtoMessage() {}
 
 func (x *SkipFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[9]
+	mi := &file_run_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -551,7 +554,7 @@ func (x *SkipFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SkipFilter.ProtoReflect.Descriptor instead.
 func (*SkipFilter) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{9}
+	return file_run_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *SkipFilter) GetResources() *ResourceMatcher {
@@ -583,7 +586,7 @@ type ResourceSelector struct {
 
 func (x *ResourceSelector) Reset() {
 	*x = ResourceSelector{}
-	mi := &file_config_proto_msgTypes[10]
+	mi := &file_run_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -595,7 +598,7 @@ func (x *ResourceSelector) String() string {
 func (*ResourceSelector) ProtoMessage() {}
 
 func (x *ResourceSelector) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[10]
+	mi := &file_run_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -608,7 +611,7 @@ func (x *ResourceSelector) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResourceSelector.ProtoReflect.Descriptor instead.
 func (*ResourceSelector) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{10}
+	return file_run_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ResourceSelector) GetGroup() string {
@@ -674,7 +677,7 @@ type Output struct {
 
 func (x *Output) Reset() {
 	*x = Output{}
-	mi := &file_config_proto_msgTypes[11]
+	mi := &file_run_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -686,7 +689,7 @@ func (x *Output) String() string {
 func (*Output) ProtoMessage() {}
 
 func (x *Output) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[11]
+	mi := &file_run_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -699,7 +702,7 @@ func (x *Output) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Output.ProtoReflect.Descriptor instead.
 func (*Output) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{11}
+	return file_run_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Output) GetKustomize() *KustomizeOutput {
@@ -752,7 +755,7 @@ type KustomizeOutput struct {
 
 func (x *KustomizeOutput) Reset() {
 	*x = KustomizeOutput{}
-	mi := &file_config_proto_msgTypes[12]
+	mi := &file_run_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -764,7 +767,7 @@ func (x *KustomizeOutput) String() string {
 func (*KustomizeOutput) ProtoMessage() {}
 
 func (x *KustomizeOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[12]
+	mi := &file_run_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -777,7 +780,7 @@ func (x *KustomizeOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KustomizeOutput.ProtoReflect.Descriptor instead.
 func (*KustomizeOutput) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{12}
+	return file_run_proto_rawDescGZIP(), []int{12}
 }
 
 type KustomizeComponentsOutput struct {
@@ -788,7 +791,7 @@ type KustomizeComponentsOutput struct {
 
 func (x *KustomizeComponentsOutput) Reset() {
 	*x = KustomizeComponentsOutput{}
-	mi := &file_config_proto_msgTypes[13]
+	mi := &file_run_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -800,7 +803,7 @@ func (x *KustomizeComponentsOutput) String() string {
 func (*KustomizeComponentsOutput) ProtoMessage() {}
 
 func (x *KustomizeComponentsOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[13]
+	mi := &file_run_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -813,7 +816,7 @@ func (x *KustomizeComponentsOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KustomizeComponentsOutput.ProtoReflect.Descriptor instead.
 func (*KustomizeComponentsOutput) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{13}
+	return file_run_proto_rawDescGZIP(), []int{13}
 }
 
 type HelmChartOutput struct {
@@ -826,7 +829,7 @@ type HelmChartOutput struct {
 
 func (x *HelmChartOutput) Reset() {
 	*x = HelmChartOutput{}
-	mi := &file_config_proto_msgTypes[14]
+	mi := &file_run_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -838,7 +841,7 @@ func (x *HelmChartOutput) String() string {
 func (*HelmChartOutput) ProtoMessage() {}
 
 func (x *HelmChartOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[14]
+	mi := &file_run_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -851,7 +854,7 @@ func (x *HelmChartOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HelmChartOutput.ProtoReflect.Descriptor instead.
 func (*HelmChartOutput) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{14}
+	return file_run_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *HelmChartOutput) GetName() string {
@@ -878,7 +881,7 @@ type ColumnarFileOutput struct {
 
 func (x *ColumnarFileOutput) Reset() {
 	*x = ColumnarFileOutput{}
-	mi := &file_config_proto_msgTypes[15]
+	mi := &file_run_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -890,7 +893,7 @@ func (x *ColumnarFileOutput) String() string {
 func (*ColumnarFileOutput) ProtoMessage() {}
 
 func (x *ColumnarFileOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[15]
+	mi := &file_run_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -903,7 +906,7 @@ func (x *ColumnarFileOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ColumnarFileOutput.ProtoReflect.Descriptor instead.
 func (*ColumnarFileOutput) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{15}
+	return file_run_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ColumnarFileOutput) GetPath() string {
@@ -930,7 +933,7 @@ type MCPToolOutput struct {
 
 func (x *MCPToolOutput) Reset() {
 	*x = MCPToolOutput{}
-	mi := &file_config_proto_msgTypes[16]
+	mi := &file_run_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -942,7 +945,7 @@ func (x *MCPToolOutput) String() string {
 func (*MCPToolOutput) ProtoMessage() {}
 
 func (x *MCPToolOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[16]
+	mi := &file_run_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -955,7 +958,7 @@ func (x *MCPToolOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MCPToolOutput.ProtoReflect.Descriptor instead.
 func (*MCPToolOutput) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{16}
+	return file_run_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *MCPToolOutput) GetDescription() string {
@@ -984,7 +987,7 @@ type ColumnOutput struct {
 
 func (x *ColumnOutput) Reset() {
 	*x = ColumnOutput{}
-	mi := &file_config_proto_msgTypes[17]
+	mi := &file_run_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -996,7 +999,7 @@ func (x *ColumnOutput) String() string {
 func (*ColumnOutput) ProtoMessage() {}
 
 func (x *ColumnOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_config_proto_msgTypes[17]
+	mi := &file_run_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1009,7 +1012,7 @@ func (x *ColumnOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ColumnOutput.ProtoReflect.Descriptor instead.
 func (*ColumnOutput) Descriptor() ([]byte, []int) {
-	return file_config_proto_rawDescGZIP(), []int{17}
+	return file_run_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ColumnOutput) GetName() string {
@@ -1040,11 +1043,11 @@ func (x *ColumnOutput) GetText() string {
 	return ""
 }
 
-var File_config_proto protoreflect.FileDescriptor
+var File_run_proto protoreflect.FileDescriptor
 
-const file_config_proto_rawDesc = "" +
+const file_run_proto_rawDesc = "" +
 	"\n" +
-	"\fconfig.proto\x12\x04apis\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/api/annotations.proto\"~\n" +
+	"\trun.proto\x12\x04apis\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/api/annotations.proto\"~\n" +
 	"\bPipeline\x12$\n" +
 	"\x06source\x18\x01 \x01(\v2\f.apis.SourceR\x06source\x12&\n" +
 	"\afilters\x18\x02 \x03(\v2\f.apis.FilterR\afilters\x12$\n" +
@@ -1152,19 +1155,19 @@ const file_config_proto_rawDesc = "" +
 	"\x06Config\x12\x16.google.protobuf.Empty\x1a\x0e.apis.Pipeline\"\x0f\x82\xd3\xe4\x93\x02\t\x12\a/configB\"Z github.com/Mirantis/ktl/pkg/apisb\x06proto3"
 
 var (
-	file_config_proto_rawDescOnce sync.Once
-	file_config_proto_rawDescData []byte
+	file_run_proto_rawDescOnce sync.Once
+	file_run_proto_rawDescData []byte
 )
 
-func file_config_proto_rawDescGZIP() []byte {
-	file_config_proto_rawDescOnce.Do(func() {
-		file_config_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_config_proto_rawDesc), len(file_config_proto_rawDesc)))
+func file_run_proto_rawDescGZIP() []byte {
+	file_run_proto_rawDescOnce.Do(func() {
+		file_run_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_run_proto_rawDesc), len(file_run_proto_rawDesc)))
 	})
-	return file_config_proto_rawDescData
+	return file_run_proto_rawDescData
 }
 
-var file_config_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
-var file_config_proto_goTypes = []any{
+var file_run_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_run_proto_goTypes = []any{
 	(*Pipeline)(nil),                  // 0: apis.Pipeline
 	(*Source)(nil),                    // 1: apis.Source
 	(*KubeConfigSource)(nil),          // 2: apis.KubeConfigSource
@@ -1185,7 +1188,7 @@ var file_config_proto_goTypes = []any{
 	(*ColumnOutput)(nil),              // 17: apis.ColumnOutput
 	(*emptypb.Empty)(nil),             // 18: google.protobuf.Empty
 }
-var file_config_proto_depIdxs = []int32{
+var file_run_proto_depIdxs = []int32{
 	1,  // 0: apis.Pipeline.source:type_name -> apis.Source
 	7,  // 1: apis.Pipeline.filters:type_name -> apis.Filter
 	11, // 2: apis.Pipeline.output:type_name -> apis.Output
@@ -1218,36 +1221,36 @@ var file_config_proto_depIdxs = []int32{
 	0,  // [0:23] is the sub-list for field type_name
 }
 
-func init() { file_config_proto_init() }
-func file_config_proto_init() {
-	if File_config_proto != nil {
+func init() { file_run_proto_init() }
+func file_run_proto_init() {
+	if File_run_proto != nil {
 		return
 	}
-	file_config_proto_msgTypes[1].OneofWrappers = []any{}
-	file_config_proto_msgTypes[2].OneofWrappers = []any{}
-	file_config_proto_msgTypes[4].OneofWrappers = []any{}
-	file_config_proto_msgTypes[5].OneofWrappers = []any{}
-	file_config_proto_msgTypes[7].OneofWrappers = []any{}
-	file_config_proto_msgTypes[9].OneofWrappers = []any{}
-	file_config_proto_msgTypes[10].OneofWrappers = []any{}
-	file_config_proto_msgTypes[11].OneofWrappers = []any{}
-	file_config_proto_msgTypes[15].OneofWrappers = []any{}
-	file_config_proto_msgTypes[17].OneofWrappers = []any{}
+	file_run_proto_msgTypes[1].OneofWrappers = []any{}
+	file_run_proto_msgTypes[2].OneofWrappers = []any{}
+	file_run_proto_msgTypes[4].OneofWrappers = []any{}
+	file_run_proto_msgTypes[5].OneofWrappers = []any{}
+	file_run_proto_msgTypes[7].OneofWrappers = []any{}
+	file_run_proto_msgTypes[9].OneofWrappers = []any{}
+	file_run_proto_msgTypes[10].OneofWrappers = []any{}
+	file_run_proto_msgTypes[11].OneofWrappers = []any{}
+	file_run_proto_msgTypes[15].OneofWrappers = []any{}
+	file_run_proto_msgTypes[17].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_config_proto_rawDesc), len(file_config_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_run_proto_rawDesc), len(file_run_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_config_proto_goTypes,
-		DependencyIndexes: file_config_proto_depIdxs,
-		MessageInfos:      file_config_proto_msgTypes,
+		GoTypes:           file_run_proto_goTypes,
+		DependencyIndexes: file_run_proto_depIdxs,
+		MessageInfos:      file_run_proto_msgTypes,
 	}.Build()
-	File_config_proto = out.File
-	file_config_proto_goTypes = nil
-	file_config_proto_depIdxs = nil
+	File_run_proto = out.File
+	file_run_proto_goTypes = nil
+	file_run_proto_depIdxs = nil
 }

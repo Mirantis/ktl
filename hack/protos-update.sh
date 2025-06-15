@@ -12,10 +12,12 @@ protoc \
   --proto_path=. \
   --go_out=. \
   --go_opt=paths=source_relative \
-  --openapi_out=../../docs \
+  --openapi_out=../../docs/reference/run \
   --openapi_opt=title="" \
   --openapi_opt=version=beta1 \
-  config.proto
+  --doc_out=../../docs/reference/run \
+  --doc_opt=mkdocs.tmpl,spec.md,source_relative \
+  run.proto
 
 yq '
 del(
@@ -23,4 +25,4 @@ del(
     .components.schemas.GoogleProtobufAny,
     .tags
 ),
-.paths={}' -i ../../docs/openapi.yaml
+.paths={}' -i ../../docs/reference/run/openapi.yaml

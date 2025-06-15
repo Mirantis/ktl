@@ -1,2 +1,0 @@
-[OAD(./docs/openapi.yaml)]
-
