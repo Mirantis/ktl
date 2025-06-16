@@ -1,0 +1,5 @@
+resources:
+- ../common/
+- deployment.yaml
+- service.yaml
+

@@ -30,5 +30,6 @@ theme:
     - navigation.sections
 nav:
   - index.md
+  - getting-started.md
   - Reference:
     - run spec: reference/run/spec.md

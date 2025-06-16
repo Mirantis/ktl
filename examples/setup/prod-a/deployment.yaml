@@ -1,0 +1,23 @@
+# dev-a
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: demo-app
+  name: demo-app
+  namespace: ktl-examples
+spec:
+  selector:
+    matchLabels:
+      app: demo-app
+  template:
+    metadata:
+      labels:
+        app: demo-app
+    spec:
+      containers:
+      - name: demo-app
+        image: demo-app:v1
+      - name: sidecar
+        image: sidecar:v1
+

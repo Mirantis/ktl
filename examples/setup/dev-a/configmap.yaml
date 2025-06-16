@@ -1,0 +1,9 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: sidecar-env
+  namespace: ktl-examples
+data:
+  VAR1: ktl
+  VAR2: dev-a
+
