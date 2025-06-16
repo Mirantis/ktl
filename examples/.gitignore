@@ -1,1 +1,4 @@
 kubeconfig
+run-*/**
+!run-*/pipeline.yaml
+

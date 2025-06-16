@@ -1,0 +1,20 @@
+source:
+  kubeconfig:
+    clusters:
+    - alias: dev
+      matchNames: { include: [ 'dev-*' ] }
+    - alias: prod
+      matchNames: { include: [ 'prod-*' ] }
+    - alias: env-a
+      matchNames: { include: [ '*-a' ] }
+    - alias: env-b
+      matchNames: { include: [ '*-b' ] }
+    resources:
+    - matchNamespaces: { include: [ 'ktl-examples' ] }
+      matchApiResources: { exclude: [ 'services' ] }
+
+    - matchApiResources: { include: [ 'namespaces' ] }
+      matchNames: { include: [ 'ktl-examples' ] }
+output:
+  kustomizeComponents: {}
+

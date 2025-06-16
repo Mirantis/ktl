@@ -31,5 +31,8 @@ theme:
 nav:
   - index.md
   - getting-started.md
+  - Examples:
+    - examples/generate.md
   - Reference:
     - run spec: reference/run/spec.md
+

@@ -13,3 +13,5 @@ for CLUSTER_DIR in $EXAMPLES_DIR/setup/*-*; do
     $DOCKER stop -t0 "$CLUSTER"
 done
 
+rm "$EXAMPLES_DIR/kubeconfig"
+

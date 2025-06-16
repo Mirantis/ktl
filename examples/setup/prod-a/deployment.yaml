@@ -16,8 +16,8 @@ spec:
         app: demo-app
     spec:
       containers:
-      - name: demo-app
-        image: demo-app:v1
       - name: sidecar
         image: sidecar:v1
+      - name: demo-app
+        image: demo-app:v1
 

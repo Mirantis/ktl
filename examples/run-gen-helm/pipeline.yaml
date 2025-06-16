@@ -1,0 +1,18 @@
+source:
+  kubeconfig:
+    clusters:
+    - alias: dev
+      matchNames: { include: [ 'dev-*' ] }
+    - alias: prod
+      matchNames: { include: [ 'prod-*' ] }
+    - alias: env-a
+      matchNames: { include: [ '*-a' ] }
+    - alias: env-b
+      matchNames: { include: [ '*-b' ] }
+    resources:
+    - matchNamespaces: { include: [ 'ktl-examples' ] }
+output:
+  helmChart:
+    name: demo-app
+    version: v1.0
+

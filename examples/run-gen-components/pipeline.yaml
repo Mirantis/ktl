@@ -1,0 +1,9 @@
+source:
+  kubeconfig:
+    clusters:
+    - matchNames: { include: [ '*' ] }
+    resources:
+    - matchNamespaces: { include: [ 'ktl-examples' ] }
+output:
+  kustomizeComponents: {}
+
