@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 
 	"github.com/Mirantis/ktl/pkg/cmd"
@@ -11,8 +10,6 @@ import (
 
 func main() {
 	root := cmd.NewRootCommand()
-
-	slog.SetLogLoggerLevel(slog.LevelInfo)
 
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

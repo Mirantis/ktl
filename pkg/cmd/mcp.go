@@ -16,7 +16,8 @@ import (
 
 func newMCPCommand() *cobra.Command {
 	mcpCmd := &cobra.Command{
-		Use: "mcp",
+		Use:   "mcp",
+		Short: "LLM integration (in development)",
 	}
 	mcpCmd.AddCommand(newMCPDescribeCommand())
 

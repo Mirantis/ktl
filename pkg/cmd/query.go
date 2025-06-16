@@ -49,7 +49,7 @@ func newQueryCommand() *cobra.Command {
 
 	export := &cobra.Command{
 		Use:   "query RESOURCES [FILTER]",
-		Short: "query ",
+		Short: "query cluster resources",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			resources, query := args[0], args[1:]
