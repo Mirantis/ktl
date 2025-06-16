@@ -2,7 +2,7 @@
 
 cd "$(dirname "$0")/../pkg/apis"
 
-[ -d googleapis ] || git clone https://github.com/googleapis/googleapis
+[ -d googleapis ] || git clone --depth=1 https://github.com/googleapis/googleapis
 
 [ -z "$(command -v protoc-gen-openapi)" ] && go install github.com/google/gnostic/cmd/protoc-gen-openapi@v0.7.0
 
