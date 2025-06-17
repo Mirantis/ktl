@@ -121,7 +121,7 @@ func (out *CSVOutput) rows(resources *types.ClusterResources) [][]string {
 			row, queries, offsets := out.initRow(len(rows)-1, &cluster)
 
 			for colIdx, valueNode := range queries.Scan(node) {
-				value, _ := yaml.String(valueNode.YNode(), yaml.Trim)
+				value, _ := yaml.String(valueNode.YNode(), yaml.Trim, yaml.Flow)
 				if strings.HasPrefix(value, `"`) && strings.HasSuffix(value, `"`) {
 					value = strings.Trim(value, `"`)
 				}
