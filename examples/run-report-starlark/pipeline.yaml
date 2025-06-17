@@ -1,0 +1,26 @@
+source:
+  kustomize:
+    path: '../setup/${CLUSTER}'
+    clusters:
+    - matchNames: { include: [ '*-*' ] }
+filters:
+- starlark:
+    script: |-
+      for it in resources:
+        if not str(it["metadata.name"]).startswith("kwok"):
+          continue
+        it.metadata.labels.new = "for-%s" % (it.metadata.name) 
+        output.append(it)
+output:
+  csv:
+    path: output.csv
+    columns:
+    - name: CLUSTER
+      text: '${CLUSTER}'
+    - name: KIND
+      field: .kind
+    - name: NAME
+      field: .metadata.name
+    - name: NEW_LABEL
+      field: .metadata.labels.new
+

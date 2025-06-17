@@ -34,6 +34,7 @@ nav:
   - Examples:
     - examples/generate.md
     - examples/transform.md
+    - examples/reports.md
   - Reference:
     - run spec: reference/run/spec.md
 
