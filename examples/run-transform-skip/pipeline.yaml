@@ -1,0 +1,18 @@
+source:
+  kustomize:
+    path: '../run-gen-helm/overlays/${CLUSTER}'
+    clusters:
+    - alias: dev
+      matchNames: { include: [ 'dev-*' ] }
+    - alias: prod
+      matchNames: { include: [ 'prod-*' ] }
+filters:
+- skip:
+    resources:
+    - kind: ConfigMap
+- skip:
+    fields:
+    - spec.template.spec.containers[name=sidecar]
+output:
+  kustomizeComponents: {}
+

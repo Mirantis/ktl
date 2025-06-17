@@ -134,7 +134,7 @@ func TestNodePathNormalize(t *testing.T) {
 		{
 			name:  "overflow",
 			input: Query{"a", "b[c=1,d=2]"},
-			wantP: Query{"a", "b", "c"},
+			wantP: Query{"a", "b", "*"},
 			wantC: []string{"", "", "[c=1,d=2]"},
 		},
 		{

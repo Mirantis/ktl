@@ -141,14 +141,15 @@ func (p Query) Normalize() (Query, []string, error) {
 		}
 
 		if idx == len(p)-1 {
-			nextKey, _, err := yaml.SplitIndexNameValue(cond)
-			if err != nil {
-				return nil, nil, fmt.Errorf("%w: %v", errNodePathInvalid, err.Error())
+			if yaml.IsWildcard(key) {
+				path[idx] = key
+				conditions[idx] = cond
+			} else {
+				path = append(path, "*")
+				path[idx] = key
+				conditions = append(conditions, cond)
 			}
-
-			path = append(path, nextKey)
-
-			conditions = append(conditions, "") //nolint:makezero
+			return path, conditions, nil
 		}
 
 		path[idx] = key

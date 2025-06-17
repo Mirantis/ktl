@@ -33,6 +33,7 @@ nav:
   - getting-started.md
   - Examples:
     - examples/generate.md
+    - examples/transform.md
   - Reference:
     - run spec: reference/run/spec.md
 

@@ -45,6 +45,20 @@ func ClearAll(p resource.Query) (*yaml.TeePiper, error) {
 	var pathGetter *yaml.PathGetter
 
 	for idx := range path {
+		if yaml.IsWildcard(path[idx]) && idx == len(path)-1 {
+			field, value, err := yaml.SplitIndexNameValue(cond[idx])
+			if err != nil {
+				return nil, fmt.Errorf("invalid path condition %q: %w", cond[idx], err)
+			}
+
+			*pipe = append(*pipe, yaml.ElementSetter{
+				Keys:   []string{field},
+				Values: []string{value},
+			})
+
+			return root, nil
+		}
+
 		if yaml.IsWildcard(path[idx]) {
 			forEach := &ForEach{}
 			*pipe = append(*pipe, forEach)
