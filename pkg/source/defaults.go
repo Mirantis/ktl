@@ -34,7 +34,7 @@ var defaultResourceSelector = types.ResourceSelector{
 	},
 }
 
-func defaultResources(selectors []types.ResourceSelector) []types.ResourceSelector {
+func DefaultResources(selectors []types.ResourceSelector) []types.ResourceSelector {
 	labelSelectors := defaultResourceSelector.LabelSelectors
 	excludeResources := defaultResourceSelector.Resources.Exclude
 

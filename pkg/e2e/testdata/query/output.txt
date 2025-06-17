@@ -1,10 +1,10 @@
-CLUSTER          KIND         NAMESPACE    NAME
-dev-cluster-a    Service      simple-app   simple-app
-prod-cluster-a   Deployment   simple-app   simple-app-db
-prod-cluster-a   ReplicaSet   simple-app   simple-app-db-7cdc57dfc7
-prod-cluster-a   Service      simple-app   simple-app
-prod-cluster-b   Deployment   simple-app   simple-app-db
-prod-cluster-b   ReplicaSet   simple-app   simple-app-db-7cdc57dfc7
-prod-cluster-b   Service      simple-app   simple-app
-test-cluster-a   Service      simple-app   simple-app
-test-cluster-b   Service      simple-app   simple-app
+CLUSTER          KIND         NAMESPACE    NAME                       CONTAINER   IMAGE
+dev-cluster-a    Service      simple-app   simple-app                             
+prod-cluster-a   Deployment   simple-app   simple-app-db              db          db:v2.0
+prod-cluster-a   ReplicaSet   simple-app   simple-app-db-7cdc57dfc7   db          db:v2.0
+prod-cluster-a   Service      simple-app   simple-app                             
+prod-cluster-b   Deployment   simple-app   simple-app-db              db          db:v2.0
+prod-cluster-b   ReplicaSet   simple-app   simple-app-db-7cdc57dfc7   db          db:v2.0
+prod-cluster-b   Service      simple-app   simple-app                             
+test-cluster-a   Service      simple-app   simple-app                             
+test-cluster-b   Service      simple-app   simple-app                             

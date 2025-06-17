@@ -37,7 +37,7 @@ func newKubeconfig(spec *apis.KubeConfigSource) (*Kubeconfig, error) {
 		result.Resources = append(result.Resources, rs)
 	}
 
-	result.Resources = defaultResources(result.Resources)
+	result.Resources = DefaultResources(result.Resources)
 
 	return result, nil
 }
@@ -58,7 +58,7 @@ func (kcfg *Kubeconfig) UnmarshalYAML(node *yaml.Node) error {
 
 	kcfg.Path = base.Path
 	kcfg.Clusters = base.Clusters
-	kcfg.Resources = defaultResources(base.Resources)
+	kcfg.Resources = DefaultResources(base.Resources)
 
 	return nil
 }

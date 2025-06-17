@@ -320,7 +320,10 @@ func testQuery(t *testing.T) {
 	gotOut := bytes.NewBuffer(nil)
 	runCmd := cmd.NewRootCommand()
 	runCmd.SetArgs([]string{
-		"query", "*",
+		"query",
+		"-n", "simple-app",
+		"-C", "CONTAINER:spec.template.spec.containers.*.name,IMAGE:spec.template.spec.containers.*.image",
+		"*",
 		`str(it.kind) == "Service"`,
 		"or",
 		`it["spec.template.spec.containers.[image=db:.*]"]`,
