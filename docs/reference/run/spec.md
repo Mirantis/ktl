@@ -5,6 +5,21 @@
 
 
 
+<a name="apis-CRDDescriptionsOutput"></a>
+
+### CRDDescriptionsOutput
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| path | [string](#string) | optional |  |
+
+
+
+
+
+
 <a name="apis-ClusterSelector"></a>
 
 ### ClusterSelector
@@ -170,6 +185,7 @@
 | csv | [ColumnarFileOutput](#apis-ColumnarFileOutput) | optional |  |
 | table | [ColumnarFileOutput](#apis-ColumnarFileOutput) | optional |  |
 | mcpTool | [MCPToolOutput](#apis-MCPToolOutput) | optional |  |
+| crdDescriptions | [CRDDescriptionsOutput](#apis-CRDDescriptionsOutput) | optional |  |
 
 
 

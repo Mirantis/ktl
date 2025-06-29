@@ -42,5 +42,9 @@ func New(spec *apis.Output) (Impl, error) {
 		return newMCPToolOutput(implSpec)
 	}
 
+	if implSpec := spec.GetCrdDescriptions(); implSpec != nil {
+		return newCRDDescriptionsOutput(implSpec)
+	}
+
 	return nil, errors.New("unsupported output")
 }

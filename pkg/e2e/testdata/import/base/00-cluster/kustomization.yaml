@@ -2,3 +2,5 @@ kind: Component
 
 resources:
 - node.yaml
+- crd.clustertemplates.yaml
+- crd.servicetemplates.yaml

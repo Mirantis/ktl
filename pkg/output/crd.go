@@ -6,10 +6,20 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/Mirantis/ktl/pkg/apis"
 	"github.com/Mirantis/ktl/pkg/types"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
+
+func newCRDDescriptionsOutput(spec *apis.CRDDescriptionsOutput) (*CRDDescriptionsOutput, error) {
+	path := spec.GetPath()
+	if path == "" {
+		path = "-"
+	}
+
+	return &CRDDescriptionsOutput{Path: path}, nil
+}
 
 type CRDDescriptionsOutput struct {
 	Path string `yaml:"path"`
@@ -55,6 +65,8 @@ func (out *CRDDescriptionsOutput) Store(env *types.Env, resources *types.Cluster
 	if err != nil {
 		return fmt.Errorf("unable to generate CRD summary: %w", err)
 	}
+
+	body = append(body, '\n')
 
 	if err := env.FileSys.WriteFile(out.Path, body); err != nil {
 		return fmt.Errorf("unable to store CRD summary: %w", err)

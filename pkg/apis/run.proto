@@ -92,6 +92,7 @@ message Output {
   optional ColumnarFileOutput csv = 4;
   optional ColumnarFileOutput table = 5;
   optional MCPToolOutput mcp_tool = 6;
+  optional CRDDescriptionsOutput crd_descriptions = 7;
 }
 
 message KustomizeOutput {
@@ -103,6 +104,10 @@ message KustomizeComponentsOutput {
 message HelmChartOutput {
   string name = 1;
   string version = 2;
+}
+
+message CRDDescriptionsOutput {
+  optional string path = 1;
 }
 
 message ColumnarFileOutput {

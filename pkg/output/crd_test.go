@@ -65,7 +65,7 @@ func TestCrdSummaryOutput(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if diff := cmp.Diff(crdSummaryJson[:len(crdSummaryJson)-1], stdout.Bytes()); diff != "" {
+	if diff := cmp.Diff(crdSummaryJson, stdout.Bytes()); diff != "" {
 		t.Errorf("-want +got:\n%s", diff)
 	}
 }

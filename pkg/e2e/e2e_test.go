@@ -87,6 +87,16 @@ var (
 	//go:embed testdata/mcp-deployment-containers/describe.txt
 	wantMCPDeploymentContainersDescribe string
 
+	//go:embed testdata/import/*
+	//go:embed testdata/describe-crds/pipeline.yaml
+	inputDescribeCRDs embed.FS
+
+	//go:embed testdata/describe-crds/pipeline.yaml
+	wantDescribeCRDs embed.FS
+
+	//go:embed testdata/describe-crds/stdout.json
+	wantDescribeCRDsStdout string
+
 	//go:embed testdata/query/output.txt
 	wantQueryOutput string
 )
@@ -216,6 +226,13 @@ func TestE2E(t *testing.T) {
 			input:      inputMCPDeploymentContainers,
 			want:       wantMCPDeploymentContainers,
 			wantStdout: wantMCPDeploymentContainersDescribe,
+		},
+		"describe-crds": {
+			dir:        "describe-crds",
+			args:       []string{"run"},
+			input:      inputDescribeCRDs,
+			want:       wantDescribeCRDs,
+			wantStdout: wantDescribeCRDsStdout,
 		},
 	}
 

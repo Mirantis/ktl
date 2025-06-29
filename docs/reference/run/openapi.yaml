@@ -8,6 +8,11 @@ info:
 paths: {}
 components:
   schemas:
+    CRDDescriptionsOutput:
+      type: object
+      properties:
+        path:
+          type: string
     ClusterSelector:
       type: object
       properties:
@@ -101,6 +106,8 @@ components:
           $ref: '#/components/schemas/ColumnarFileOutput'
         mcpTool:
           $ref: '#/components/schemas/MCPToolOutput'
+        crdDescriptions:
+          $ref: '#/components/schemas/CRDDescriptionsOutput'
     PatternSelector:
       type: object
       properties:

@@ -17,6 +17,7 @@ filters:
 - skip:
     resources:
     - kind: Node
+    - kind: CustomResourceDefinition
     - kind: ConfigMap
       labelSelector: "generated-by"
     - kind: CronJob

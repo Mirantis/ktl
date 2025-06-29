@@ -1,0 +1,14 @@
+source:
+  kustomize:
+    path: "../import/${CLUSTER}"
+    clusters:
+    - matchNames: { include: [ base ] }
+filters:
+- skip:
+    keepResources:
+    - kind: CustomResourceDefinition
+      group: apiextensions.k8s.io
+      version: v1
+output:
+  crdDescriptions: {}
+
