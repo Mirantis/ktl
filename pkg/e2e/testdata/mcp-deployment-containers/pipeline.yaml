@@ -1,3 +1,7 @@
+name: list_deployment_containers
+description: |-
+  List containers and their images for
+  all deployments in all known K8s clusters
 source:
   kubeconfig:
     clusters:
@@ -7,10 +11,8 @@ source:
     - matchApiResources:
         include: [ deployments.apps ]
 output:
-  mcpTool:
-    description: |-
-      List containers and their images for
-      all deployments in all known K8s clusters
+  csv:
+    path: containers.csv
     columns:
     - name: CLUSTER
       text: "${CLUSTER}"

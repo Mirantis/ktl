@@ -1,19 +1,14 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
 	"path/filepath"
 
-	"github.com/Mirantis/ktl/pkg/apis"
 	"github.com/Mirantis/ktl/pkg/fsutil"
 	"github.com/Mirantis/ktl/pkg/kubectl"
 	"github.com/Mirantis/ktl/pkg/runner"
 	"github.com/Mirantis/ktl/pkg/types"
 	"github.com/spf13/cobra"
-	"google.golang.org/protobuf/encoding/protojson"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
-	"sigs.k8s.io/yaml"
 )
 
 func newRunCommand() *cobra.Command {
@@ -34,19 +29,8 @@ func newRunCommand() *cobra.Command {
 				Cmd:     kubectl.New(),
 			}
 
-			pipelineBytes, err := os.ReadFile(fileName)
-			if err != nil && !os.IsNotExist(err) {
-				return fmt.Errorf("unable to read %s: %w", fileName, err)
-			}
-
-			pipelineJSON, err := yaml.YAMLToJSON(pipelineBytes)
+			pipelineSpec, err := loadPipelineSpec(fileName)
 			if err != nil {
-				return err
-			}
-
-			pipelineSpec := &apis.Pipeline{}
-
-			if err := protojson.Unmarshal(pipelineJSON, pipelineSpec); err != nil {
 				return err
 			}
 

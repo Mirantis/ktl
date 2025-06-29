@@ -16,15 +16,21 @@ service KTL {
 
 // Pipeline defines the combination of source, filters and output.
 message Pipeline {
+  // Name of the pipeline
+  string name = 1;
+
+  // Description for the pipeline
+  string description = 2;
 
   // Source specifies the origin of the manifests
-  Source source = 1;
+  Source source = 3;
 
   // Filters transform the manifests
-  repeated Filter filters = 2;
+  repeated Filter filters = 4;
 
   // Output specifies the format of the result
-  Output output = 3;
+  Output output = 5;
+
 }
 
 message Source {
@@ -91,8 +97,7 @@ message Output {
   optional HelmChartOutput helm_chart = 3;
   optional ColumnarFileOutput csv = 4;
   optional ColumnarFileOutput table = 5;
-  optional MCPToolOutput mcp_tool = 6;
-  optional CRDDescriptionsOutput crd_descriptions = 7;
+  optional CRDDescriptionsOutput crd_descriptions = 6;
 }
 
 message KustomizeOutput {
@@ -112,11 +117,6 @@ message CRDDescriptionsOutput {
 
 message ColumnarFileOutput {
   optional string path = 1;
-  repeated ColumnOutput columns = 2;
-}
-
-message MCPToolOutput {
-  string description = 1;
   repeated ColumnOutput columns = 2;
 }
 

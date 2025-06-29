@@ -7,6 +7,7 @@ toolchain go1.24.2
 require (
 	github.com/RoaringBitmap/roaring/v2 v2.6.0
 	github.com/google/go-cmp v0.7.0
+	github.com/modelcontextprotocol/go-sdk v0.0.0-20250627194314-8a3f272dbbcf
 	github.com/spf13/cobra v1.9.1
 	github.com/testcontainers/testcontainers-go v0.33.0
 	go.starlark.net v0.0.0-20250623223156-8bf495bf4e9a

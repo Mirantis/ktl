@@ -1,69 +1,137 @@
 package cmd
 
 import (
+	"bytes"
+	"cmp"
+	"context"
 	"fmt"
-	"io"
-	"log/slog"
-	"os"
+	"io/fs"
+	"path/filepath"
 
 	"github.com/Mirantis/ktl/pkg/apis"
-	"github.com/Mirantis/ktl/pkg/output"
+	"github.com/Mirantis/ktl/pkg/fsutil"
+	"github.com/Mirantis/ktl/pkg/kubectl"
 	"github.com/Mirantis/ktl/pkg/runner"
+	"github.com/Mirantis/ktl/pkg/types"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/spf13/cobra"
-	"google.golang.org/protobuf/encoding/protojson"
-	"sigs.k8s.io/yaml"
+	"sigs.k8s.io/kustomize/kyaml/filesys"
 )
 
 func newMCPCommand() *cobra.Command {
+	//TODO: add e2e tests
+
+	toolPaths := []string{}
+	resourcePaths := []string{}
+
 	mcpCmd := &cobra.Command{
 		Use:   "mcp",
-		Short: "LLM integration (in development)",
+		Short: "run the MCP server",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			srv := mcp.NewServer("ktl", "v1.0-beta1", nil)
+			tools := []*mcp.ServerTool{}
+
+			for _, toolPath := range toolPaths {
+				toolSpec, err := loadPipelineSpec(toolPath)
+				if err != nil {
+					return fmt.Errorf("unable to load %s: %w", toolPath, err)
+				}
+
+				if toolSpec.GetName() == "" {
+					return fmt.Errorf("missing name for tool %s", toolPath)
+				}
+
+				tool := mcp.NewServerTool(
+					toolSpec.Name,
+					toolSpec.GetDescription(),
+					newMCPHandler(filepath.Dir(toolPath), toolSpec),
+				)
+
+				tools = append(tools, tool)
+			}
+
+			srv.AddTools(tools...)
+
+			transport := mcp.NewStdioTransport()
+			ctx := cmp.Or(cmd.Context(), context.Background())
+
+			return srv.Run(ctx, transport)
+		},
 	}
-	mcpCmd.AddCommand(newMCPDescribeCommand())
+
+	mcpCmd.Flags().StringSliceVarP(
+		&toolPaths, "tool", "t", nil,
+		"pipeline(s) to be published as an MCP tool",
+	)
+	mcpCmd.Flags().StringSliceVarP(
+		&resourcePaths, "resource", "r", nil,
+		"pipeline(s) to be published as an MCP resource",
+	)
 
 	return mcpCmd
 }
 
-func newMCPDescribeCommand() *cobra.Command {
-	export := &cobra.Command{
-		Use:   "describe FILENAME",
-		Short: "describe the report",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			fileName := args[0]
+func newMCPHandler(workdir string, spec *apis.Pipeline) mcp.ToolHandlerFor[struct{}, struct{}] {
+	return func(ctx context.Context, ss *mcp.ServerSession, ctpf *mcp.CallToolParamsFor[struct{}]) (*mcp.CallToolResultFor[struct{}], error) {
+		result := &mcp.CallToolResultFor[struct{}]{}
+		stdout := bytes.NewBuffer(nil)
+		fileSys := fsutil.Stdio(
+			filesys.MakeFsInMemory(),
+			bytes.NewBuffer(nil),
+			stdout,
+		)
+		env := &types.Env{
+			WorkDir: workdir,
+			FileSys: fileSys,
+			Cmd:     kubectl.New(),
+		}
 
-			pipelineBytes, err := os.ReadFile(fileName)
-			if err != nil && !os.IsNotExist(err) {
-				return fmt.Errorf("unable to read %s: %w", fileName, err)
+		pipeline, err := runner.NewPipeline(spec)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := pipeline.Run(env); err != nil {
+			return nil, err
+		}
+
+		err = env.FileSys.Walk(".", func(path string, info fs.FileInfo, err error) error {
+			if info.IsDir() {
+				return nil
 			}
-			slog.Info("mcp describe", "pipeline", pipelineBytes, "file", fileName)
-
-			pipelineJSON, err := yaml.YAMLToJSON(pipelineBytes)
+			content, err := env.FileSys.ReadFile(path)
 			if err != nil {
 				return err
 			}
 
-			pipelineSpec := &apis.Pipeline{}
+			result.Content = append(result.Content, &mcp.TextContent{
+				Text: "<source>" + path + "</source>" + string(content),
+			})
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
 
-			if err := protojson.Unmarshal(pipelineJSON, pipelineSpec); err != nil {
-				return err
+		if stdout.Len() > 0 {
+			//TODO: move extension handling to method
+			switch {
+			case spec.GetOutput().GetCsv() != nil:
+				result.Content = append(result.Content, &mcp.TextContent{
+					Text: "<source>result.csv</source>" + stdout.String(),
+				})
+			case spec.GetOutput().GetCrdDescriptions() != nil:
+				result.Content = append(result.Content, &mcp.TextContent{
+					Text: "<source>result.json</source>" + stdout.String(),
+				})
+			default:
+				result.Content = append(result.Content, &mcp.TextContent{
+					Text: stdout.String(),
+				})
 			}
+		}
 
-			pipeline, err := runner.NewPipeline(pipelineSpec)
-			if err != nil {
-				return err
-			}
-
-			mcptool, ok := pipeline.Output.Impl.(*output.MCPToolOutput)
-			if !ok {
-				return fmt.Errorf("output kind must be MCPTool")
-			}
-
-			_, err = io.WriteString(cmd.OutOrStdout(), mcptool.Describe())
-
-			return err
-		},
+		return result, nil
 	}
-
-	return export
 }

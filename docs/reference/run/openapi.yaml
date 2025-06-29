@@ -82,15 +82,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ClusterSelector'
-    MCPToolOutput:
-      type: object
-      properties:
-        description:
-          type: string
-        columns:
-          type: array
-          items:
-            $ref: '#/components/schemas/ColumnOutput'
     Output:
       type: object
       properties:
@@ -104,8 +95,6 @@ components:
           $ref: '#/components/schemas/ColumnarFileOutput'
         table:
           $ref: '#/components/schemas/ColumnarFileOutput'
-        mcpTool:
-          $ref: '#/components/schemas/MCPToolOutput'
         crdDescriptions:
           $ref: '#/components/schemas/CRDDescriptionsOutput'
     PatternSelector:
@@ -122,6 +111,12 @@ components:
     Pipeline:
       type: object
       properties:
+        name:
+          type: string
+          description: Name of the pipeline
+        description:
+          type: string
+          description: Description for the pipeline
         source:
           allOf:
             - $ref: '#/components/schemas/Source'

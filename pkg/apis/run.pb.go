@@ -26,12 +26,16 @@ const (
 // Pipeline defines the combination of source, filters and output.
 type Pipeline struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
+	// Name of the pipeline
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Description for the pipeline
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	// Source specifies the origin of the manifests
-	Source *Source `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
+	Source *Source `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
 	// Filters transform the manifests
-	Filters []*Filter `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
+	Filters []*Filter `protobuf:"bytes,4,rep,name=filters,proto3" json:"filters,omitempty"`
 	// Output specifies the format of the result
-	Output        *Output `protobuf:"bytes,3,opt,name=output,proto3" json:"output,omitempty"`
+	Output        *Output `protobuf:"bytes,5,opt,name=output,proto3" json:"output,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -64,6 +68,20 @@ func (x *Pipeline) ProtoReflect() protoreflect.Message {
 // Deprecated: Use Pipeline.ProtoReflect.Descriptor instead.
 func (*Pipeline) Descriptor() ([]byte, []int) {
 	return file_run_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *Pipeline) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Pipeline) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
 }
 
 func (x *Pipeline) GetSource() *Source {
@@ -678,8 +696,7 @@ type Output struct {
 	HelmChart           *HelmChartOutput           `protobuf:"bytes,3,opt,name=helm_chart,json=helmChart,proto3,oneof" json:"helm_chart,omitempty"`
 	Csv                 *ColumnarFileOutput        `protobuf:"bytes,4,opt,name=csv,proto3,oneof" json:"csv,omitempty"`
 	Table               *ColumnarFileOutput        `protobuf:"bytes,5,opt,name=table,proto3,oneof" json:"table,omitempty"`
-	McpTool             *MCPToolOutput             `protobuf:"bytes,6,opt,name=mcp_tool,json=mcpTool,proto3,oneof" json:"mcp_tool,omitempty"`
-	CrdDescriptions     *CRDDescriptionsOutput     `protobuf:"bytes,7,opt,name=crd_descriptions,json=crdDescriptions,proto3,oneof" json:"crd_descriptions,omitempty"`
+	CrdDescriptions     *CRDDescriptionsOutput     `protobuf:"bytes,6,opt,name=crd_descriptions,json=crdDescriptions,proto3,oneof" json:"crd_descriptions,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -745,13 +762,6 @@ func (x *Output) GetCsv() *ColumnarFileOutput {
 func (x *Output) GetTable() *ColumnarFileOutput {
 	if x != nil {
 		return x.Table
-	}
-	return nil
-}
-
-func (x *Output) GetMcpTool() *MCPToolOutput {
-	if x != nil {
-		return x.McpTool
 	}
 	return nil
 }
@@ -983,58 +993,6 @@ func (x *ColumnarFileOutput) GetColumns() []*ColumnOutput {
 	return nil
 }
 
-type MCPToolOutput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Description   string                 `protobuf:"bytes,1,opt,name=description,proto3" json:"description,omitempty"`
-	Columns       []*ColumnOutput        `protobuf:"bytes,2,rep,name=columns,proto3" json:"columns,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *MCPToolOutput) Reset() {
-	*x = MCPToolOutput{}
-	mi := &file_run_proto_msgTypes[17]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *MCPToolOutput) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MCPToolOutput) ProtoMessage() {}
-
-func (x *MCPToolOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_run_proto_msgTypes[17]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MCPToolOutput.ProtoReflect.Descriptor instead.
-func (*MCPToolOutput) Descriptor() ([]byte, []int) {
-	return file_run_proto_rawDescGZIP(), []int{17}
-}
-
-func (x *MCPToolOutput) GetDescription() string {
-	if x != nil {
-		return x.Description
-	}
-	return ""
-}
-
-func (x *MCPToolOutput) GetColumns() []*ColumnOutput {
-	if x != nil {
-		return x.Columns
-	}
-	return nil
-}
-
 type ColumnOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -1047,7 +1005,7 @@ type ColumnOutput struct {
 
 func (x *ColumnOutput) Reset() {
 	*x = ColumnOutput{}
-	mi := &file_run_proto_msgTypes[18]
+	mi := &file_run_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1059,7 +1017,7 @@ func (x *ColumnOutput) String() string {
 func (*ColumnOutput) ProtoMessage() {}
 
 func (x *ColumnOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_run_proto_msgTypes[18]
+	mi := &file_run_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1072,7 +1030,7 @@ func (x *ColumnOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ColumnOutput.ProtoReflect.Descriptor instead.
 func (*ColumnOutput) Descriptor() ([]byte, []int) {
-	return file_run_proto_rawDescGZIP(), []int{18}
+	return file_run_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ColumnOutput) GetName() string {
@@ -1107,11 +1065,13 @@ var File_run_proto protoreflect.FileDescriptor
 
 const file_run_proto_rawDesc = "" +
 	"\n" +
-	"\trun.proto\x12\x04apis\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/api/annotations.proto\"~\n" +
-	"\bPipeline\x12$\n" +
-	"\x06source\x18\x01 \x01(\v2\f.apis.SourceR\x06source\x12&\n" +
-	"\afilters\x18\x02 \x03(\v2\f.apis.FilterR\afilters\x12$\n" +
-	"\x06output\x18\x03 \x01(\v2\f.apis.OutputR\x06output\"\x9c\x01\n" +
+	"\trun.proto\x12\x04apis\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/api/annotations.proto\"\xb4\x01\n" +
+	"\bPipeline\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12$\n" +
+	"\x06source\x18\x03 \x01(\v2\f.apis.SourceR\x06source\x12&\n" +
+	"\afilters\x18\x04 \x03(\v2\f.apis.FilterR\afilters\x12$\n" +
+	"\x06output\x18\x05 \x01(\v2\f.apis.OutputR\x06output\"\x9c\x01\n" +
 	"\x06Source\x12;\n" +
 	"\n" +
 	"kubeconfig\x18\x01 \x01(\v2\x16.apis.KubeConfigSourceH\x00R\n" +
@@ -1174,23 +1134,21 @@ const file_run_proto_rawDesc = "" +
 	"\n" +
 	"_namespaceB\x16\n" +
 	"\x14_annotation_selectorB\x11\n" +
-	"\x0f_label_selector\"\xa8\x04\n" +
+	"\x0f_label_selector\"\xe6\x03\n" +
 	"\x06Output\x128\n" +
 	"\tkustomize\x18\x01 \x01(\v2\x15.apis.KustomizeOutputH\x00R\tkustomize\x88\x01\x01\x12W\n" +
 	"\x14kustomize_components\x18\x02 \x01(\v2\x1f.apis.KustomizeComponentsOutputH\x01R\x13kustomizeComponents\x88\x01\x01\x129\n" +
 	"\n" +
 	"helm_chart\x18\x03 \x01(\v2\x15.apis.HelmChartOutputH\x02R\thelmChart\x88\x01\x01\x12/\n" +
 	"\x03csv\x18\x04 \x01(\v2\x18.apis.ColumnarFileOutputH\x03R\x03csv\x88\x01\x01\x123\n" +
-	"\x05table\x18\x05 \x01(\v2\x18.apis.ColumnarFileOutputH\x04R\x05table\x88\x01\x01\x123\n" +
-	"\bmcp_tool\x18\x06 \x01(\v2\x13.apis.MCPToolOutputH\x05R\amcpTool\x88\x01\x01\x12K\n" +
-	"\x10crd_descriptions\x18\a \x01(\v2\x1b.apis.CRDDescriptionsOutputH\x06R\x0fcrdDescriptions\x88\x01\x01B\f\n" +
+	"\x05table\x18\x05 \x01(\v2\x18.apis.ColumnarFileOutputH\x04R\x05table\x88\x01\x01\x12K\n" +
+	"\x10crd_descriptions\x18\x06 \x01(\v2\x1b.apis.CRDDescriptionsOutputH\x05R\x0fcrdDescriptions\x88\x01\x01B\f\n" +
 	"\n" +
 	"_kustomizeB\x17\n" +
 	"\x15_kustomize_componentsB\r\n" +
 	"\v_helm_chartB\x06\n" +
 	"\x04_csvB\b\n" +
-	"\x06_tableB\v\n" +
-	"\t_mcp_toolB\x13\n" +
+	"\x06_tableB\x13\n" +
 	"\x11_crd_descriptions\"\x11\n" +
 	"\x0fKustomizeOutput\"\x1b\n" +
 	"\x19KustomizeComponentsOutput\"?\n" +
@@ -1203,10 +1161,7 @@ const file_run_proto_rawDesc = "" +
 	"\x12ColumnarFileOutput\x12\x17\n" +
 	"\x04path\x18\x01 \x01(\tH\x00R\x04path\x88\x01\x01\x12,\n" +
 	"\acolumns\x18\x02 \x03(\v2\x12.apis.ColumnOutputR\acolumnsB\a\n" +
-	"\x05_path\"_\n" +
-	"\rMCPToolOutput\x12 \n" +
-	"\vdescription\x18\x01 \x01(\tR\vdescription\x12,\n" +
-	"\acolumns\x18\x02 \x03(\v2\x12.apis.ColumnOutputR\acolumns\"\xa0\x01\n" +
+	"\x05_path\"\xa0\x01\n" +
 	"\fColumnOutput\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12%\n" +
 	"\vdescription\x18\x02 \x01(\tH\x00R\vdescription\x88\x01\x01\x12\x19\n" +
@@ -1230,7 +1185,7 @@ func file_run_proto_rawDescGZIP() []byte {
 	return file_run_proto_rawDescData
 }
 
-var file_run_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_run_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_run_proto_goTypes = []any{
 	(*Pipeline)(nil),                  // 0: apis.Pipeline
 	(*Source)(nil),                    // 1: apis.Source
@@ -1249,9 +1204,8 @@ var file_run_proto_goTypes = []any{
 	(*HelmChartOutput)(nil),           // 14: apis.HelmChartOutput
 	(*CRDDescriptionsOutput)(nil),     // 15: apis.CRDDescriptionsOutput
 	(*ColumnarFileOutput)(nil),        // 16: apis.ColumnarFileOutput
-	(*MCPToolOutput)(nil),             // 17: apis.MCPToolOutput
-	(*ColumnOutput)(nil),              // 18: apis.ColumnOutput
-	(*emptypb.Empty)(nil),             // 19: google.protobuf.Empty
+	(*ColumnOutput)(nil),              // 17: apis.ColumnOutput
+	(*emptypb.Empty)(nil),             // 18: google.protobuf.Empty
 }
 var file_run_proto_depIdxs = []int32{
 	1,  // 0: apis.Pipeline.source:type_name -> apis.Source
@@ -1275,17 +1229,15 @@ var file_run_proto_depIdxs = []int32{
 	14, // 18: apis.Output.helm_chart:type_name -> apis.HelmChartOutput
 	16, // 19: apis.Output.csv:type_name -> apis.ColumnarFileOutput
 	16, // 20: apis.Output.table:type_name -> apis.ColumnarFileOutput
-	17, // 21: apis.Output.mcp_tool:type_name -> apis.MCPToolOutput
-	15, // 22: apis.Output.crd_descriptions:type_name -> apis.CRDDescriptionsOutput
-	18, // 23: apis.ColumnarFileOutput.columns:type_name -> apis.ColumnOutput
-	18, // 24: apis.MCPToolOutput.columns:type_name -> apis.ColumnOutput
-	19, // 25: apis.KTL.Config:input_type -> google.protobuf.Empty
-	0,  // 26: apis.KTL.Config:output_type -> apis.Pipeline
-	26, // [26:27] is the sub-list for method output_type
-	25, // [25:26] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	15, // 21: apis.Output.crd_descriptions:type_name -> apis.CRDDescriptionsOutput
+	17, // 22: apis.ColumnarFileOutput.columns:type_name -> apis.ColumnOutput
+	18, // 23: apis.KTL.Config:input_type -> google.protobuf.Empty
+	0,  // 24: apis.KTL.Config:output_type -> apis.Pipeline
+	24, // [24:25] is the sub-list for method output_type
+	23, // [23:24] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_run_proto_init() }
@@ -1302,14 +1254,14 @@ func file_run_proto_init() {
 	file_run_proto_msgTypes[11].OneofWrappers = []any{}
 	file_run_proto_msgTypes[15].OneofWrappers = []any{}
 	file_run_proto_msgTypes[16].OneofWrappers = []any{}
-	file_run_proto_msgTypes[18].OneofWrappers = []any{}
+	file_run_proto_msgTypes[17].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_run_proto_rawDesc), len(file_run_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   19,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

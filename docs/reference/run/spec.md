@@ -155,22 +155,6 @@
 
 
 
-<a name="apis-MCPToolOutput"></a>
-
-### MCPToolOutput
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| description | [string](#string) |  |  |
-| columns | [ColumnOutput](#apis-ColumnOutput) | repeated |  |
-
-
-
-
-
-
 <a name="apis-Output"></a>
 
 ### Output
@@ -184,7 +168,6 @@
 | helmChart | [HelmChartOutput](#apis-HelmChartOutput) | optional |  |
 | csv | [ColumnarFileOutput](#apis-ColumnarFileOutput) | optional |  |
 | table | [ColumnarFileOutput](#apis-ColumnarFileOutput) | optional |  |
-| mcpTool | [MCPToolOutput](#apis-MCPToolOutput) | optional |  |
 | crdDescriptions | [CRDDescriptionsOutput](#apis-CRDDescriptionsOutput) | optional |  |
 
 
@@ -216,6 +199,8 @@ Pipeline defines the combination of source, filters and output.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
+| name | [string](#string) |  | Name of the pipeline |
+| description | [string](#string) |  | Description for the pipeline |
 | source | [Source](#apis-Source) |  | Source specifies the origin of the manifests |
 | filters | [Filter](#apis-Filter) | repeated | Filters transform the manifests |
 | output | [Output](#apis-Output) |  | Output specifies the format of the result |

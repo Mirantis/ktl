@@ -38,10 +38,6 @@ func New(spec *apis.Output) (Impl, error) {
 		return newTableOutput(implSpec)
 	}
 
-	if implSpec := spec.GetMcpTool(); implSpec != nil {
-		return newMCPToolOutput(implSpec)
-	}
-
 	if implSpec := spec.GetCrdDescriptions(); implSpec != nil {
 		return newCRDDescriptionsOutput(implSpec)
 	}

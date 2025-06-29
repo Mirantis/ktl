@@ -75,19 +75,6 @@ var (
 	wantExportSimpleFiltered embed.FS
 
 	//go:embed testdata/import/*
-	//go:embed testdata/mcp-deployment-containers/pipeline.yaml
-	inputMCPDeploymentContainers embed.FS
-
-	//go:embed testdata/mcp-deployment-containers/pipeline.yaml
-	wantMCPDeploymentContainers embed.FS
-
-	//go:embed testdata/mcp-deployment-containers/stdout.csv
-	wantMCPDeploymentContainersStdout string
-
-	//go:embed testdata/mcp-deployment-containers/describe.txt
-	wantMCPDeploymentContainersDescribe string
-
-	//go:embed testdata/import/*
 	//go:embed testdata/describe-crds/pipeline.yaml
 	inputDescribeCRDs embed.FS
 
@@ -212,20 +199,6 @@ func TestE2E(t *testing.T) {
 			args:  []string{"run"},
 			input: inputConvertTable,
 			want:  wantConvertTable,
-		},
-		"mcp-deployment-containers": {
-			dir:        "mcp-deployment-containers",
-			args:       []string{"run"},
-			input:      inputMCPDeploymentContainers,
-			want:       wantMCPDeploymentContainers,
-			wantStdout: wantMCPDeploymentContainersStdout,
-		},
-		"mcp-deployment-containers-describe": {
-			dir:        "mcp-deployment-containers",
-			args:       []string{"mcp", "describe"},
-			input:      inputMCPDeploymentContainers,
-			want:       wantMCPDeploymentContainers,
-			wantStdout: wantMCPDeploymentContainersDescribe,
 		},
 		"describe-crds": {
 			dir:        "describe-crds",

@@ -45,11 +45,6 @@ func (out *Output) UnmarshalYAML(node *yaml.Node) error {
 		out.Impl = impl
 
 		return node.Decode(impl) //nolint:wrapcheck
-	case "MCPTool":
-		impl := &output.MCPToolOutput{}
-		out.Impl = impl
-
-		return node.Decode(impl) //nolint:wrapcheck
 	default:
 		return fmt.Errorf("%w: %s", errUnsupportedKind, meta.Kind)
 	}

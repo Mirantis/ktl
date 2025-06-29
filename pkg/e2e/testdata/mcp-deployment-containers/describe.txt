@@ -1,9 +1,0 @@
-List containers and their images for
-all deployments in all known K8s clusters
-
-Columns:
-- CLUSTER: Cluster name
-- NAMESPACE: Namespace name
-- NAME: Deployment name
-- CONTAINER: Container name
-- IMAGE: Container image
