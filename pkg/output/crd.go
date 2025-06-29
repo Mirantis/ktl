@@ -11,9 +11,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
-type CRDSummaryOutput struct{}
+type CRDDescriptionsOutput struct {
+	Path string `yaml:"path"`
+}
 
-func (out *CRDSummaryOutput) Store(env *types.Env, resources *types.ClusterResources) error {
+func (out *CRDDescriptionsOutput) Store(env *types.Env, resources *types.ClusterResources) error {
 	result := map[string]string{}
 
 	for resId, byCluster := range resources.Resources {
@@ -54,7 +56,7 @@ func (out *CRDSummaryOutput) Store(env *types.Env, resources *types.ClusterResou
 		return fmt.Errorf("unable to generate CRD summary: %w", err)
 	}
 
-	if err := env.FileSys.WriteFile("-", body); err != nil {
+	if err := env.FileSys.WriteFile(out.Path, body); err != nil {
 		return fmt.Errorf("unable to store CRD summary: %w", err)
 	}
 

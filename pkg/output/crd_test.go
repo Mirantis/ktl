@@ -51,7 +51,7 @@ func TestCrdSummaryOutput(t *testing.T) {
 	}
 
 	stdout := bytes.NewBuffer(nil)
-	out := &CRDSummaryOutput{}
+	out := &CRDDescriptionsOutput{Path: "-"}
 	fileSys := fsutil.Stdio(
 		filesys.MakeFsInMemory(),
 		bytes.NewBuffer(nil),
