@@ -34,7 +34,7 @@ func newRunCommand() *cobra.Command {
 				return err
 			}
 
-			pipeline, err := runner.NewPipeline(pipelineSpec)
+			pipeline, err := runner.NewPipeline(pipelineSpec, nil)
 			if err != nil {
 				return err
 			}

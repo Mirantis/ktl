@@ -5,6 +5,22 @@
 
 
 
+<a name="apis-Args"></a>
+
+### Args
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| schema | [google.protobuf.Struct](#google-protobuf-Struct) | optional |  |
+| schemaFile | [string](#string) | optional |  |
+
+
+
+
+
+
 <a name="apis-CRDDescriptionsOutput"></a>
 
 ### CRDDescriptionsOutput
@@ -204,6 +220,7 @@ Pipeline defines the combination of source, filters and output.
 | source | [Source](#apis-Source) |  | Source specifies the origin of the manifests |
 | filters | [Filter](#apis-Filter) | repeated | Filters transform the manifests |
 | output | [Output](#apis-Output) |  | Output specifies the format of the result |
+| args | [Args](#apis-Args) | optional | Args describe pipeline parameters |
 
 
 

@@ -20,22 +20,25 @@ func init() {
 	filters.Filters["Starlark"] = func() kio.Filter { return &StarlarkFilter{} }
 }
 
-func newStarlarkFilter(spec *apis.StarlarkFilter) (*StarlarkFilter, error) {
+func newStarlarkFilter(spec *apis.StarlarkFilter, args *yaml.RNode) (*StarlarkFilter, error) {
 	return &StarlarkFilter{
 		Kind:   "Starlark",
 		Script: spec.GetScript(),
+		args:   args,
 	}, nil
 }
 
 type StarlarkFilter struct {
 	Kind   string `yaml:"kind"`
 	Script string `yaml:"script"`
+	args   *yaml.RNode
 }
 
 func (filter *StarlarkFilter) Filter(input []*yaml.RNode) ([]*yaml.RNode, error) {
 	const (
 		resourcesKey = "resources"
 		outputKey    = "output"
+		argsKey      = "args"
 	)
 	snodes := []starlark.Value{}
 	output := []*yaml.RNode{}
@@ -47,6 +50,7 @@ func (filter *StarlarkFilter) Filter(input []*yaml.RNode) ([]*yaml.RNode, error)
 	slPredeclared := starlark.StringDict{
 		resourcesKey: starlark.NewList(snodes),
 		outputKey:    starlark.NewList(nil),
+		argsKey:      newSNode(filter.args),
 	}
 	slOpts := &syntax.FileOptions{
 		TopLevelControl: true,
@@ -117,6 +121,10 @@ var (
 )
 
 func newSNode(rnode *yaml.RNode) starlark.Value {
+	if rnode == nil {
+		rnode = yaml.MakeNullNode()
+	}
+
 	sNode := &sNode{rnode}
 
 	switch rnode.YNode().Kind {

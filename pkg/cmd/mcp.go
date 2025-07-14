@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"path/filepath"
@@ -13,9 +14,11 @@ import (
 	"github.com/Mirantis/ktl/pkg/kubectl"
 	"github.com/Mirantis/ktl/pkg/runner"
 	"github.com/Mirantis/ktl/pkg/types"
+	"github.com/modelcontextprotocol/go-sdk/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 func newMCPCommand() *cobra.Command {
@@ -42,13 +45,31 @@ func newMCPCommand() *cobra.Command {
 					return fmt.Errorf("missing name for tool %s", toolPath)
 				}
 
-				tool := mcp.NewServerTool(
-					toolSpec.Name,
-					toolSpec.GetDescription(),
-					newMCPHandler(filepath.Dir(toolPath), toolSpec),
-				)
+				if inlineSchema := toolSpec.GetArgs().GetSchema(); inlineSchema != nil {
+					tool := mcp.NewServerTool(
+						toolSpec.Name,
+						toolSpec.GetDescription(),
+						newMCPHandler[map[string]any](filepath.Dir(toolPath), toolSpec),
+					)
+					schemaBody, err := json.Marshal(inlineSchema)
+					if err != nil {
+						return err
+					}
+					argsSchema := &jsonschema.Schema{}
+					if err := json.Unmarshal(schemaBody, argsSchema); err != nil {
+						return err
+					}
+					tool.Tool.InputSchema = argsSchema
+					tools = append(tools, tool)
+				} else {
+					tool := mcp.NewServerTool(
+						toolSpec.Name,
+						toolSpec.GetDescription(),
+						newMCPHandler[struct{}](filepath.Dir(toolPath), toolSpec),
+					)
+					tools = append(tools, tool)
+				}
 
-				tools = append(tools, tool)
 			}
 
 			srv.AddTools(tools...)
@@ -72,8 +93,8 @@ func newMCPCommand() *cobra.Command {
 	return mcpCmd
 }
 
-func newMCPHandler(workdir string, spec *apis.Pipeline) mcp.ToolHandlerFor[struct{}, struct{}] {
-	return func(ctx context.Context, ss *mcp.ServerSession, ctpf *mcp.CallToolParamsFor[struct{}]) (*mcp.CallToolResultFor[struct{}], error) {
+func newMCPHandler[In any](workdir string, spec *apis.Pipeline) mcp.ToolHandlerFor[In, struct{}] {
+	return func(ctx context.Context, ss *mcp.ServerSession, ctpf *mcp.CallToolParamsFor[In]) (*mcp.CallToolResultFor[struct{}], error) {
 		result := &mcp.CallToolResultFor[struct{}]{}
 		stdout := bytes.NewBuffer(nil)
 		fileSys := fsutil.Stdio(
@@ -87,7 +108,14 @@ func newMCPHandler(workdir string, spec *apis.Pipeline) mcp.ToolHandlerFor[struc
 			Cmd:     kubectl.New(),
 		}
 
-		pipeline, err := runner.NewPipeline(spec)
+		args := yaml.NewMapRNode(nil)
+		if ctpf != nil {
+			if err := args.YNode().Encode(ctpf.Arguments); err != nil {
+				return nil, err
+			}
+		}
+
+		pipeline, err := runner.NewPipeline(spec, args)
 		if err != nil {
 			return nil, err
 		}

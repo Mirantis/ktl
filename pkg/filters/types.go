@@ -5,9 +5,10 @@ import (
 
 	"github.com/Mirantis/ktl/pkg/apis"
 	kfilters "sigs.k8s.io/kustomize/kyaml/kio/filters"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func New(spec *apis.Filter) (kfilters.KFilter, error) {
+func New(spec *apis.Filter, args *yaml.RNode) (kfilters.KFilter, error) {
 	if impl := spec.GetSkip(); impl != nil {
 		sf, err := newSkipFilter(impl)
 		if err != nil {
@@ -20,7 +21,7 @@ func New(spec *apis.Filter) (kfilters.KFilter, error) {
 	}
 
 	if impl := spec.GetStarlark(); impl != nil {
-		sf, err := newStarlarkFilter(impl)
+		sf, err := newStarlarkFilter(impl, args)
 		if err != nil {
 			return kfilters.KFilter{}, err
 		}

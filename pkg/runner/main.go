@@ -53,7 +53,7 @@ func (cfg *Pipeline) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
-func NewPipeline(spec *apis.Pipeline) (*Pipeline, error) {
+func NewPipeline(spec *apis.Pipeline, args *yaml.RNode) (*Pipeline, error) {
 	pipeline := &Pipeline{}
 
 	defaults := &rekustomization{}
@@ -72,7 +72,7 @@ func NewPipeline(spec *apis.Pipeline) (*Pipeline, error) {
 	}
 
 	for _, filterSpec := range spec.GetFilters() {
-		filter, err := filters.New(filterSpec)
+		filter, err := filters.New(filterSpec, args)
 		if err != nil {
 			return nil, err
 		}

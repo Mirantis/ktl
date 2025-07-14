@@ -8,6 +8,13 @@ info:
 paths: {}
 components:
   schemas:
+    Args:
+      type: object
+      properties:
+        schema:
+          type: object
+        schemaFile:
+          type: string
     CRDDescriptionsOutput:
       type: object
       properties:
@@ -130,6 +137,10 @@ components:
           allOf:
             - $ref: '#/components/schemas/Output'
           description: Output specifies the format of the result
+        args:
+          allOf:
+            - $ref: '#/components/schemas/Args'
+          description: Args describe pipeline parameters
       description: Pipeline defines the combination of source, filters and output.
     ResourceMatcher:
       type: object

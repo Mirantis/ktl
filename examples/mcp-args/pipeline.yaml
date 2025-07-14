@@ -1,0 +1,36 @@
+name: tool_with_args
+args:
+  schema:
+    type: object
+    properties:
+      arg1:
+        type: string
+      arg2:
+        type: number
+source:
+  kubeconfig:
+    clusters:
+    - matchNames: { include: [ '*' ] }
+    resources:
+    - matchNamespaces: { include: [ 'ktl-examples' ] }
+filters:
+- starlark:
+    script: |-
+      for it in resources:
+        it.metadata.labels = {
+          "new": "arg1: %s, arg2: %s" % (args.arg1, args.arg2),
+        }
+        output.append(it)
+output:
+  csv:
+    path: output.csv
+    columns:
+    - name: CLUSTER
+      text: '${CLUSTER}'
+    - name: KIND
+      field: .kind
+    - name: NAME
+      field: .metadata.name
+    - name: NEW_LABEL
+      field: .metadata.labels.new
+
