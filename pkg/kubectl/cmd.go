@@ -1,6 +1,7 @@
 package kubectl
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	"k8s.io/kubectl/pkg/cmd/version"
+	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -65,6 +67,20 @@ func (cmd *Cmd) ClientVersion() (*version.Version, error) {
 
 func (cmd *Cmd) ApplyKustomization(path string) error {
 	subcmd := cmd.SubCmd("apply", "--kustomize", path)
+	_, err := executeCmd(subcmd, parseNoop, true)
+
+	return err
+}
+
+func (cmd *Cmd) Apply(nodes []*yaml.RNode) error {
+	buf := bytes.NewBuffer(nil)
+	writer := kio.ByteWriter{Writer:buf}
+	if err := writer.Write(nodes); err != nil {
+		return err
+	}
+
+	subcmd := cmd.SubCmd("apply", "-f", "-")
+	subcmd.Stdin = buf
 	_, err := executeCmd(subcmd, parseNoop, true)
 
 	return err

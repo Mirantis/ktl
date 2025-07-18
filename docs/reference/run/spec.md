@@ -135,6 +135,22 @@
 
 
 
+<a name="apis-KubectlOutput"></a>
+
+### KubectlOutput
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| kubeconfig | [string](#string) | optional |  |
+| cluster | [string](#string) | optional |  |
+
+
+
+
+
+
 <a name="apis-KustomizeComponentsOutput"></a>
 
 ### KustomizeComponentsOutput
@@ -185,6 +201,7 @@
 | csv | [ColumnarFileOutput](#apis-ColumnarFileOutput) | optional |  |
 | table | [ColumnarFileOutput](#apis-ColumnarFileOutput) | optional |  |
 | crdDescriptions | [CRDDescriptionsOutput](#apis-CRDDescriptionsOutput) | optional |  |
+| kubectl | [KubectlOutput](#apis-KubectlOutput) | optional |  |
 
 
 

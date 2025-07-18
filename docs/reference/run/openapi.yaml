@@ -74,6 +74,13 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ResourceMatcher'
+    KubectlOutput:
+      type: object
+      properties:
+        kubeconfig:
+          type: string
+        cluster:
+          type: string
     KustomizeComponentsOutput:
       type: object
       properties: {}
@@ -104,6 +111,8 @@ components:
           $ref: '#/components/schemas/ColumnarFileOutput'
         crdDescriptions:
           $ref: '#/components/schemas/CRDDescriptionsOutput'
+        kubectl:
+          $ref: '#/components/schemas/KubectlOutput'
     PatternSelector:
       type: object
       properties:

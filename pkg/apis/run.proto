@@ -108,6 +108,12 @@ message Output {
   optional ColumnarFileOutput csv = 4;
   optional ColumnarFileOutput table = 5;
   optional CRDDescriptionsOutput crd_descriptions = 6;
+  optional KubectlOutput kubectl = 7;
+}
+
+message KubectlOutput {
+  optional string kubeconfig = 1;
+  optional string cluster = 2;
 }
 
 message KustomizeOutput {

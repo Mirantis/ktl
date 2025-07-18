@@ -42,5 +42,9 @@ func New(spec *apis.Output) (Impl, error) {
 		return newCRDDescriptionsOutput(implSpec)
 	}
 
+	if implSpec := spec.GetKubectl(); implSpec != nil {
+		return newKubectlOutput(implSpec)
+	}
+
 	return nil, errors.New("unsupported output")
 }

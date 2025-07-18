@@ -27,7 +27,7 @@ func (out *KustomizeOutput) Store(env *types.Env, resources *types.ClusterResour
 		},
 	}
 
-	if err := resourceStore.WriteAll(resources.All()); err != nil {
+	if err := resourceStore.WriteAll(resources.All(nil)); err != nil {
 		return fmt.Errorf("unable to store files: %w", err)
 	}
 

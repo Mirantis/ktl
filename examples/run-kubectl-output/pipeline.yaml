@@ -1,0 +1,15 @@
+source:
+  kubeconfig:
+    clusters:
+    - matchNames: { include: [ 'dev-a' ] }
+    resources:
+      - matchNamespaces: { include: [ 'ktl-examples' ] }
+        matchApiResources: { include: [ 'deployments.apps' ] }
+filters:
+- starlark:
+    script: |-
+      for it in resources:
+        it.spec.replicas = int(str(it.spec.replicas)) + 1
+        output.append(it)
+output:
+  kubectl: {}

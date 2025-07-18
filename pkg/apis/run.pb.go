@@ -759,6 +759,7 @@ type Output struct {
 	Csv                 *ColumnarFileOutput        `protobuf:"bytes,4,opt,name=csv,proto3,oneof" json:"csv,omitempty"`
 	Table               *ColumnarFileOutput        `protobuf:"bytes,5,opt,name=table,proto3,oneof" json:"table,omitempty"`
 	CrdDescriptions     *CRDDescriptionsOutput     `protobuf:"bytes,6,opt,name=crd_descriptions,json=crdDescriptions,proto3,oneof" json:"crd_descriptions,omitempty"`
+	Kubectl             *KubectlOutput             `protobuf:"bytes,7,opt,name=kubectl,proto3,oneof" json:"kubectl,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -835,6 +836,65 @@ func (x *Output) GetCrdDescriptions() *CRDDescriptionsOutput {
 	return nil
 }
 
+func (x *Output) GetKubectl() *KubectlOutput {
+	if x != nil {
+		return x.Kubectl
+	}
+	return nil
+}
+
+type KubectlOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Kubeconfig    *string                `protobuf:"bytes,1,opt,name=kubeconfig,proto3,oneof" json:"kubeconfig,omitempty"`
+	Cluster       *string                `protobuf:"bytes,2,opt,name=cluster,proto3,oneof" json:"cluster,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KubectlOutput) Reset() {
+	*x = KubectlOutput{}
+	mi := &file_run_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KubectlOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KubectlOutput) ProtoMessage() {}
+
+func (x *KubectlOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_run_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KubectlOutput.ProtoReflect.Descriptor instead.
+func (*KubectlOutput) Descriptor() ([]byte, []int) {
+	return file_run_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *KubectlOutput) GetKubeconfig() string {
+	if x != nil && x.Kubeconfig != nil {
+		return *x.Kubeconfig
+	}
+	return ""
+}
+
+func (x *KubectlOutput) GetCluster() string {
+	if x != nil && x.Cluster != nil {
+		return *x.Cluster
+	}
+	return ""
+}
+
 type KustomizeOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -843,7 +903,7 @@ type KustomizeOutput struct {
 
 func (x *KustomizeOutput) Reset() {
 	*x = KustomizeOutput{}
-	mi := &file_run_proto_msgTypes[13]
+	mi := &file_run_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -855,7 +915,7 @@ func (x *KustomizeOutput) String() string {
 func (*KustomizeOutput) ProtoMessage() {}
 
 func (x *KustomizeOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_run_proto_msgTypes[13]
+	mi := &file_run_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -868,7 +928,7 @@ func (x *KustomizeOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KustomizeOutput.ProtoReflect.Descriptor instead.
 func (*KustomizeOutput) Descriptor() ([]byte, []int) {
-	return file_run_proto_rawDescGZIP(), []int{13}
+	return file_run_proto_rawDescGZIP(), []int{14}
 }
 
 type KustomizeComponentsOutput struct {
@@ -879,7 +939,7 @@ type KustomizeComponentsOutput struct {
 
 func (x *KustomizeComponentsOutput) Reset() {
 	*x = KustomizeComponentsOutput{}
-	mi := &file_run_proto_msgTypes[14]
+	mi := &file_run_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -891,7 +951,7 @@ func (x *KustomizeComponentsOutput) String() string {
 func (*KustomizeComponentsOutput) ProtoMessage() {}
 
 func (x *KustomizeComponentsOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_run_proto_msgTypes[14]
+	mi := &file_run_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -904,7 +964,7 @@ func (x *KustomizeComponentsOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KustomizeComponentsOutput.ProtoReflect.Descriptor instead.
 func (*KustomizeComponentsOutput) Descriptor() ([]byte, []int) {
-	return file_run_proto_rawDescGZIP(), []int{14}
+	return file_run_proto_rawDescGZIP(), []int{15}
 }
 
 type HelmChartOutput struct {
@@ -917,7 +977,7 @@ type HelmChartOutput struct {
 
 func (x *HelmChartOutput) Reset() {
 	*x = HelmChartOutput{}
-	mi := &file_run_proto_msgTypes[15]
+	mi := &file_run_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -929,7 +989,7 @@ func (x *HelmChartOutput) String() string {
 func (*HelmChartOutput) ProtoMessage() {}
 
 func (x *HelmChartOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_run_proto_msgTypes[15]
+	mi := &file_run_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -942,7 +1002,7 @@ func (x *HelmChartOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HelmChartOutput.ProtoReflect.Descriptor instead.
 func (*HelmChartOutput) Descriptor() ([]byte, []int) {
-	return file_run_proto_rawDescGZIP(), []int{15}
+	return file_run_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *HelmChartOutput) GetName() string {
@@ -968,7 +1028,7 @@ type CRDDescriptionsOutput struct {
 
 func (x *CRDDescriptionsOutput) Reset() {
 	*x = CRDDescriptionsOutput{}
-	mi := &file_run_proto_msgTypes[16]
+	mi := &file_run_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -980,7 +1040,7 @@ func (x *CRDDescriptionsOutput) String() string {
 func (*CRDDescriptionsOutput) ProtoMessage() {}
 
 func (x *CRDDescriptionsOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_run_proto_msgTypes[16]
+	mi := &file_run_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -993,7 +1053,7 @@ func (x *CRDDescriptionsOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CRDDescriptionsOutput.ProtoReflect.Descriptor instead.
 func (*CRDDescriptionsOutput) Descriptor() ([]byte, []int) {
-	return file_run_proto_rawDescGZIP(), []int{16}
+	return file_run_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CRDDescriptionsOutput) GetPath() string {
@@ -1013,7 +1073,7 @@ type ColumnarFileOutput struct {
 
 func (x *ColumnarFileOutput) Reset() {
 	*x = ColumnarFileOutput{}
-	mi := &file_run_proto_msgTypes[17]
+	mi := &file_run_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1025,7 +1085,7 @@ func (x *ColumnarFileOutput) String() string {
 func (*ColumnarFileOutput) ProtoMessage() {}
 
 func (x *ColumnarFileOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_run_proto_msgTypes[17]
+	mi := &file_run_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1038,7 +1098,7 @@ func (x *ColumnarFileOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ColumnarFileOutput.ProtoReflect.Descriptor instead.
 func (*ColumnarFileOutput) Descriptor() ([]byte, []int) {
-	return file_run_proto_rawDescGZIP(), []int{17}
+	return file_run_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ColumnarFileOutput) GetPath() string {
@@ -1067,7 +1127,7 @@ type ColumnOutput struct {
 
 func (x *ColumnOutput) Reset() {
 	*x = ColumnOutput{}
-	mi := &file_run_proto_msgTypes[18]
+	mi := &file_run_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1079,7 +1139,7 @@ func (x *ColumnOutput) String() string {
 func (*ColumnOutput) ProtoMessage() {}
 
 func (x *ColumnOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_run_proto_msgTypes[18]
+	mi := &file_run_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1092,7 +1152,7 @@ func (x *ColumnOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ColumnOutput.ProtoReflect.Descriptor instead.
 func (*ColumnOutput) Descriptor() ([]byte, []int) {
-	return file_run_proto_rawDescGZIP(), []int{18}
+	return file_run_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ColumnOutput) GetName() string {
@@ -1205,7 +1265,7 @@ const file_run_proto_rawDesc = "" +
 	"\n" +
 	"_namespaceB\x16\n" +
 	"\x14_annotation_selectorB\x11\n" +
-	"\x0f_label_selector\"\xe6\x03\n" +
+	"\x0f_label_selector\"\xa6\x04\n" +
 	"\x06Output\x128\n" +
 	"\tkustomize\x18\x01 \x01(\v2\x15.apis.KustomizeOutputH\x00R\tkustomize\x88\x01\x01\x12W\n" +
 	"\x14kustomize_components\x18\x02 \x01(\v2\x1f.apis.KustomizeComponentsOutputH\x01R\x13kustomizeComponents\x88\x01\x01\x129\n" +
@@ -1213,14 +1273,25 @@ const file_run_proto_rawDesc = "" +
 	"helm_chart\x18\x03 \x01(\v2\x15.apis.HelmChartOutputH\x02R\thelmChart\x88\x01\x01\x12/\n" +
 	"\x03csv\x18\x04 \x01(\v2\x18.apis.ColumnarFileOutputH\x03R\x03csv\x88\x01\x01\x123\n" +
 	"\x05table\x18\x05 \x01(\v2\x18.apis.ColumnarFileOutputH\x04R\x05table\x88\x01\x01\x12K\n" +
-	"\x10crd_descriptions\x18\x06 \x01(\v2\x1b.apis.CRDDescriptionsOutputH\x05R\x0fcrdDescriptions\x88\x01\x01B\f\n" +
+	"\x10crd_descriptions\x18\x06 \x01(\v2\x1b.apis.CRDDescriptionsOutputH\x05R\x0fcrdDescriptions\x88\x01\x01\x122\n" +
+	"\akubectl\x18\a \x01(\v2\x13.apis.KubectlOutputH\x06R\akubectl\x88\x01\x01B\f\n" +
 	"\n" +
 	"_kustomizeB\x17\n" +
 	"\x15_kustomize_componentsB\r\n" +
 	"\v_helm_chartB\x06\n" +
 	"\x04_csvB\b\n" +
 	"\x06_tableB\x13\n" +
-	"\x11_crd_descriptions\"\x11\n" +
+	"\x11_crd_descriptionsB\n" +
+	"\n" +
+	"\b_kubectl\"n\n" +
+	"\rKubectlOutput\x12#\n" +
+	"\n" +
+	"kubeconfig\x18\x01 \x01(\tH\x00R\n" +
+	"kubeconfig\x88\x01\x01\x12\x1d\n" +
+	"\acluster\x18\x02 \x01(\tH\x01R\acluster\x88\x01\x01B\r\n" +
+	"\v_kubeconfigB\n" +
+	"\n" +
+	"\b_cluster\"\x11\n" +
 	"\x0fKustomizeOutput\"\x1b\n" +
 	"\x19KustomizeComponentsOutput\"?\n" +
 	"\x0fHelmChartOutput\x12\x12\n" +
@@ -1256,7 +1327,7 @@ func file_run_proto_rawDescGZIP() []byte {
 	return file_run_proto_rawDescData
 }
 
-var file_run_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_run_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_run_proto_goTypes = []any{
 	(*Pipeline)(nil),                  // 0: apis.Pipeline
 	(*Args)(nil),                      // 1: apis.Args
@@ -1271,21 +1342,22 @@ var file_run_proto_goTypes = []any{
 	(*SkipFilter)(nil),                // 10: apis.SkipFilter
 	(*ResourceSelector)(nil),          // 11: apis.ResourceSelector
 	(*Output)(nil),                    // 12: apis.Output
-	(*KustomizeOutput)(nil),           // 13: apis.KustomizeOutput
-	(*KustomizeComponentsOutput)(nil), // 14: apis.KustomizeComponentsOutput
-	(*HelmChartOutput)(nil),           // 15: apis.HelmChartOutput
-	(*CRDDescriptionsOutput)(nil),     // 16: apis.CRDDescriptionsOutput
-	(*ColumnarFileOutput)(nil),        // 17: apis.ColumnarFileOutput
-	(*ColumnOutput)(nil),              // 18: apis.ColumnOutput
-	(*structpb.Struct)(nil),           // 19: google.protobuf.Struct
-	(*emptypb.Empty)(nil),             // 20: google.protobuf.Empty
+	(*KubectlOutput)(nil),             // 13: apis.KubectlOutput
+	(*KustomizeOutput)(nil),           // 14: apis.KustomizeOutput
+	(*KustomizeComponentsOutput)(nil), // 15: apis.KustomizeComponentsOutput
+	(*HelmChartOutput)(nil),           // 16: apis.HelmChartOutput
+	(*CRDDescriptionsOutput)(nil),     // 17: apis.CRDDescriptionsOutput
+	(*ColumnarFileOutput)(nil),        // 18: apis.ColumnarFileOutput
+	(*ColumnOutput)(nil),              // 19: apis.ColumnOutput
+	(*structpb.Struct)(nil),           // 20: google.protobuf.Struct
+	(*emptypb.Empty)(nil),             // 21: google.protobuf.Empty
 }
 var file_run_proto_depIdxs = []int32{
 	2,  // 0: apis.Pipeline.source:type_name -> apis.Source
 	8,  // 1: apis.Pipeline.filters:type_name -> apis.Filter
 	12, // 2: apis.Pipeline.output:type_name -> apis.Output
 	1,  // 3: apis.Pipeline.args:type_name -> apis.Args
-	19, // 4: apis.Args.schema:type_name -> google.protobuf.Struct
+	20, // 4: apis.Args.schema:type_name -> google.protobuf.Struct
 	3,  // 5: apis.Source.kubeconfig:type_name -> apis.KubeConfigSource
 	4,  // 6: apis.Source.kustomize:type_name -> apis.KustomizeSource
 	5,  // 7: apis.KubeConfigSource.clusters:type_name -> apis.ClusterSelector
@@ -1299,20 +1371,21 @@ var file_run_proto_depIdxs = []int32{
 	9,  // 15: apis.Filter.starlark:type_name -> apis.StarlarkFilter
 	11, // 16: apis.SkipFilter.resources:type_name -> apis.ResourceSelector
 	11, // 17: apis.SkipFilter.keep_resources:type_name -> apis.ResourceSelector
-	13, // 18: apis.Output.kustomize:type_name -> apis.KustomizeOutput
-	14, // 19: apis.Output.kustomize_components:type_name -> apis.KustomizeComponentsOutput
-	15, // 20: apis.Output.helm_chart:type_name -> apis.HelmChartOutput
-	17, // 21: apis.Output.csv:type_name -> apis.ColumnarFileOutput
-	17, // 22: apis.Output.table:type_name -> apis.ColumnarFileOutput
-	16, // 23: apis.Output.crd_descriptions:type_name -> apis.CRDDescriptionsOutput
-	18, // 24: apis.ColumnarFileOutput.columns:type_name -> apis.ColumnOutput
-	20, // 25: apis.KTL.Config:input_type -> google.protobuf.Empty
-	0,  // 26: apis.KTL.Config:output_type -> apis.Pipeline
-	26, // [26:27] is the sub-list for method output_type
-	25, // [25:26] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	14, // 18: apis.Output.kustomize:type_name -> apis.KustomizeOutput
+	15, // 19: apis.Output.kustomize_components:type_name -> apis.KustomizeComponentsOutput
+	16, // 20: apis.Output.helm_chart:type_name -> apis.HelmChartOutput
+	18, // 21: apis.Output.csv:type_name -> apis.ColumnarFileOutput
+	18, // 22: apis.Output.table:type_name -> apis.ColumnarFileOutput
+	17, // 23: apis.Output.crd_descriptions:type_name -> apis.CRDDescriptionsOutput
+	13, // 24: apis.Output.kubectl:type_name -> apis.KubectlOutput
+	19, // 25: apis.ColumnarFileOutput.columns:type_name -> apis.ColumnOutput
+	21, // 26: apis.KTL.Config:input_type -> google.protobuf.Empty
+	0,  // 27: apis.KTL.Config:output_type -> apis.Pipeline
+	27, // [27:28] is the sub-list for method output_type
+	26, // [26:27] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_run_proto_init() }
@@ -1329,16 +1402,17 @@ func file_run_proto_init() {
 	file_run_proto_msgTypes[8].OneofWrappers = []any{}
 	file_run_proto_msgTypes[11].OneofWrappers = []any{}
 	file_run_proto_msgTypes[12].OneofWrappers = []any{}
-	file_run_proto_msgTypes[16].OneofWrappers = []any{}
+	file_run_proto_msgTypes[13].OneofWrappers = []any{}
 	file_run_proto_msgTypes[17].OneofWrappers = []any{}
 	file_run_proto_msgTypes[18].OneofWrappers = []any{}
+	file_run_proto_msgTypes[19].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_run_proto_rawDesc), len(file_run_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   19,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
