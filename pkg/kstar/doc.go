@@ -27,10 +27,9 @@
 //
 // Creates a shell-like pattern for matching, e.g.:
 //
-//		"mystring" == match("my*")
 //		match("my*", "mystring")
 //		match("my*", ["mystring", "other"])
-//		["mystring", "other"] | match("my*")
+//		"mystring" in match("my*")
 //
 // ## `regex`
 //

@@ -44,6 +44,26 @@ func TestMatch(t *testing.T) {
 				starlark.String("myotherstring"),
 			}),
 		},
+		{
+			name: "in-match",
+			expr: `"mystring" in match("my*")`,
+			want: starlark.String("mystring"),
+		},
+		{
+			name: "in-no-match",
+			expr: `"other" in match("my*")`,
+			want: starlark.None,
+		},
+		{
+			name: "not-in-match",
+			expr: `"mystring" not in match("my*")`,
+			want: starlark.False,
+		},
+		{
+			name: "not-in-no-match",
+			expr: `"other" not in match("my*")`,
+			want: starlark.True,
+		},
 	}
 
 	for _, test := range tests {
