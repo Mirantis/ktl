@@ -7,6 +7,7 @@ import (
 )
 
 var cmpOpts = []cmp.Option{
+	cmp.AllowUnexported(matchPattern{}),
 	cmp.AllowUnexported(starlark.List{}),
 	cmpopts.IgnoreFields(starlark.List{}, "frozen"),
 }

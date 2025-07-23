@@ -19,7 +19,12 @@ func TestMatch(t *testing.T) {
 		{
 			name: "ctor",
 			expr: `match("my*")`,
-			want: matchPattern("my*"),
+			want: &matchPattern{"my*", false},
+		},
+		{
+			name: "ctor-inverse",
+			expr: `~match("my*")`,
+			want: &matchPattern{"my*", true},
 		},
 		{
 			name:    "ctor-err",
@@ -63,6 +68,26 @@ func TestMatch(t *testing.T) {
 			name: "not-in-no-match",
 			expr: `"other" not in match("my*")`,
 			want: starlark.True,
+		},
+		{
+			name: "inverse-in-no-match",
+			expr: `"mystring" in ~match("my*")`,
+			want: starlark.None,
+		},
+		{
+			name: "inverse-in-match",
+			expr: `"other" in ~match("my*")`,
+			want: starlark.String("other"),
+		},
+		{
+			name: "inverse-not-in-no-match",
+			expr: `"mystring" not in ~match("my*")`,
+			want: starlark.True,
+		},
+		{
+			name: "inverse-not-in-match",
+			expr: `"other" not in ~match("my*")`,
+			want: starlark.False,
 		},
 	}
 

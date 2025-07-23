@@ -10,54 +10,74 @@ import (
 
 const fnMatchPattern = "match"
 
-type matchPattern string
+type matchPattern struct {
+	pattern string
+	inverse bool
+}
 
 var (
 	_ starlark.Value     = new(matchPattern)
 	_ starlark.HasBinary = new(matchPattern)
+	_ starlark.HasUnary  = new(matchPattern)
 )
 
-func (match matchPattern) String() string {
-	return fmt.Sprintf("%s(%s)", fnMatchPattern, syntax.Quote(string(match), false))
+func (match *matchPattern) String() string {
+	inverse := ""
+	if match.inverse {
+		inverse = "~"
+	}
+	return fmt.Sprintf("%s%s(%s)", inverse, fnMatchPattern, syntax.Quote(match.pattern, false))
 }
 
-func (match matchPattern) Type() string {
+func (match *matchPattern) Type() string {
 	return fnMatchPattern
 }
 
-func (match matchPattern) Freeze() {
+func (match *matchPattern) Freeze() {
 }
 
-func (match matchPattern) Truth() starlark.Bool {
-	return starlark.String(match).Truth()
+func (match *matchPattern) Truth() starlark.Bool {
+	return starlark.String(match.pattern).Truth()
 }
 
-func (match matchPattern) Hash() (uint32, error) {
-	return starlark.String(match).Hash()
+func (match *matchPattern) Hash() (uint32, error) {
+	inverse := ""
+	if match.inverse {
+		inverse = "~"
+	}
+	return starlark.String(inverse + match.pattern).Hash()
 }
 
-func (match matchPattern) Name() string {
+func (match *matchPattern) Name() string {
 	return fnMatchPattern
 }
 
-func (match matchPattern) Binary(op syntax.Token, value starlark.Value, _ starlark.Side) (starlark.Value, error) {
+func (match *matchPattern) Binary(op syntax.Token, value starlark.Value, _ starlark.Side) (starlark.Value, error) {
 	if op != syntax.IN {
 		return nil, nil
 	}
 
-	return match.apply(value, true)
+	return match.apply(value)
 }
 
-func (match matchPattern) apply(value starlark.Value, expect bool) (starlark.Value, error) {
+func (match *matchPattern) Unary(op syntax.Token) (starlark.Value, error) {
+	if op != syntax.TILDE {
+		return nil, nil
+	}
+
+	return &matchPattern{match.pattern, !match.inverse}, nil
+}
+
+func (match *matchPattern) apply(value starlark.Value) (starlark.Value, error) {
 	switch v := value.(type) {
 	case starlark.Iterable:
-		return match.applyIterable(v, expect)
+		return match.applyIterable(v)
 	default:
-		return match.applySingle(value, expect)
+		return match.applySingle(value)
 	}
 }
 
-func (match matchPattern) applyIterable(value starlark.Iterable, expect bool) (starlark.Value, error) {
+func (match *matchPattern) applyIterable(value starlark.Iterable) (starlark.Value, error) {
 	results := starlark.NewList(nil)
 
 	iter := value.Iterate()
@@ -65,7 +85,7 @@ func (match matchPattern) applyIterable(value starlark.Iterable, expect bool) (s
 
 	var item starlark.Value
 	for iter.Next(&item) {
-		matched, err := match.applySingle(item, expect)
+		matched, err := match.applySingle(item)
 		if err != nil {
 			return nil, err
 		}
@@ -83,11 +103,11 @@ func (match matchPattern) applyIterable(value starlark.Iterable, expect bool) (s
 	return results, nil
 }
 
-func (match matchPattern) applySingle(value starlark.Value, expect bool) (starlark.Value, error) {
+func (match *matchPattern) applySingle(value starlark.Value) (starlark.Value, error) {
 	switch v := value.(type) {
 	case starlark.String:
-		ok, _ := path.Match(string(match), v.GoString())
-		if ok == expect {
+		ok, _ := path.Match(match.pattern, v.GoString())
+		if ok != match.inverse {
 			return value, nil
 		}
 		return starlark.None, nil
@@ -110,11 +130,11 @@ func newMatchPattern(_ *starlark.Thread, fn *starlark.Builtin, args starlark.Tup
 		return nil, fmt.Errorf("%s: %w (%q)", fn.Name(), err, pattern)
 	}
 
-	match := matchPattern(pattern)
+	match := &matchPattern{pattern, false}
 
 	if len(args) == 1 {
 		return match, nil
 	}
 
-	return match.apply(value, true)
+	return match.apply(value)
 }
