@@ -26,6 +26,16 @@ func TestMatch(t *testing.T) {
 			expr: `match("my[")`,
 			wantErr: true,
 		},
+		{
+			name: "arg-single-match",
+			expr: `match("my*", "mystring")`,
+			want: starlark.String("mystring"),
+		},
+		{
+			name: "arg-single-no-match",
+			expr: `match("my*", "other")`,
+			want: starlark.None,
+		},
 	}
 
 	for _, test := range tests {
@@ -47,7 +57,7 @@ func TestMatch(t *testing.T) {
 				test.name,
 				fmt.Sprintf("%s = %s", resultVar, test.expr),
 				starlark.StringDict{
-					"match": starlark.NewBuiltin("match", newMatchPattern),
+					fnMatchPattern: starlark.NewBuiltin(fnMatchPattern, newMatchPattern),
 				},
 			)
 

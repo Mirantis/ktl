@@ -8,10 +8,16 @@ import (
 	"go.starlark.net/syntax"
 )
 
+const fnMatchPattern = "match"
+
 type matchPattern string
 
+var (
+	_ starlark.Value = new(matchPattern)
+)
+
 func (match matchPattern) String() string {
-	return fmt.Sprintf("match(%s)", syntax.Quote(string(match), false))
+	return fmt.Sprintf("%s(%s)", fnMatchPattern, syntax.Quote(string(match), false))
 }
 
 var matchPatternType = starlark.String("").Type()
@@ -31,13 +37,46 @@ func (match matchPattern) Hash() (uint32, error) {
 	return starlark.String(match).Hash()
 }
 
+func (match matchPattern) Name() string {
+	return fnMatchPattern
+}
+
+func (match matchPattern) apply(value starlark.Value) (starlark.Value, error) {
+	return match.applySingle(value)
+}
+
+func (match matchPattern) applySingle(value starlark.Value) (starlark.Value, error) {
+	switch v := value.(type) {
+	case starlark.String:
+		ok, _ := path.Match(string(match), v.GoString())
+		if ok {
+			return value, nil
+		}
+		return starlark.None, nil
+	default:
+		return nil, fmt.Errorf("%s: type %s not supported", fnMatchPattern, value.Type())
+	}
+}
+
 func newMatchPattern(_ *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var pattern string
-	starlark.UnpackPositionalArgs(fn.Name(), args, kwargs, 1, &pattern)
+	var value starlark.Value
 
-	if _, err := path.Match(pattern, ""); err != nil {
-		return nil, fmt.Errorf("invalid match pattern: %w", err)
+	err := starlark.UnpackPositionalArgs(fn.Name(), args, kwargs, 1, &pattern, &value)
+	if err != nil {
+		return nil, err
 	}
 
-	return matchPattern(pattern), nil
+	_, err = path.Match(pattern, "")
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w (%q)", fn.Name(), err, pattern)
+	}
+
+	match := matchPattern(pattern)
+
+	if len(args) == 1 {
+		return match, nil
+	}
+
+	return match.apply(value)
 }
