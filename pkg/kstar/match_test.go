@@ -11,9 +11,9 @@ import (
 
 func TestMatch(t *testing.T) {
 	tests := []struct {
-		name   string
-		expr string
-		want   starlark.Value
+		name    string
+		expr    string
+		want    starlark.Value
 		wantErr bool
 	}{
 		{
@@ -22,8 +22,8 @@ func TestMatch(t *testing.T) {
 			want: matchPattern("my*"),
 		},
 		{
-			name: "ctor-err",
-			expr: `match("my[")`,
+			name:    "ctor-err",
+			expr:    `match("my[")`,
 			wantErr: true,
 		},
 		{
@@ -35,6 +35,14 @@ func TestMatch(t *testing.T) {
 			name: "arg-single-no-match",
 			expr: `match("my*", "other")`,
 			want: starlark.None,
+		},
+		{
+			name: "arg-multi-match",
+			expr: `match("my*", ["a", "mystring", "b", "myotherstring"])`,
+			want: starlark.NewList([]starlark.Value{
+				starlark.String("mystring"),
+				starlark.String("myotherstring"),
+			}),
 		},
 	}
 
@@ -71,7 +79,7 @@ func TestMatch(t *testing.T) {
 				t.Fatal("want error, got none")
 			}
 
-			if diff := cmp.Diff(test.want, got); diff != "" {
+			if diff := cmp.Diff(test.want, got, cmpOpts...); diff != "" {
 				t.Fatalf("-want +got:\n%s", diff)
 			}
 		})

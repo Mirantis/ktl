@@ -42,7 +42,38 @@ func (match matchPattern) Name() string {
 }
 
 func (match matchPattern) apply(value starlark.Value) (starlark.Value, error) {
-	return match.applySingle(value)
+	switch v := value.(type) {
+	case starlark.Iterable:
+		return match.applyIterable(v)
+	default:
+		return match.applySingle(value)
+	}
+}
+
+func (match matchPattern) applyIterable(value starlark.Iterable) (starlark.Value, error) {
+	results := starlark.NewList(nil)
+
+	iter := value.Iterate()
+	defer iter.Done()
+
+	var item starlark.Value
+	for iter.Next(&item) {
+		matched, err := match.applySingle(item)
+		if err != nil {
+			return nil, err
+		}
+
+		if matched == starlark.None {
+			continue
+		}
+
+		err = results.Append(matched)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", match.String(), err)
+		}
+	}
+
+	return results, nil
 }
 
 func (match matchPattern) applySingle(value starlark.Value) (starlark.Value, error) {
