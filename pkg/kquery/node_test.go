@@ -18,7 +18,7 @@ var (
 	pods, _  = (&kio.ByteReader{Reader: bytes.NewBuffer(podsYaml)}).Read()
 )
 
-func TestNodeSetAttrName(t *testing.T) {
+func TestNodesAttrName(t *testing.T) {
 	input := MakeNodes(pods...)
 
 	want := MakeNodes(
@@ -28,13 +28,35 @@ func TestNodeSetAttrName(t *testing.T) {
 	)
 	got := input.Attr("metadata").Attr("labels").Attr("app")
 
-	cmpOpts = append(slices.Clone(cmpOpts),
-		cmpopts.IgnoreFields(Node{}, "parent", "lazySchema"),
-		cmpopts.IgnoreFields(Nodes{}, "parent", "lookup"),
-	)
+	cmpOpts := slices.Concat(commonCmpOpts, cmp.Options{
+		cmpopts.IgnoreFields(Node{}, "parent", "lazySchema", "lookup"),
+	})
 
 	if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {
 		t.Fatalf("-want +got:\n%s", diff)
 	}
 }
 
+func TestNodesSetValue(t *testing.T) {
+	input := MakeNodes(pods...)
+
+	//REVISIT: remove dependency on Attr()
+	input.Attr("metadata").Attr("labels").Attr("app").SetValue(
+		yaml.NewStringRNode("new-value").YNode(),
+	)
+
+	want := MakeNodes(
+		yaml.NewStringRNode("new-value"),
+		yaml.NewStringRNode("new-value"),
+		yaml.NewStringRNode("new-value"),
+	)
+	got := input.Attr("metadata").Attr("labels").Attr("app")
+
+	cmpOpts := slices.Concat(commonCmpOpts, cmp.Options{
+		cmpopts.IgnoreFields(Node{}, "parent", "lazySchema", "lookup"),
+	})
+
+	if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {
+		t.Fatalf("-want +got:\n%s", diff)
+	}
+}
