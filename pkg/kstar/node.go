@@ -10,85 +10,85 @@ import (
 
 var errNotImplemented = errors.New("not implemented")
 
-type NodeSet struct {
-	nodes *kquery.NodeSet
+type Nodes struct {
+	query *kquery.Nodes
 }
 
 var (
-	_ starlark.Callable       = new(NodeSet)
-	_ starlark.HasAttrs       = new(NodeSet)
-	_ starlark.HasBinary      = new(NodeSet)
-	_ starlark.HasSetField    = new(NodeSet)
-	_ starlark.HasSetIndex    = new(NodeSet)
-	_ starlark.HasSetKey      = new(NodeSet)
-	_ starlark.TotallyOrdered = new(NodeSet)
-	_ starlark.Value          = new(NodeSet)
+	_ starlark.Callable       = new(Nodes)
+	_ starlark.HasAttrs       = new(Nodes)
+	_ starlark.HasBinary      = new(Nodes)
+	_ starlark.HasSetField    = new(Nodes)
+	_ starlark.HasSetIndex    = new(Nodes)
+	_ starlark.HasSetKey      = new(Nodes)
+	_ starlark.TotallyOrdered = new(Nodes)
+	_ starlark.Value          = new(Nodes)
 )
 
-func (nset *NodeSet) CallInternal(thread *starlark.Thread, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (nodes *Nodes) CallInternal(thread *starlark.Thread, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	return nil, errNotImplemented
 }
 
-func (nset *NodeSet) Name() string {
+func (nodes *Nodes) Name() string {
 	panic(errNotImplemented)
 }
 
-func (nset *NodeSet) Attr(name string) (starlark.Value, error) {
+func (nodes *Nodes) Attr(name string) (starlark.Value, error) {
 	return nil, errNotImplemented
 }
 
-func (nset *NodeSet) AttrNames() []string {
+func (nodes *Nodes) AttrNames() []string {
 	panic(errNotImplemented)
 }
 
-func (nset *NodeSet) Binary(op syntax.Token, y starlark.Value, side starlark.Side) (starlark.Value, error) {
+func (nodes *Nodes) Binary(op syntax.Token, y starlark.Value, side starlark.Side) (starlark.Value, error) {
 	return nil, errNotImplemented
 }
 
-func (nset *NodeSet) SetField(name string, val starlark.Value) error {
+func (nodes *Nodes) SetField(name string, val starlark.Value) error {
 	return errNotImplemented
 }
 
-func (nset *NodeSet) Index(idx int) starlark.Value {
+func (nodes *Nodes) Index(idx int) starlark.Value {
 	panic(errNotImplemented)
 }
 
-func (nset *NodeSet) Len() int {
+func (nodes *Nodes) Len() int {
 	panic(errNotImplemented)
 }
 
-func (nset *NodeSet) SetIndex(idx int, val starlark.Value) error {
+func (nodes *Nodes) SetIndex(idx int, val starlark.Value) error {
 	return errNotImplemented
 }
 
-func (nset *NodeSet) Get(key starlark.Value) (starlark.Value, bool, error) {
+func (nodes *Nodes) Get(key starlark.Value) (starlark.Value, bool, error) {
 	return nil, false, errNotImplemented
 }
 
-func (nset *NodeSet) SetKey(key, val starlark.Value) error {
+func (nodes *Nodes) SetKey(key, val starlark.Value) error {
 	return errNotImplemented
 }
 
-func (nset *NodeSet) Cmp(y starlark.Value, depth int) (int, error) {
+func (nodes *Nodes) Cmp(y starlark.Value, depth int) (int, error) {
 	return 0, errNotImplemented
 }
 
-func (nset *NodeSet) String() string {
+func (nodes *Nodes) String() string {
 	panic(errNotImplemented)
 }
 
-func (nset *NodeSet) Type() string {
+func (nodes *Nodes) Type() string {
 	panic(errNotImplemented)
 }
 
-func (nset *NodeSet) Freeze() {
+func (nodes *Nodes) Freeze() {
 	panic(errNotImplemented)
 }
 
-func (nset *NodeSet) Truth() starlark.Bool {
+func (nodes *Nodes) Truth() starlark.Bool {
 	panic(errNotImplemented)
 }
 
-func (nset *NodeSet) Hash() (uint32, error) {
+func (nodes *Nodes) Hash() (uint32, error) {
 	return 0, errNotImplemented
 }
