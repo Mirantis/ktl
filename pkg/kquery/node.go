@@ -12,6 +12,14 @@ type Node struct {
 	lookup     *yaml.PathGetter
 }
 
+func (node *Node) YNode() *yaml.Node {
+	if node == nil {
+		return nil
+	}
+
+	return node.rnode.YNode()
+}
+
 func (node *Node) ensureRNode(kind yaml.Kind) *yaml.RNode {
 	if node == nil {
 		return nil
