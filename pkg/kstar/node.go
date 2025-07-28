@@ -18,6 +18,17 @@ var (
 	errIndexOutOfRange = errors.New("index out of range")
 )
 
+func FromYNode(ynode *yaml.Node) starlark.Value {
+	switch tag := ynode.ShortTag(); tag {
+	case yaml.NodeTagMap:
+		return &MappingNode{value: ynode}
+	case yaml.NodeTagString, yaml.NodeTagInt, yaml.NodeTagFloat, yaml.NodeTagBool:
+		return &ScalarNode{value: ynode}
+	default:
+		panic(errNotImplemented)
+	}
+}
+
 type Nodes struct {
 	query kquery.Nodes
 }
