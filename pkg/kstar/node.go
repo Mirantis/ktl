@@ -19,10 +19,10 @@ var (
 )
 
 func FromYNode(ynode *yaml.Node) starlark.Value {
-	switch tag := ynode.ShortTag(); tag {
-	case yaml.NodeTagMap:
+	switch kind := ynode.Kind; kind {
+	case yaml.MappingNode:
 		return &MappingNode{value: ynode}
-	case yaml.NodeTagString, yaml.NodeTagInt, yaml.NodeTagFloat, yaml.NodeTagBool:
+	case yaml.ScalarNode:
 		return &ScalarNode{value: ynode}
 	default:
 		panic(errNotImplemented)
