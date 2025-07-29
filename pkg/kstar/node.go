@@ -46,6 +46,29 @@ func fromStarlarkEntries(value starlark.IterableMapping) (*yaml.Node, error) {
 	return ynode, nil
 }
 
+func fromStarlarkAttrs(value starlark.HasAttrs) (*yaml.Node, error) {
+	ynode := yaml.NewMapRNode(nil).YNode()
+	ynode.Tag = yaml.NodeTagMap
+
+	for _, attrName := range value.AttrNames() {
+		nameYNode := yaml.NewStringRNode(attrName).YNode()
+
+		attrValue, err := value.Attr(attrName)
+		if err != nil {
+			return nil, err
+		}
+
+		valueYNode, err := FromStarlark(attrValue)
+		if err != nil {
+			return nil, err
+		}
+
+		ynode.Content = append(ynode.Content, nameYNode, valueYNode)
+	}
+
+	return ynode, nil
+}
+
 func fromStarlarkElements(value starlark.Iterable) (*yaml.Node, error) {
 	ynode := yaml.NewListRNode().YNode()
 	ynode.Tag = yaml.NodeTagSeq
@@ -94,6 +117,8 @@ func FromStarlark(value starlark.Value) (*yaml.Node, error) {
 		return fromStarlarkEntries(value)
 	case starlark.Iterable:
 		return fromStarlarkElements(value)
+	case starlark.HasAttrs:
+		return fromStarlarkAttrs(value)
 	default:
 		return nil, fmt.Errorf("%w: %s", errUnsupportedType, value.Type())
 	}

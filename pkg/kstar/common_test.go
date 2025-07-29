@@ -6,14 +6,23 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"go.starlark.net/starlark"
+	"go.starlark.net/starlarkstruct"
 )
 
-var cmpOpts = []cmp.Option{
-	cmp.AllowUnexported(matchPattern{}),
-	cmp.AllowUnexported(starlark.Int{}),
-	cmp.AllowUnexported(starlark.List{}),
-	cmpopts.IgnoreFields(starlark.List{}, "frozen"),
-}
+const None = starlark.None
+
+type StringDict = starlark.StringDict
+
+var (
+	FromStringDict = starlarkstruct.FromStringDict
+
+	commonCmpOpts = []cmp.Option{
+		cmp.AllowUnexported(matchPattern{}),
+		cmp.AllowUnexported(starlark.Int{}),
+		cmp.AllowUnexported(starlark.List{}),
+		cmpopts.IgnoreFields(starlark.List{}, "frozen"),
+	}
+)
 
 type wantErr bool
 

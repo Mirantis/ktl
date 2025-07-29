@@ -94,7 +94,7 @@ func TestMappingHasAttrs(t *testing.T) {
 			}
 
 			got := gotAll[resultVar]
-			if diff := cmp.Diff(test.want, got, cmpOpts...); diff != "" {
+			if diff := cmp.Diff(test.want, got, commonCmpOpts...); diff != "" {
 				t.Fatalf("-want +got:\n%s", diff)
 			}
 		})
@@ -102,7 +102,7 @@ func TestMappingHasAttrs(t *testing.T) {
 }
 
 func TestMappingHasSetField(t *testing.T) {
-	cmpOpts := slices.Concat(cmpOpts, cmp.Options{
+	cmpOpts := slices.Concat(commonCmpOpts, cmp.Options{
 		cmpopts.IgnoreFields(yaml.Node{}, "Line", "Style", "Column"),
 	})
 	cm := yaml.MustParse(strings.Join([]string{
@@ -358,7 +358,7 @@ func TestMappingHasGet(t *testing.T) {
 			}
 
 			got := gotAll[resultVar]
-			if diff := cmp.Diff(test.want, got, cmpOpts...); diff != "" {
+			if diff := cmp.Diff(test.want, got, commonCmpOpts...); diff != "" {
 				t.Fatalf("-want +got:\n%s", diff)
 			}
 		})
@@ -366,7 +366,7 @@ func TestMappingHasGet(t *testing.T) {
 }
 
 func TestMappingHasSetKey(t *testing.T) {
-	cmpOpts := slices.Concat(cmpOpts, cmp.Options{
+	cmpOpts := slices.Concat(commonCmpOpts, cmp.Options{
 		cmpopts.IgnoreFields(yaml.Node{}, "Line", "Style", "Column"),
 	})
 	cm := yaml.MustParse(strings.Join([]string{
@@ -565,6 +565,159 @@ func TestMappingHasSetKey(t *testing.T) {
 			}
 
 			got := node.value
+			want := yaml.MustParse(test.want).YNode()
+
+			if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {
+				t.Fatalf("-want +got:\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestMappingMerge(t *testing.T) {
+	cmpOpts := slices.Concat(commonCmpOpts, cmp.Options{
+		cmpopts.IgnoreFields(yaml.Node{}, "Line", "Style", "Column", "Tag"),
+	})
+	left := &MappingNode{value: yaml.MustParse(strings.Join([]string{
+		`apiVersion: v1`,
+		`kind: ConfigMap`,
+		`metadata:`,
+		`  name: test-cm`,
+		`data:`,
+		`  a: 1`,
+	}, "\n")).YNode()}
+
+	tests := []struct {
+		name      string
+		right     starlark.Value
+		want      string
+		wantErr   wantErr
+		wantPanic wantPanic
+	}{
+		{
+			name: "replace-field",
+			right: &MappingNode{value: yaml.MustParse(strings.Join([]string{
+				`kind: NotConfigMap`,
+			}, "\n")).YNode()},
+			want: strings.Join([]string{
+				`apiVersion: v1`,
+				`kind: NotConfigMap`,
+				`metadata:`,
+				`  name: test-cm`,
+				`data:`,
+				`  a: 1`,
+			}, "\n"),
+		},
+		{
+			name: "replace-nested",
+			right: &MappingNode{value: yaml.MustParse(strings.Join([]string{
+				`data:`,
+				`  a: 2`,
+			}, "\n")).YNode()},
+			want: strings.Join([]string{
+				`apiVersion: v1`,
+				`kind: ConfigMap`,
+				`metadata:`,
+				`  name: test-cm`,
+				`data:`,
+				`  a: 2`,
+			}, "\n"),
+		},
+		{
+			name: "replace-struct",
+			right: FromStringDict(None, StringDict{
+				"data": FromStringDict(None, StringDict{
+					"a": starlark.MakeInt(2),
+				}),
+			}),
+			want: strings.Join([]string{
+				`apiVersion: v1`,
+				`kind: ConfigMap`,
+				`metadata:`,
+				`  name: test-cm`,
+				`data:`,
+				`  a: 2`,
+			}, "\n"),
+		},
+		{
+			name: "append-nested",
+			right: &MappingNode{value: yaml.MustParse(strings.Join([]string{
+				`data:`,
+				`  b: 3`,
+			}, "\n")).YNode()},
+			want: strings.Join([]string{
+				`apiVersion: v1`,
+				`kind: ConfigMap`,
+				`metadata:`,
+				`  name: test-cm`,
+				`data:`,
+				`  a: 1`,
+				`  b: 3`,
+			}, "\n"),
+		},
+		{
+			name: "append-struct",
+			right: FromStringDict(None, StringDict{
+				"data": FromStringDict(None, StringDict{
+					"b": starlark.MakeInt(4),
+				}),
+			}),
+			want: strings.Join([]string{
+				`apiVersion: v1`,
+				`kind: ConfigMap`,
+				`metadata:`,
+				`  name: test-cm`,
+				`data:`,
+				`  a: 1`,
+				`  b: 4`,
+			}, "\n"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			defer test.wantPanic.recover(t)
+
+			opts := &syntax.FileOptions{
+				TopLevelControl: true,
+			}
+
+			thread := &starlark.Thread{
+				Name: test.name,
+				Print: func(_ *starlark.Thread, msg string) {
+					t.Logf("starlark output: %s", msg)
+				},
+			}
+			gotAll, err := starlark.ExecFileOptions(
+				opts,
+				thread,
+				test.name,
+				"result = (left + right)",
+				StringDict{
+					"left":  left,
+					"right": test.right,
+				},
+			)
+
+			if err != nil {
+				t.Fatalf("script error: %v", err)
+			}
+
+			gotExpr, ok := gotAll["result"].(*nodeExpr)
+			if !ok {
+				t.Fatal("result is not expr")
+			}
+
+			gotNode, err := gotExpr.materialize()
+			if test.wantErr.check(t, err) {
+				return
+			}
+
+			if test.wantPanic.check(t) {
+				return
+			}
+
+			got := gotNode.(*MappingNode).value
 			want := yaml.MustParse(test.want).YNode()
 
 			if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {

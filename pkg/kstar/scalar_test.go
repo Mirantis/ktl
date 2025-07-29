@@ -80,7 +80,7 @@ func TestScalarValue(t *testing.T) {
 				return
 			}
 
-			if diff := cmp.Diff(test.want, got, cmpOpts...); diff != "" {
+			if diff := cmp.Diff(test.want, got, commonCmpOpts...); diff != "" {
 				t.Fatalf("-want +got:\n%s", diff)
 			}
 		})

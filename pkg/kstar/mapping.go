@@ -7,8 +7,11 @@ import (
 	"slices"
 
 	"go.starlark.net/starlark"
+	"go.starlark.net/syntax"
 	"sigs.k8s.io/kustomize/kyaml/openapi"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
+	"sigs.k8s.io/kustomize/kyaml/yaml/merge2"
+	"sigs.k8s.io/kustomize/kyaml/yaml/walk"
 )
 
 const MappingNodeType = "MappingNode"
@@ -23,9 +26,30 @@ var (
 	_ starlark.Value       = new(MappingNode)
 	_ starlark.HasSetField = new(MappingNode)
 	_ starlark.HasSetKey   = new(MappingNode)
+	_ starlark.HasBinary   = new(MappingNode)
 
 	errUnsupportedFieldType = errors.New("unsupported field type")
 )
+
+func toMappingNode(value starlark.Value) (*MappingNode, bool) {
+	node, ok := value.(*MappingNode)
+	if ok {
+		return node, true
+	}
+
+	ynode, err := FromStarlark(value)
+	if err != nil {
+		return nil, false
+	}
+
+	if ynode.Kind != yaml.MappingNode {
+		return nil, false
+	}
+
+	node = &MappingNode{value: ynode}
+
+	return node, true
+}
 
 func (node *MappingNode) String() string {
 	//REVISIT: maybe return json
@@ -151,4 +175,70 @@ func (node *MappingNode) SetKey(key, value starlark.Value) error {
 			key.Type(),
 		)
 	}
+}
+
+func (node *MappingNode) clone() nodeExprTarget {
+	return &MappingNode{
+		schema: node.schema,
+		value:  yaml.CopyYNode(node.value),
+	}
+}
+
+func (node *MappingNode) Binary(op syntax.Token, value starlark.Value, side starlark.Side) (starlark.Value, error) {
+	exprOp := node.exprOp(op, value, side)
+	if exprOp == nil {
+		return nil, nil
+	}
+
+	return &nodeExpr{target: node, ops: []nodeExprOp{exprOp}}, nil
+}
+
+func (*MappingNode) exprOp(op syntax.Token, value starlark.Value, side starlark.Side) nodeExprOp {
+	if side != starlark.Left {
+		return nil
+	}
+
+	right, ok := toMappingNode(value)
+	if !ok {
+		return nil
+	}
+
+	switch op {
+	case syntax.PLUS:
+		return func(target nodeExprTarget) (nodeExprTarget, error) {
+			left := target.(*MappingNode)
+
+			err := left.merge(right)
+			if err != nil {
+				return nil, err
+			}
+
+			return left, nil
+		}
+	case syntax.MINUS:
+		panic(errNotImplemented)
+	default:
+		return nil
+	}
+}
+
+func (node *MappingNode) merge(other *MappingNode) error {
+	dest := yaml.NewRNode(node.value)
+	src := yaml.NewRNode(other.value)
+
+	rnode, err := walk.Walker{
+		Schema:       node.schema,
+		Sources:      []*yaml.RNode{dest, src},
+		Visitor:      merge2.Merger{},
+		MergeOptions: yaml.MergeOptions{},
+	}.Walk()
+
+	if err != nil {
+		return fmt.Errorf("unable to merge values: %w", err)
+	}
+
+	node.value = rnode.YNode()
+	node.fields = nil
+
+	return nil
 }
