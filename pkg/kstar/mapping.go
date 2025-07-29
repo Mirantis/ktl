@@ -21,8 +21,8 @@ type MappingNode struct {
 
 var (
 	_ starlark.Value       = new(MappingNode)
-	_ starlark.HasAttrs    = new(MappingNode)
 	_ starlark.HasSetField = new(MappingNode)
+	_ starlark.HasSetKey   = new(MappingNode)
 
 	errUnsupportedFieldType = errors.New("unsupported field type")
 )
@@ -116,4 +116,39 @@ func (node *MappingNode) SetField(name string, value starlark.Value) error {
 		Key:   keyRNode,
 		Value: newRNode,
 	})
+}
+
+func (node *MappingNode) Get(key starlark.Value) (_ starlark.Value, found bool, _ error) {
+	switch key := key.(type) {
+	case starlark.String:
+		value, err := node.Attr(key.GoString())
+		return value, true, err
+	case *MappingNode:
+		//TODO: add match lookup
+		panic(errNotImplemented)
+	default:
+		return nil, false, fmt.Errorf(
+			"%w: %q",
+			errUnsupportedFieldType,
+			key.Type(),
+		)
+	}
+}
+
+func (node *MappingNode) SetKey(key, value starlark.Value) error {
+	switch key := key.(type) {
+	case starlark.String:
+		field := key.GoString()
+
+		return node.SetField(field, value)
+	case *MappingNode:
+		//TODO: add match lookup
+		panic(errNotImplemented)
+	default:
+		return fmt.Errorf(
+			"%w: %q",
+			errUnsupportedFieldType,
+			key.Type(),
+		)
+	}
 }

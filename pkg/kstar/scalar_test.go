@@ -13,8 +13,8 @@ func TestScalarValue(t *testing.T) {
 		name      string
 		input     *ScalarNode
 		want      starlark.Value
-		wantErr   bool
-		wantPanic bool
+		wantErr   wantErr
+		wantPanic wantPanic
 	}{
 		{
 			name:  "string",
@@ -68,22 +68,16 @@ func TestScalarValue(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if test.wantPanic {
-				defer func() { recover() }()
-			}
+			defer test.wantPanic.recover(t)
 
 			got, err := test.input.Value()
 
-			if test.wantPanic {
-				t.Fatal("want panic, got none")
+			if test.wantPanic.check(t) {
+				return
 			}
 
-			if err != nil && !test.wantErr {
-				t.Fatal(err)
-			}
-
-			if err == nil && test.wantErr {
-				t.Fatal("want error, got none")
+			if test.wantErr.check(t, err) {
+				return
 			}
 
 			if diff := cmp.Diff(test.want, got, cmpOpts...); diff != "" {

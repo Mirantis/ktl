@@ -14,7 +14,7 @@ func TestMatch(t *testing.T) {
 		name    string
 		expr    string
 		want    starlark.Value
-		wantErr bool
+		wantErr wantErr
 	}{
 		{
 			name: "ctor",
@@ -114,15 +114,11 @@ func TestMatch(t *testing.T) {
 				},
 			)
 
+			if test.wantErr.check(t, err) {
+				return
+			}
+
 			got := gotAll[resultVar]
-
-			if err != nil && !test.wantErr {
-				t.Fatal(err)
-			}
-
-			if err == nil && test.wantErr {
-				t.Fatal("want error, got none")
-			}
 
 			if diff := cmp.Diff(test.want, got, cmpOpts...); diff != "" {
 				t.Fatalf("-want +got:\n%s", diff)

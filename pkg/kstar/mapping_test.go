@@ -28,7 +28,7 @@ func TestMappingHasAttrs(t *testing.T) {
 		name    string
 		expr    string
 		want    starlark.Value
-		wantErr bool
+		wantErr wantErr
 	}{
 		{
 			name: "top-level-scalar-field",
@@ -89,16 +89,11 @@ func TestMappingHasAttrs(t *testing.T) {
 				},
 			)
 
+			if test.wantErr.check(t, err) {
+				return
+			}
+
 			got := gotAll[resultVar]
-
-			if err != nil && !test.wantErr {
-				t.Fatal(err)
-			}
-
-			if err == nil && test.wantErr {
-				t.Fatal("want error, got none")
-			}
-
 			if diff := cmp.Diff(test.want, got, cmpOpts...); diff != "" {
 				t.Fatalf("-want +got:\n%s", diff)
 			}
@@ -120,10 +115,10 @@ func TestMappingHasSetField(t *testing.T) {
 	}, "\n")).YNode()
 
 	tests := []struct {
-		name      string
-		script    string
-		want      string
-		wantErr   bool
+		name    string
+		script  string
+		want    string
+		wantErr wantErr
 	}{
 		{
 			name:   "set-self",
@@ -258,12 +253,315 @@ func TestMappingHasSetField(t *testing.T) {
 				},
 			)
 
-			if err != nil && !test.wantErr {
-				t.Fatal(err)
+			if test.wantErr.check(t, err) {
+				return
 			}
 
-			if err == nil && test.wantErr {
-				t.Fatal("want error, got none")
+			got := node.value
+			want := yaml.MustParse(test.want).YNode()
+
+			if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {
+				t.Fatalf("-want +got:\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestMappingHasGet(t *testing.T) {
+	pod := yaml.MustParse(strings.Join([]string{
+		`apiVersion: v1`,
+		`kind: Pod`,
+		`metadata:`,
+		`  labels:`,
+		`    app: app1`,
+		`    "quoted: label": label1`,
+		`    unquoted:label: label2`,
+		`  annotations: {}`,
+		`  name: demo-app1`,
+	}, "\n")).YNode()
+
+	tests := []struct {
+		name      string
+		expr      string
+		want      starlark.Value
+		wantErr   wantErr
+		wantPanic wantPanic
+	}{
+		{
+			name: "top-level-scalar-key",
+			expr: `node["kind"]`,
+			want: starlark.String("Pod"),
+		},
+		{
+			name: "nested-scalar-key",
+			expr: `node["metadata"]["labels"]["app"]`,
+			want: starlark.String("app1"),
+		},
+		{
+			name: "missing-key",
+			expr: `node["metadata"]["labels"]["missing"]`,
+			want: starlark.None,
+		},
+		{
+			name: "quoted-key",
+			expr: `node["metadata"]["labels"]["quoted: label"]`,
+			want: starlark.String("label1"),
+		},
+		{
+			name: "unquoted-key",
+			expr: `node["metadata"]["labels"]["unquoted:label"]`,
+			want: starlark.String("label2"),
+		},
+		{
+			name:    "invalid-key-int",
+			expr:    `node[1]`,
+			wantErr: true,
+		},
+		{
+			name:      "mapping-key",
+			expr:      `node[node]`,
+			wantPanic: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			defer test.wantPanic.recover(t)
+
+			const resultVar = "result"
+			opts := &syntax.FileOptions{
+				TopLevelControl: true,
+			}
+
+			thread := &starlark.Thread{
+				Name: test.name,
+				Print: func(_ *starlark.Thread, msg string) {
+					t.Logf("starlark output: %s", msg)
+				},
+			}
+			gotAll, err := starlark.ExecFileOptions(
+				opts,
+				thread,
+				test.name,
+				fmt.Sprintf("%s = %s", resultVar, test.expr),
+				starlark.StringDict{
+					"node": &MappingNode{value: yaml.CopyYNode(pod)},
+				},
+			)
+
+			if test.wantPanic.check(t) {
+				return
+			}
+
+			if test.wantErr.check(t, err) {
+				return
+			}
+
+			got := gotAll[resultVar]
+			if diff := cmp.Diff(test.want, got, cmpOpts...); diff != "" {
+				t.Fatalf("-want +got:\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestMappingHasSetKey(t *testing.T) {
+	cmpOpts := slices.Concat(cmpOpts, cmp.Options{
+		cmpopts.IgnoreFields(yaml.Node{}, "Line", "Style", "Column"),
+	})
+	cm := yaml.MustParse(strings.Join([]string{
+		`apiVersion: v1`,
+		`kind: ConfigMap`,
+		`metadata:`,
+		`  name: test-cm`,
+		`data:`,
+		`  other: value`,
+	}, "\n")).YNode()
+
+	tests := []struct {
+		name      string
+		script    string
+		want      string
+		wantErr   wantErr
+		wantPanic wantPanic
+	}{
+		{
+			name:   "set-self",
+			script: `node["data"] = node["data"]`,
+			want: strings.Join([]string{
+				`apiVersion: v1`,
+				`kind: ConfigMap`,
+				`metadata:`,
+				`  name: test-cm`,
+				`data:`,
+				`  other: value`,
+			}, "\n"),
+		},
+		{
+			name:   "set-scalar-string",
+			script: `node["data"]["strField"] = "test-value"`,
+			want: strings.Join([]string{
+				`apiVersion: v1`,
+				`kind: ConfigMap`,
+				`metadata:`,
+				`  name: test-cm`,
+				`data:`,
+				`  other: value`,
+				`  strField: "test-value"`,
+			}, "\n"),
+		},
+		{
+			name:   "set-scalar-int",
+			script: `node["data"]["intField"] = 1`,
+			want: strings.Join([]string{
+				`apiVersion: v1`,
+				`kind: ConfigMap`,
+				`metadata:`,
+				`  name: test-cm`,
+				`data:`,
+				`  other: value`,
+				`  intField: 1`,
+			}, "\n"),
+		},
+		{
+			name:   "set-scalar-int",
+			script: `node["data"]["floatField"] = 1.5`,
+			want: strings.Join([]string{
+				`apiVersion: v1`,
+				`kind: ConfigMap`,
+				`metadata:`,
+				`  name: test-cm`,
+				`data:`,
+				`  other: value`,
+				`  floatField: 1.5`,
+			}, "\n"),
+		},
+		{
+			name:   "set-scalar-bool",
+			script: `node["data"]["boolField"] = True`,
+			want: strings.Join([]string{
+				`apiVersion: v1`,
+				`kind: ConfigMap`,
+				`metadata:`,
+				`  name: test-cm`,
+				`data:`,
+				`  other: value`,
+				`  boolField: true`,
+			}, "\n"),
+		},
+		{
+			name:   "set-mapping-node",
+			script: `node["data"]["nodeField"] = node["data"]`,
+			want: strings.Join([]string{
+				`apiVersion: v1`,
+				`kind: ConfigMap`,
+				`metadata:`,
+				`  name: test-cm`,
+				`data:`,
+				`  other: value`,
+				`  nodeField:`,
+				`    other: value`,
+			}, "\n"),
+		},
+		{
+			name:   "set-dict",
+			script: `node["data"]["nodeField"] = {"a": 1, "b": 2}`,
+			want: strings.Join([]string{
+				`apiVersion: v1`,
+				`kind: ConfigMap`,
+				`metadata:`,
+				`  name: test-cm`,
+				`data:`,
+				`  other: value`,
+				`  nodeField:`,
+				`    a: 1`,
+				`    b: 2`,
+			}, "\n"),
+		},
+		{
+			name:   "set-list",
+			script: `node["data"]["nodeField"] = ["a", "b"]`,
+			want: strings.Join([]string{
+				`apiVersion: v1`,
+				`kind: ConfigMap`,
+				`metadata:`,
+				`  name: test-cm`,
+				`data:`,
+				`  other: value`,
+				`  nodeField:`,
+				`  - a`,
+				`  - b`,
+			}, "\n"),
+		},
+		{
+			name:   "set-unquoted-string-key",
+			script: `node["data"]["unquoted/string:key"] = "new-value"`,
+			want: strings.Join([]string{
+				`apiVersion: v1`,
+				`kind: ConfigMap`,
+				`metadata:`,
+				`  name: test-cm`,
+				`data:`,
+				`  other: value`,
+				`  unquoted/string:key: new-value`,
+			}, "\n"),
+		},
+		{
+			name:   "set-quoted-string-key",
+			script: `node["data"]["quoted: string.key"] = "new-value"`,
+			want: strings.Join([]string{
+				`apiVersion: v1`,
+				`kind: ConfigMap`,
+				`metadata:`,
+				`  name: test-cm`,
+				`data:`,
+				`  other: value`,
+				`  "quoted: string.key": new-value`,
+			}, "\n"),
+		},
+		{
+			name:    "set-invalid-key",
+			script:  `node[1] = "new-value"`,
+			wantErr: true,
+		},
+		{
+			name:      "set-mapping-key",
+			script:    `node[node] = "new-value"`,
+			wantPanic: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			defer test.wantPanic.recover(t)
+
+			node := &MappingNode{value: yaml.CopyYNode(cm)}
+			opts := &syntax.FileOptions{
+				TopLevelControl: true,
+			}
+
+			thread := &starlark.Thread{
+				Name: test.name,
+				Print: func(_ *starlark.Thread, msg string) {
+					t.Logf("starlark output: %s", msg)
+				},
+			}
+			_, err := starlark.ExecFileOptions(
+				opts,
+				thread,
+				test.name,
+				test.script,
+				starlark.StringDict{
+					"node": node,
+				},
+			)
+
+			if test.wantPanic.check(t) {
+				return
+			}
+
+			if test.wantErr.check(t, err) {
+				return
 			}
 
 			got := node.value
