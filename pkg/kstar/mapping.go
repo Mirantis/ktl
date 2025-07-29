@@ -2,6 +2,7 @@ package kstar
 
 import (
 	"errors"
+	"fmt"
 	"maps"
 	"slices"
 
@@ -19,8 +20,9 @@ type MappingNode struct {
 }
 
 var (
-	_ starlark.Value    = new(MappingNode)
-	_ starlark.HasAttrs = new(MappingNode)
+	_ starlark.Value       = new(MappingNode)
+	_ starlark.HasAttrs    = new(MappingNode)
+	_ starlark.HasSetField = new(MappingNode)
 
 	errUnsupportedFieldType = errors.New("unsupported field type")
 )
@@ -89,4 +91,29 @@ func (node *MappingNode) AttrNames() []string {
 	}
 
 	return slices.Sorted(maps.Keys(node.fields))
+}
+
+func (node *MappingNode) SetField(name string, value starlark.Value) error {
+	if node.fields != nil && node.fields[name] == value {
+		return nil
+	}
+
+	newYNode, err := FromStarlark(value)
+	if err != nil {
+		return fmt.Errorf("unable to set %q: %w", name, err)
+	}
+
+	if node.fields != nil {
+		node.fields[name] = FromYNode(newYNode)
+	}
+
+	newRNode := yaml.NewRNode(newYNode)
+	keyRNode := yaml.NewStringRNode(name)
+	thisRNode := yaml.NewRNode(node.value)
+
+	return thisRNode.PipeE(yaml.MapEntrySetter{
+		Name:  name,
+		Key:   keyRNode,
+		Value: newRNode,
+	})
 }
