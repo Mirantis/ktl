@@ -118,8 +118,18 @@ func (node *MappingNode) AttrNames() []string {
 }
 
 func (node *MappingNode) SetField(name string, value starlark.Value) error {
-	if node.fields != nil && node.fields[name] == value {
-		return nil
+	if node.fields != nil {
+		field := node.fields[name]
+		if field == value {
+			return nil
+		}
+
+		expr, ok := value.(*nodeExpr)
+		if ok {
+			if expr.target == field {
+				return expr.evaluate()
+			}
+		}
 	}
 
 	newYNode, err := FromStarlark(value)

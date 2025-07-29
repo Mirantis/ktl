@@ -25,28 +25,46 @@ type nodeExprOp func(target nodeExprTarget) (nodeExprTarget, error)
 type nodeExpr struct {
 	target nodeExprTarget
 	ops    []nodeExprOp
+	failed error
 }
 
 func (expr *nodeExpr) materialize() (nodeExprTarget, error) {
+	if expr.failed != nil {
+		return nil, expr.failed
+	}
+
 	if len(expr.ops) == 0 {
 		return expr.target, nil
 	}
 
-	node := expr.target.clone()
+	expr.target = expr.target.clone()
+
+	err := expr.evaluate()
+	if err != nil {
+		return nil, err
+	}
+
+	return expr.target, nil
+}
+
+func (expr *nodeExpr) evaluate() error {
+	if expr.failed != nil {
+		return expr.failed
+	}
 
 	for _, op := range expr.ops {
 		var err error
-		node, err = op(node)
+		expr.target, err = op(expr.target)
 
 		if err != nil {
-			return nil, fmt.Errorf("unable to materialize node expression: %w", err)
+			expr.failed = fmt.Errorf("unable to evaluate node expression: %w", err)
+			return expr.failed
 		}
 	}
 
-	expr.target = node
 	expr.ops = nil
 
-	return expr.target, nil
+	return nil
 }
 
 func (expr *nodeExpr) String() string {

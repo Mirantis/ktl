@@ -103,7 +103,7 @@ func TestMappingHasAttrs(t *testing.T) {
 
 func TestMappingHasSetField(t *testing.T) {
 	cmpOpts := slices.Concat(commonCmpOpts, cmp.Options{
-		cmpopts.IgnoreFields(yaml.Node{}, "Line", "Style", "Column"),
+		cmpopts.IgnoreFields(yaml.Node{}, "Line", "Style", "Column", "Tag"),
 	})
 	cm := yaml.MustParse(strings.Join([]string{
 		`apiVersion: v1`,
@@ -211,6 +211,20 @@ func TestMappingHasSetField(t *testing.T) {
 				`  nodeField:`,
 				`    a: 1`,
 				`    b: 2`,
+			}, "\n"),
+		},
+		{
+			name:   "merge-dict",
+			script: `node.data += {"a": 1, "z": 2}`,
+			want: strings.Join([]string{
+				`apiVersion: v1`,
+				`kind: ConfigMap`,
+				`metadata:`,
+				`  name: test-cm`,
+				`data:`,
+				`  other: value`,
+				`  a: 1`,
+				`  z: 2`,
 			}, "\n"),
 		},
 		{
@@ -367,7 +381,7 @@ func TestMappingHasGet(t *testing.T) {
 
 func TestMappingHasSetKey(t *testing.T) {
 	cmpOpts := slices.Concat(commonCmpOpts, cmp.Options{
-		cmpopts.IgnoreFields(yaml.Node{}, "Line", "Style", "Column"),
+		cmpopts.IgnoreFields(yaml.Node{}, "Line", "Style", "Column", "Tag"),
 	})
 	cm := yaml.MustParse(strings.Join([]string{
 		`apiVersion: v1`,
@@ -479,6 +493,20 @@ func TestMappingHasSetKey(t *testing.T) {
 			}, "\n"),
 		},
 		{
+			name:   "merge-dict",
+			script: `node["data"] += {"a": 1, "z": 2}`,
+			want: strings.Join([]string{
+				`apiVersion: v1`,
+				`kind: ConfigMap`,
+				`metadata:`,
+				`  name: test-cm`,
+				`data:`,
+				`  other: value`,
+				`  a: 1`,
+				`  z: 2`,
+			}, "\n"),
+		},
+		{
 			name:   "set-list",
 			script: `node["data"]["nodeField"] = ["a", "b"]`,
 			want: strings.Join([]string{
@@ -578,7 +606,7 @@ func TestMappingMerge(t *testing.T) {
 	cmpOpts := slices.Concat(commonCmpOpts, cmp.Options{
 		cmpopts.IgnoreFields(yaml.Node{}, "Line", "Style", "Column", "Tag"),
 	})
-	left := &MappingNode{value: yaml.MustParse(strings.Join([]string{
+	cm := &MappingNode{value: yaml.MustParse(strings.Join([]string{
 		`apiVersion: v1`,
 		`kind: ConfigMap`,
 		`metadata:`,
@@ -588,14 +616,17 @@ func TestMappingMerge(t *testing.T) {
 	}, "\n")).YNode()}
 
 	tests := []struct {
-		name      string
-		right     starlark.Value
-		want      string
-		wantErr   wantErr
-		wantPanic wantPanic
+		name        string
+		left        starlark.Value
+		right       starlark.Value
+		want        string
+		wantErr     wantErr
+		wantExprErr wantErr
+		wantPanic   wantPanic
 	}{
 		{
 			name: "replace-field",
+			left: cm,
 			right: &MappingNode{value: yaml.MustParse(strings.Join([]string{
 				`kind: NotConfigMap`,
 			}, "\n")).YNode()},
@@ -610,6 +641,7 @@ func TestMappingMerge(t *testing.T) {
 		},
 		{
 			name: "replace-nested",
+			left: cm,
 			right: &MappingNode{value: yaml.MustParse(strings.Join([]string{
 				`data:`,
 				`  a: 2`,
@@ -625,6 +657,7 @@ func TestMappingMerge(t *testing.T) {
 		},
 		{
 			name: "replace-struct",
+			left: cm,
 			right: FromStringDict(None, StringDict{
 				"data": FromStringDict(None, StringDict{
 					"a": starlark.MakeInt(2),
@@ -641,6 +674,7 @@ func TestMappingMerge(t *testing.T) {
 		},
 		{
 			name: "append-nested",
+			left: cm,
 			right: &MappingNode{value: yaml.MustParse(strings.Join([]string{
 				`data:`,
 				`  b: 3`,
@@ -657,6 +691,7 @@ func TestMappingMerge(t *testing.T) {
 		},
 		{
 			name: "append-struct",
+			left: cm,
 			right: FromStringDict(None, StringDict{
 				"data": FromStringDict(None, StringDict{
 					"b": starlark.MakeInt(4),
@@ -671,6 +706,22 @@ func TestMappingMerge(t *testing.T) {
 				`  a: 1`,
 				`  b: 4`,
 			}, "\n"),
+		},
+		{
+			name: "op-right",
+			left: FromStringDict(None, StringDict{
+				"data": FromStringDict(None, StringDict{
+					"a": starlark.MakeInt(2),
+				}),
+			}),
+			right:   cm,
+			wantErr: true,
+		},
+		{
+			name:    "op-invalid-type",
+			left:    cm,
+			right:   starlark.True,
+			wantErr: true,
 		},
 	}
 
@@ -694,13 +745,13 @@ func TestMappingMerge(t *testing.T) {
 				test.name,
 				"result = (left + right)",
 				StringDict{
-					"left":  left,
+					"left":  test.left,
 					"right": test.right,
 				},
 			)
 
-			if err != nil {
-				t.Fatalf("script error: %v", err)
+			if test.wantErr.check(t, err) {
+				return
 			}
 
 			gotExpr, ok := gotAll["result"].(*nodeExpr)
@@ -709,7 +760,7 @@ func TestMappingMerge(t *testing.T) {
 			}
 
 			gotNode, err := gotExpr.materialize()
-			if test.wantErr.check(t, err) {
+			if test.wantExprErr.check(t, err) {
 				return
 			}
 
