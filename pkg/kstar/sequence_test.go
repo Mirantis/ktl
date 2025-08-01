@@ -290,3 +290,115 @@ func TestSequenceIter(t *testing.T) {
 		)
 	}
 }
+
+func TestSequenceFilter(t *testing.T) {
+	cmpOpts := slices.Concat(commonCmpOpts, cmp.Options{
+		cmpopts.IgnoreFields(yaml.Node{}, "Line", "Style", "Column", "Tag"),
+	})
+	cm := yaml.MustParse(strings.Join([]string{
+		`apiVersion: v1`,
+		`kind: ConfigMap`,
+		`metadata:`,
+		`  name: demo-app1`,
+		`data:`,
+		`  scalars:`,
+		`  - a`,
+		`  - b`,
+		`  - c`,
+		`  mappings:`,
+		`  - key: value1`,
+		`  - key: value2`,
+		`  - key: value3`,
+		`  - other: value4`,
+	}, "\n")).YNode()
+
+	tests := []struct {
+		name      string
+		script    string
+		want      string
+		wantErr   wantErr
+		wantPanic wantPanic
+	}{
+		{
+			name:   "scalar",
+			script: `result = node.data.scalars(lambda v: "b" != v)`,
+			want: strings.Join([]string{
+				`- a`,
+				`- c`,
+			}, "\n"),
+		},
+		{
+			name:   "mapping",
+			script: `result = node.data.mappings(lambda v: v.key != "value2")`,
+			want: strings.Join([]string{
+				`- key: value1`,
+				`- key: value3`,
+				`- other: value4`,
+			}, "\n"),
+		},
+		{
+			name: "update-mapping",
+			script: strings.Join([]string{
+				`for item in node.data.mappings(lambda v: v.key != "value2"):`,
+				`  item.newKey = "newValue"`,
+				`result = node`,
+			}, "\n"),
+			want: strings.Join([]string{
+				`apiVersion: v1`,
+				`kind: ConfigMap`,
+				`metadata:`,
+				`  name: demo-app1`,
+				`data:`,
+				`  scalars:`,
+				`  - a`,
+				`  - b`,
+				`  - c`,
+				`  mappings:`,
+				`  - key: value1`,
+				`    newKey: newValue`,
+				`  - key: value2`,
+				`  - key: value3`,
+				`    newKey: newValue`,
+				`  - other: value4`,
+				`    newKey: newValue`,
+			}, "\n"),
+		},
+		{
+			name:    "not-callable",
+			script:  `node.data.scalars(0)`,
+			wantErr: true,
+		},
+		{
+			name: "invalid-callable",
+			script: strings.Join([]string{
+				`def f(a,b,c):`,
+				`  pass`,
+				`node.data.scalars(f)`,
+			}, "\n"),
+			wantErr: true,
+		},
+	}
+
+	for _, test := range tests {
+		node := &MappingNode{value: yaml.CopyYNode(cm)}
+		runStarlarkTest(t, test.name,
+			test.script,
+			StringDict{
+				"node": node,
+			},
+			test.wantPanic, test.wantErr,
+			func(t *testing.T, gotAll StringDict) {
+				got, err := FromStarlark(gotAll["result"])
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				want := yaml.MustParse(test.want).YNode()
+
+				if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {
+					t.Fatalf("-want +got:\n%s", diff)
+				}
+			},
+		)
+	}
+}

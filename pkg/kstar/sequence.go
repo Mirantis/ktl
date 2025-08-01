@@ -19,6 +19,7 @@ var (
 	_ starlark.Value     = new(SequenceNode)
 	_ starlark.HasSetKey = new(SequenceNode)
 	_ starlark.Iterable  = new(SequenceNode)
+	_ starlark.Callable  = new(SequenceNode)
 )
 
 func (node *SequenceNode) String() string {
@@ -52,7 +53,19 @@ func (node *SequenceNode) len() int {
 
 func (node *SequenceNode) index(idx int) starlark.Value {
 	//TODO: add cache
-	return FromYNode(node.value.Content[idx])
+	value := FromYNode(node.value.Content[idx])
+
+	scalar, isScalar := value.(*ScalarNode)
+	if !isScalar {
+		return value
+	}
+
+	scalarValue, err := scalar.Value()
+	if err != nil {
+		return value
+	}
+
+	return scalarValue
 }
 
 func (node *SequenceNode) toIndex(key starlark.Int) (int, bool) {
@@ -79,12 +92,6 @@ func (node *SequenceNode) Get(key starlark.Value) (_ starlark.Value, found bool,
 		idx, ok := node.toIndex(key)
 		if !ok {
 			return nil, false, nil
-		}
-
-		value := node.index(idx)
-		if scalar, ok := value.(*ScalarNode); ok {
-			value, err := scalar.Value()
-			return value, err == nil, err
 		}
 
 		return node.index(idx), true, nil
@@ -162,4 +169,48 @@ func (iter *seqIterator) Next(value *starlark.Value) bool {
 
 func (iter *seqIterator) Done() {
 	iter.ynodes = nil
+}
+
+func (node *SequenceNode) filter(th *starlark.Thread, fn starlark.Callable) (*SequenceNode, error) {
+	items := []*yaml.Node{}
+
+	for idx := range node.len() {
+		ynode := node.value.Content[idx]
+		value := node.index(idx)
+
+		result, err := fn.CallInternal(th, starlark.Tuple{value}, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		if !result.Truth() {
+			continue
+		}
+
+		items = append(items, ynode)
+	}
+
+	return &SequenceNode{
+		schema: node.schema,
+		value: &yaml.Node{
+			Kind:    yaml.SequenceNode,
+			Tag:     yaml.NodeTagSeq,
+			Content: items,
+		},
+	}, nil
+}
+
+func (node *SequenceNode) Name() string { // Callable Name
+	return "Filter" + SequenceNodeType
+}
+
+func (node *SequenceNode) CallInternal(th *starlark.Thread, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var fn starlark.Callable
+
+	err := starlark.UnpackPositionalArgs(node.Name(), args, kwargs, 1, &fn)
+	if err != nil {
+		return nil, err
+	}
+
+	return node.filter(th, fn)
 }
