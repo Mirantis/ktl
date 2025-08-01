@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarkstruct"
+	"go.starlark.net/syntax"
 )
 
 const None = starlark.None
@@ -65,4 +66,39 @@ func (expected wantPanic) check(t *testing.T) (stop bool) {
 	}
 
 	return false
+}
+
+func runStarlarkTest(t *testing.T, name, script string, input StringDict, wantPanic wantPanic, wantErr wantErr, validate func(t *testing.T, gotAll StringDict)) {
+	t.Run(name, func(t *testing.T) {
+		defer wantPanic.recover(t)
+
+		opts := &syntax.FileOptions{
+			TopLevelControl: true,
+		}
+
+		thread := &starlark.Thread{
+			Name: name,
+			Print: func(_ *starlark.Thread, msg string) {
+				t.Logf("starlark output: %s", msg)
+			},
+		}
+
+		result, err := starlark.ExecFileOptions(
+			opts,
+			thread,
+			name,
+			script,
+			input,
+		)
+
+		if wantPanic.check(t) {
+			return
+		}
+
+		if wantErr.check(t, err) {
+			return
+		}
+
+		validate(t, result)
+	})
 }

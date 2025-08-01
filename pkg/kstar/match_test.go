@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
 )
 
 func TestMatch(t *testing.T) {
@@ -92,37 +91,19 @@ func TestMatch(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			const resultVar = "result"
-			opts := &syntax.FileOptions{
-				TopLevelControl: true,
-			}
-
-			thread := &starlark.Thread{
-				Name: test.name,
-				Print: func(_ *starlark.Thread, msg string) {
-					t.Logf("starlark output: %s", msg)
-				},
-			}
-			gotAll, err := starlark.ExecFileOptions(
-				opts,
-				thread,
-				test.name,
-				fmt.Sprintf("%s = %s", resultVar, test.expr),
-				starlark.StringDict{
-					fnMatchPattern: starlark.NewBuiltin(fnMatchPattern, newMatchPattern),
-				},
-			)
-
-			if test.wantErr.check(t, err) {
-				return
-			}
-
-			got := gotAll[resultVar]
-
-			if diff := cmp.Diff(test.want, got, commonCmpOpts...); diff != "" {
-				t.Fatalf("-want +got:\n%s", diff)
-			}
-		})
+		const resultVar = "result"
+		runStarlarkTest(t, test.name,
+			fmt.Sprintf("%s = %s", resultVar, test.expr),
+			StringDict{
+				fnMatchPattern: starlark.NewBuiltin(fnMatchPattern, newMatchPattern),
+			},
+			false, test.wantErr,
+			func(t *testing.T, gotAll StringDict) {
+				got := gotAll[resultVar]
+				if diff := cmp.Diff(test.want, got, commonCmpOpts...); diff != "" {
+					t.Fatalf("-want +got:\n%s", diff)
+				}
+			},
+		)
 	}
 }

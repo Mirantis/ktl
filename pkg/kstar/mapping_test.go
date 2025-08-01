@@ -9,7 +9,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -67,37 +66,20 @@ func TestMappingHasAttrs(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			const resultVar = "result"
-			opts := &syntax.FileOptions{
-				TopLevelControl: true,
-			}
-
-			thread := &starlark.Thread{
-				Name: test.name,
-				Print: func(_ *starlark.Thread, msg string) {
-					t.Logf("starlark output: %s", msg)
-				},
-			}
-			gotAll, err := starlark.ExecFileOptions(
-				opts,
-				thread,
-				test.name,
-				fmt.Sprintf("%s = %s", resultVar, test.expr),
-				starlark.StringDict{
-					"node": &MappingNode{value: yaml.CopyYNode(pod)},
-				},
-			)
-
-			if test.wantErr.check(t, err) {
-				return
-			}
-
-			got := gotAll[resultVar]
-			if diff := cmp.Diff(test.want, got, commonCmpOpts...); diff != "" {
-				t.Fatalf("-want +got:\n%s", diff)
-			}
-		})
+		const resultVar = "result"
+		runStarlarkTest(t, test.name,
+			fmt.Sprintf("%s = %s", resultVar, test.expr),
+			StringDict{
+				"node": &MappingNode{value: yaml.CopyYNode(pod)},
+			},
+			false, test.wantErr,
+			func(t *testing.T, gotAll StringDict) {
+				got := gotAll[resultVar]
+				if diff := cmp.Diff(test.want, got, commonCmpOpts...); diff != "" {
+					t.Fatalf("-want +got:\n%s", diff)
+				}
+			},
+		)
 	}
 }
 
@@ -245,39 +227,22 @@ func TestMappingHasSetField(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			node := &MappingNode{value: yaml.CopyYNode(cm)}
-			opts := &syntax.FileOptions{
-				TopLevelControl: true,
-			}
+		node := &MappingNode{value: yaml.CopyYNode(cm)}
+		runStarlarkTest(t, test.name,
+			test.script,
+			StringDict{
+				"node": node,
+			},
+			false, test.wantErr,
+			func(t *testing.T, _ StringDict) {
+				got := node.value
+				want := yaml.MustParse(test.want).YNode()
 
-			thread := &starlark.Thread{
-				Name: test.name,
-				Print: func(_ *starlark.Thread, msg string) {
-					t.Logf("starlark output: %s", msg)
-				},
-			}
-			_, err := starlark.ExecFileOptions(
-				opts,
-				thread,
-				test.name,
-				test.script,
-				starlark.StringDict{
-					"node": node,
-				},
-			)
-
-			if test.wantErr.check(t, err) {
-				return
-			}
-
-			got := node.value
-			want := yaml.MustParse(test.want).YNode()
-
-			if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {
-				t.Fatalf("-want +got:\n%s", diff)
-			}
-		})
+				if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {
+					t.Fatalf("-want +got:\n%s", diff)
+				}
+			},
+		)
 	}
 }
 
@@ -339,43 +304,20 @@ func TestMappingHasGet(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			defer test.wantPanic.recover(t)
-
-			const resultVar = "result"
-			opts := &syntax.FileOptions{
-				TopLevelControl: true,
-			}
-
-			thread := &starlark.Thread{
-				Name: test.name,
-				Print: func(_ *starlark.Thread, msg string) {
-					t.Logf("starlark output: %s", msg)
-				},
-			}
-			gotAll, err := starlark.ExecFileOptions(
-				opts,
-				thread,
-				test.name,
-				fmt.Sprintf("%s = %s", resultVar, test.expr),
-				starlark.StringDict{
-					"node": &MappingNode{value: yaml.CopyYNode(pod)},
-				},
-			)
-
-			if test.wantPanic.check(t) {
-				return
-			}
-
-			if test.wantErr.check(t, err) {
-				return
-			}
-
-			got := gotAll[resultVar]
-			if diff := cmp.Diff(test.want, got, commonCmpOpts...); diff != "" {
-				t.Fatalf("-want +got:\n%s", diff)
-			}
-		})
+		const resultVar = "result"
+		runStarlarkTest(t, test.name,
+			fmt.Sprintf("%s = %s", resultVar, test.expr),
+			StringDict{
+				"node": &MappingNode{value: yaml.CopyYNode(pod)},
+			},
+			test.wantPanic, test.wantErr,
+			func(t *testing.T, gotAll StringDict) {
+				got := gotAll[resultVar]
+				if diff := cmp.Diff(test.want, got, commonCmpOpts...); diff != "" {
+					t.Fatalf("-want +got:\n%s", diff)
+				}
+			},
+		)
 	}
 }
 
@@ -560,45 +502,21 @@ func TestMappingHasSetKey(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			defer test.wantPanic.recover(t)
+		node := &MappingNode{value: yaml.CopyYNode(cm)}
+		runStarlarkTest(t, test.name,
+			test.script,
+			StringDict{
+				"node": node,
+			},
+			test.wantPanic, test.wantErr,
+			func(t *testing.T, sd StringDict) {
+				got := node.value
+				want := yaml.MustParse(test.want).YNode()
 
-			node := &MappingNode{value: yaml.CopyYNode(cm)}
-			opts := &syntax.FileOptions{
-				TopLevelControl: true,
-			}
-
-			thread := &starlark.Thread{
-				Name: test.name,
-				Print: func(_ *starlark.Thread, msg string) {
-					t.Logf("starlark output: %s", msg)
-				},
-			}
-			_, err := starlark.ExecFileOptions(
-				opts,
-				thread,
-				test.name,
-				test.script,
-				starlark.StringDict{
-					"node": node,
-				},
-			)
-
-			if test.wantPanic.check(t) {
-				return
-			}
-
-			if test.wantErr.check(t, err) {
-				return
-			}
-
-			got := node.value
-			want := yaml.MustParse(test.want).YNode()
-
-			if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {
-				t.Fatalf("-want +got:\n%s", diff)
-			}
-		})
+				if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {
+					t.Fatalf("-want +got:\n%s", diff)
+				}
+			})
 	}
 }
 
@@ -726,54 +644,34 @@ func TestMappingMerge(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			defer test.wantPanic.recover(t)
+		runStarlarkTest(t, test.name,
+			"result = (left + right)",
+			StringDict{
+				"left":  test.left,
+				"right": test.right,
+			},
+			test.wantPanic, test.wantErr,
+			func(t *testing.T, gotAll StringDict) {
+				gotExpr, ok := gotAll["result"].(*nodeExpr)
+				if !ok {
+					t.Fatal("result is not expr")
+				}
 
-			opts := &syntax.FileOptions{
-				TopLevelControl: true,
-			}
+				gotNode, err := gotExpr.materialize()
+				if test.wantExprErr.check(t, err) {
+					return
+				}
 
-			thread := &starlark.Thread{
-				Name: test.name,
-				Print: func(_ *starlark.Thread, msg string) {
-					t.Logf("starlark output: %s", msg)
-				},
-			}
-			gotAll, err := starlark.ExecFileOptions(
-				opts,
-				thread,
-				test.name,
-				"result = (left + right)",
-				StringDict{
-					"left":  test.left,
-					"right": test.right,
-				},
-			)
+				if test.wantPanic.check(t) {
+					return
+				}
 
-			if test.wantErr.check(t, err) {
-				return
-			}
+				got := gotNode.(*MappingNode).value
+				want := yaml.MustParse(test.want).YNode()
 
-			gotExpr, ok := gotAll["result"].(*nodeExpr)
-			if !ok {
-				t.Fatal("result is not expr")
-			}
-
-			gotNode, err := gotExpr.materialize()
-			if test.wantExprErr.check(t, err) {
-				return
-			}
-
-			if test.wantPanic.check(t) {
-				return
-			}
-
-			got := gotNode.(*MappingNode).value
-			want := yaml.MustParse(test.want).YNode()
-
-			if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {
-				t.Fatalf("-want +got:\n%s", diff)
-			}
-		})
+				if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {
+					t.Fatalf("-want +got:\n%s", diff)
+				}
+			})
 	}
 }

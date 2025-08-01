@@ -9,7 +9,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"go.starlark.net/starlark"
-	"go.starlark.net/syntax"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -71,43 +70,20 @@ func TestSequenceHasGet(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			defer test.wantPanic.recover(t)
-
-			const resultVar = "result"
-			opts := &syntax.FileOptions{
-				TopLevelControl: true,
-			}
-
-			thread := &starlark.Thread{
-				Name: test.name,
-				Print: func(_ *starlark.Thread, msg string) {
-					t.Logf("starlark output: %s", msg)
-				},
-			}
-			gotAll, err := starlark.ExecFileOptions(
-				opts,
-				thread,
-				test.name,
-				fmt.Sprintf("%s = %s", resultVar, test.expr),
-				starlark.StringDict{
-					"node": &MappingNode{value: yaml.CopyYNode(pod)},
-				},
-			)
-
-			if test.wantPanic.check(t) {
-				return
-			}
-
-			if test.wantErr.check(t, err) {
-				return
-			}
-
-			got := gotAll[resultVar]
-			if diff := cmp.Diff(test.want, got, cmpOpts...); diff != "" {
-				t.Fatalf("-want +got:\n%s", diff)
-			}
-		})
+		const resultVar = "result"
+		runStarlarkTest(t, test.name,
+			fmt.Sprintf("%s = %s", resultVar, test.expr),
+			StringDict{
+				"node": &MappingNode{value: yaml.CopyYNode(pod)},
+			},
+			test.wantPanic, test.wantErr,
+			func(t *testing.T, gotAll StringDict) {
+				got := gotAll[resultVar]
+				if diff := cmp.Diff(test.want, got, cmpOpts...); diff != "" {
+					t.Fatalf("-want +got:\n%s", diff)
+				}
+			},
+		)
 	}
 }
 
@@ -210,45 +186,22 @@ func TestSequenceHasSetKey(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			defer test.wantPanic.recover(t)
+		node := &MappingNode{value: yaml.CopyYNode(cm)}
+		runStarlarkTest(t, test.name,
+			test.script,
+			StringDict{
+				"node": node,
+			},
+			test.wantPanic, test.wantErr,
+			func(t *testing.T, _ StringDict) {
+				got := node.value
+				want := yaml.MustParse(test.want).YNode()
 
-			node := &MappingNode{value: yaml.CopyYNode(cm)}
-			opts := &syntax.FileOptions{
-				TopLevelControl: true,
-			}
-
-			thread := &starlark.Thread{
-				Name: test.name,
-				Print: func(_ *starlark.Thread, msg string) {
-					t.Logf("starlark output: %s", msg)
-				},
-			}
-			_, err := starlark.ExecFileOptions(
-				opts,
-				thread,
-				test.name,
-				test.script,
-				starlark.StringDict{
-					"node": node,
-				},
-			)
-
-			if test.wantPanic.check(t) {
-				return
-			}
-
-			if test.wantErr.check(t, err) {
-				return
-			}
-
-			got := node.value
-			want := yaml.MustParse(test.want).YNode()
-
-			if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {
-				t.Fatalf("-want +got:\n%s", diff)
-			}
-		})
+				if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {
+					t.Fatalf("-want +got:\n%s", diff)
+				}
+			},
+		)
 	}
 }
 
@@ -320,43 +273,20 @@ func TestSequenceIter(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			defer test.wantPanic.recover(t)
+		node := &MappingNode{value: yaml.CopyYNode(cm)}
+		runStarlarkTest(t, test.name,
+			test.script,
+			StringDict{
+				"node": node,
+			},
+			test.wantPanic, test.wantErr,
+			func(t *testing.T, gotAll StringDict) {
+				got := gotAll["result"]
 
-			node := &MappingNode{value: yaml.CopyYNode(cm)}
-			opts := &syntax.FileOptions{
-				TopLevelControl: true,
-			}
-
-			thread := &starlark.Thread{
-				Name: test.name,
-				Print: func(_ *starlark.Thread, msg string) {
-					t.Logf("starlark output: %s", msg)
-				},
-			}
-			gotAll, err := starlark.ExecFileOptions(
-				opts,
-				thread,
-				test.name,
-				test.script,
-				starlark.StringDict{
-					"node": node,
-				},
-			)
-
-			if test.wantPanic.check(t) {
-				return
-			}
-
-			if test.wantErr.check(t, err) {
-				return
-			}
-
-			got := gotAll["result"]
-
-			if diff := cmp.Diff(test.want, got, cmpOpts...); diff != "" {
-				t.Fatalf("-want +got:\n%s", diff)
-			}
-		})
+				if diff := cmp.Diff(test.want, got, cmpOpts...); diff != "" {
+					t.Fatalf("-want +got:\n%s", diff)
+				}
+			},
+		)
 	}
 }
