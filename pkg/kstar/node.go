@@ -12,12 +12,15 @@ import (
 var (
 	errNotImplemented  = errors.New("not implemented")
 	errUnsupportedType = errors.New("unsupported type")
+	errInvalid         = errors.New("invalid value")
 )
 
 func FromYNode(ynode *yaml.Node) starlark.Value {
 	switch kind := ynode.Kind; kind {
 	case yaml.MappingNode:
 		return &MappingNode{value: ynode}
+	case yaml.SequenceNode:
+		return &SequenceNode{value: ynode}
 	case yaml.ScalarNode:
 		return &ScalarNode{value: ynode}
 	default:
@@ -90,6 +93,8 @@ func FromStarlark(value starlark.Value) (*yaml.Node, error) {
 	case *ScalarNode:
 		return yaml.CopyYNode(value.value), nil
 	case *MappingNode:
+		return yaml.CopyYNode(value.value), nil
+	case *SequenceNode:
 		return yaml.CopyYNode(value.value), nil
 	case starlark.String:
 		return &yaml.Node{

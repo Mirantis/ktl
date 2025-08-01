@@ -1,7 +1,6 @@
 package kstar
 
 import (
-	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -27,8 +26,6 @@ var (
 	_ starlark.HasSetField = new(MappingNode)
 	_ starlark.HasSetKey   = new(MappingNode)
 	_ starlark.HasBinary   = new(MappingNode)
-
-	errUnsupportedFieldType = errors.New("unsupported field type")
 )
 
 func toMappingNode(value starlark.Value) (*MappingNode, bool) {
@@ -163,7 +160,7 @@ func (node *MappingNode) Get(key starlark.Value) (_ starlark.Value, found bool, 
 	default:
 		return nil, false, fmt.Errorf(
 			"%w: %q",
-			errUnsupportedFieldType,
+			errUnsupportedType,
 			key.Type(),
 		)
 	}
@@ -181,7 +178,7 @@ func (node *MappingNode) SetKey(key, value starlark.Value) error {
 	default:
 		return fmt.Errorf(
 			"%w: %q",
-			errUnsupportedFieldType,
+			errUnsupportedType,
 			key.Type(),
 		)
 	}
