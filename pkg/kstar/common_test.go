@@ -19,6 +19,7 @@ var (
 	commonCmpOpts = []cmp.Option{
 		cmp.AllowUnexported(matchPattern{}),
 		cmp.AllowUnexported(MappingNode{}),
+		cmp.AllowUnexported(ScalarNode{}),
 		cmp.AllowUnexported(starlark.Int{}),
 		cmp.AllowUnexported(starlark.List{}),
 		cmpopts.IgnoreFields(starlark.List{}, "frozen"),

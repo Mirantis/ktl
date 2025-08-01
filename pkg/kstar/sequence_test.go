@@ -251,3 +251,112 @@ func TestSequenceHasSetKey(t *testing.T) {
 		})
 	}
 }
+
+func TestSequenceIter(t *testing.T) {
+	cmpOpts := slices.Concat(commonCmpOpts, cmp.Options{
+		cmpopts.IgnoreFields(yaml.Node{}, "Line", "Style", "Column", "Tag"),
+	})
+	cm := yaml.MustParse(strings.Join([]string{
+		`apiVersion: v1`,
+		`kind: ConfigMap`,
+		`metadata:`,
+		`  name: demo-app1`,
+		`data:`,
+		`  scalars:`,
+		`  - a`,
+		`  - b`,
+		`  - c`,
+		`  mappings:`,
+		`  - key: value`,
+	}, "\n")).YNode()
+
+	tests := []struct {
+		name      string
+		script    string
+		want      starlark.Value
+		wantErr   wantErr
+		wantPanic wantPanic
+	}{
+		{
+			name:   "scalar-list",
+			script: `result = list(node.data.scalars)`,
+			want: starlark.NewList([]starlark.Value{
+				starlark.String("a"),
+				starlark.String("b"),
+				starlark.String("c"),
+			}),
+		},
+		{
+			name:   "mapping-list",
+			script: `result = list(node.data.mappings)`,
+			want: starlark.NewList([]starlark.Value{
+				&MappingNode{value: yaml.MustParse(`{ key: value }`).YNode()},
+			}),
+		},
+		{
+			name: "scalar-loop",
+			script: strings.Join([]string{
+				`result = []`,
+				`for item in node.data.scalars:`,
+				`  result.append(item)`,
+			}, "\n"),
+			want: starlark.NewList([]starlark.Value{
+				starlark.String("a"),
+				starlark.String("b"),
+				starlark.String("c"),
+			}),
+		},
+		{
+			name: "mapping-loop",
+			script: strings.Join([]string{
+				`result = []`,
+				`for item in node.data.mappings:`,
+				`  result.append(item)`,
+			}, "\n"),
+			want: starlark.NewList([]starlark.Value{
+				&MappingNode{value: yaml.MustParse(`{ key: value }`).YNode()},
+			}),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			defer test.wantPanic.recover(t)
+
+			node := &MappingNode{value: yaml.CopyYNode(cm)}
+			opts := &syntax.FileOptions{
+				TopLevelControl: true,
+			}
+
+			thread := &starlark.Thread{
+				Name: test.name,
+				Print: func(_ *starlark.Thread, msg string) {
+					t.Logf("starlark output: %s", msg)
+				},
+			}
+			gotAll, err := starlark.ExecFileOptions(
+				opts,
+				thread,
+				test.name,
+				test.script,
+				starlark.StringDict{
+					"node": node,
+				},
+			)
+
+			if test.wantPanic.check(t) {
+				return
+			}
+
+			if test.wantErr.check(t, err) {
+				return
+			}
+
+			got := gotAll["result"]
+
+			if diff := cmp.Diff(test.want, got, cmpOpts...); diff != "" {
+				t.Fatalf("-want +got:\n%s", diff)
+			}
+		})
+	}
+}
