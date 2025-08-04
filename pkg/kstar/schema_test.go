@@ -61,3 +61,29 @@ func TestSchemaPath(t *testing.T) {
 		})
 	}
 }
+
+func TestFieldIndexLoad(t *testing.T) {
+	const metaRef = "io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
+	got := refFields{}
+	want := refFields{
+		"io.k8s.apimachinery.pkg.apis.meta.v1.ManagedFieldsEntry": {
+			{"managedFields", "[]"},
+		},
+		"io.k8s.apimachinery.pkg.apis.meta.v1.OwnerReference": {
+			{"ownerReferences", "[]"},
+		},
+		"io.k8s.apimachinery.pkg.apis.meta.v1.Time": {
+			{"creationTimestamp"},
+			{"deletionTimestamp"},
+		},
+	}
+
+	schema := openapi.Schema().Definitions[metaRef]
+	if err := got.load(&schema); err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("-want +got:\n%s", diff)
+	}
+}
