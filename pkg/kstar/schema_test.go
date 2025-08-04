@@ -1,62 +1,82 @@
 package kstar
 
 import (
-	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"sigs.k8s.io/kustomize/kyaml/openapi"
-	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func TestSchemaPath(t *testing.T) {
-	cmpOpts := slices.Concat(commonCmpOpts, cmp.Options{
-		cmp.AllowUnexported(spec.Ref{}),
-		cmpopts.IgnoreTypes(spec.Ref{}.Ref),
-	})
-	podSchema := &NodeSchema{rs: openapi.SchemaForResourceType(yaml.TypeMeta{
-		Kind:       "Pod",
-		APIVersion: "v1",
-	})}
-
+func TestNodeSchemaResolve(t *testing.T) {
+	const (
+		metaRef      = `io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta`
+		deployRef    = `io.k8s.api.apps.v1.Deployment`
+		podSpecRef   = `io.k8s.api.core.v1.PodSpec`
+		containerRef = `io.k8s.api.core.v1.Container`
+	)
+	idx := NewSchemaIndex(nil)
+	root := &NodeSchema{
+		idx: idx,
+		ref: deployRef,
+	}
 	tests := []struct {
-		name      string
-		input     *NodeSchema
-		path      []string
-		wantPanic wantPanic
+		name       string
+		path       []string
+		wantSchema spec.Schema
+		wantRef    refName
+		wantPath   fieldPath
 	}{
 		{
-			name:  "metadata.name",
-			input: podSchema,
-			path:  []string{"metadata", "name"},
+			name:       "root",
+			path:       []string{},
+			wantSchema: openapi.Schema().Definitions[deployRef],
+			wantRef:    deployRef,
+			wantPath:   nil,
 		},
 		{
-			name:  "container.name",
-			input: podSchema,
-			path:  []string{"spec", "containers", "[]", "name"},
+			name:       "field",
+			path:       []string{"metadata"},
+			wantSchema: openapi.Schema().Definitions[metaRef],
+			wantRef:    metaRef,
+			wantPath:   nil,
+		},
+		{
+			name:       "nested",
+			path:       []string{"spec", "template", "spec", "containers"},
+			wantSchema: openapi.Schema().Definitions[podSpecRef].Properties["containers"],
+			wantRef:    podSpecRef,
+			wantPath:   []string{"containers"},
+		},
+		{
+			name:       "elements",
+			path:       []string{"spec", "template", "spec", "containers", "[]"},
+			wantSchema: openapi.Schema().Definitions[containerRef],
+			wantRef:    containerRef,
+			wantPath:   nil,
+		},
+		{
+			name:     "unknown",
+			path:     []string{"unknown"},
+			wantRef:  deployRef,
+			wantPath: []string{"unknown"},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			defer test.wantPanic.recover(t)
+			got := root.Lookup(test.path...).Resolve()
 
-			gotSchema := test.input.Lookup(test.path...)
-
-			if test.wantPanic.check(t) {
-				return
+			if diff := cmp.Diff(&test.wantSchema, got.schema, commonCmpOpts...); diff != "" {
+				t.Errorf("schema -want +got:\n%s", diff)
 			}
 
-			gotPath := gotSchema.Path()
-			if diff := cmp.Diff(test.path, gotPath); diff != "" {
-				t.Fatalf("path mismatch, -want +got:\n%s", diff)
+			if diff := cmp.Diff(test.wantRef, got.ref); diff != "" {
+				t.Errorf("ref -want +got:\n%s", diff)
 			}
 
-			wantSchema := test.input.rs.Lookup(test.path...).Schema
-			if diff := cmp.Diff(wantSchema, gotSchema.rs.Schema, cmpOpts...); diff != "" {
-				t.Fatalf("schema mismatch, -want +got:\n%s", diff)
+			if diff := cmp.Diff(test.wantPath, got.path); diff != "" {
+				t.Errorf("path -want +got:\n%s", diff)
 			}
 		})
 	}

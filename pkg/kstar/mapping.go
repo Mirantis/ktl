@@ -7,7 +7,6 @@ import (
 
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
-	"sigs.k8s.io/kustomize/kyaml/openapi"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 	"sigs.k8s.io/kustomize/kyaml/yaml/merge2"
 	"sigs.k8s.io/kustomize/kyaml/yaml/walk"
@@ -16,7 +15,7 @@ import (
 const MappingNodeType = "MappingNode"
 
 type MappingNode struct {
-	schema *openapi.ResourceSchema
+	schema *NodeSchema
 	value  *yaml.Node
 	fields map[string]starlark.Value
 }
@@ -234,7 +233,7 @@ func (node *MappingNode) merge(other *MappingNode) error {
 	src := yaml.NewRNode(other.value)
 
 	rnode, err := walk.Walker{
-		Schema:       node.schema,
+		Schema:       node.schema.Schema(),
 		Sources:      []*yaml.RNode{dest, src},
 		Visitor:      merge2.Merger{},
 		MergeOptions: yaml.MergeOptions{},

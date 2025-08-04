@@ -8,79 +8,97 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/openapi"
 )
 
+const schemaDefinitionsPrefix = "#/definitions/"
+
 type NodeSchema struct {
-	rs     *openapi.ResourceSchema
+	idx    *SchemaIndex
 	parent *NodeSchema
-	key    string
+	schema *spec.Schema
+	ref    refName
+	path   fieldPath
 }
 
-func (schema *NodeSchema) Root() *NodeSchema {
-	root := schema
+func (ns *NodeSchema) Schema() *openapi.ResourceSchema {
+	ns = ns.Resolve()
 
-	for root != nil && root.parent != nil {
-		root = root.parent
-	}
-
-	return root
-}
-
-func (schema *NodeSchema) Path() []string {
-	path := []string{}
-
-	for s := schema; s != nil && len(s.key) > 0; s = s.parent {
-		path = append(path, s.key)
-	}
-
-	slices.Reverse(path)
-
-	return path
-}
-
-func (schema *NodeSchema) Field(name string) *NodeSchema {
-	if schema == nil {
+	if ns == nil || ns.schema == nil {
 		return nil
 	}
 
-	fieldSchema := schema.rs.Field(name)
-
-	return &NodeSchema{
-		rs: fieldSchema,
-
-		parent: schema,
-		key:    name,
-	}
+	return &openapi.ResourceSchema{Schema: ns.schema}
 }
 
-func (schema *NodeSchema) Elements() *NodeSchema {
-	if schema == nil {
+func (ns *NodeSchema) Resolve() *NodeSchema {
+	if ns == nil || ns.idx == nil || ns.schema != nil {
+		return ns
+	}
+
+	if ns.ref != "" {
+		schema := ns.idx.global.Definitions[ns.ref]
+		ns.schema = &schema
+		return ns
+	}
+
+	parent := ns.parent.Resolve()
+	if parent == nil || parent.schema == nil {
+		return ns
+	}
+
+	key := ns.path[0]
+	if key == openapi.Elements {
+		ns.schema = parent.schema.Items.Schema
+	} else {
+		schema := parent.schema.Properties[key]
+		ns.schema = &schema
+	}
+
+	if ns.schema == nil {
+		return ns
+	}
+
+	ns.ref = parent.ref
+	ns.path = slices.Concat(parent.path, ns.path)
+
+	ref := ns.schema.Ref.String()
+	if ref == "" {
+		return ns
+	}
+
+	ns.schema, _ = openapi.Resolve(&ns.schema.Ref, ns.idx.global)
+	ns.ref = strings.TrimPrefix(ref, schemaDefinitionsPrefix)
+	ns.path = nil
+
+	return ns
+}
+
+func (ns *NodeSchema) Field(name string) *NodeSchema {
+	if ns == nil {
 		return nil
 	}
 
-	fieldSchema := schema.rs.Elements()
-
 	return &NodeSchema{
-		rs:     fieldSchema,
-		parent: schema,
-		key:    openapi.Elements,
+		idx:    ns.idx,
+		parent: ns,
+		path:   fieldPath{name},
 	}
 }
 
-func (schema *NodeSchema) Lookup(path ...string) *NodeSchema {
-	result := schema
+func (ns *NodeSchema) Elements() *NodeSchema {
+	return ns.Field(openapi.Elements)
+}
 
-	for _, key := range path {
-		if result == nil {
-			return nil
-		}
+func (ns *NodeSchema) Lookup(path ...string) *NodeSchema {
+	node := ns
 
-		if key == openapi.Elements {
-			result = result.Elements()
+	for _, part := range path {
+		if part == openapi.Elements {
+			node = node.Elements()
 		} else {
-			result = result.Field(key)
+			node = node.Field(part)
 		}
 	}
 
-	return result
+	return node
 }
 
 type refName = string
@@ -107,7 +125,7 @@ func newRefFields(schema *spec.Schema) refFields {
 
 		ref := curr.schema.Ref.String()
 		if ref != "" {
-			ref, _ = strings.CutPrefix(ref, "#/definitions/")
+			ref = strings.TrimPrefix(ref, schemaDefinitionsPrefix)
 			refs[ref] = append(refs[ref], curr.path)
 			continue
 		}

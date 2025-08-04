@@ -3,6 +3,8 @@ package kstar
 import (
 	"testing"
 
+	"github.com/go-openapi/jsonpointer"
+	"github.com/go-openapi/jsonreference"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"go.starlark.net/starlark"
@@ -21,6 +23,8 @@ var (
 		cmp.AllowUnexported(matchPattern{}),
 		cmp.AllowUnexported(MappingNode{}),
 		cmp.AllowUnexported(ScalarNode{}),
+		cmp.AllowUnexported(jsonreference.Ref{}),
+		cmp.AllowUnexported(jsonpointer.Pointer{}),
 		cmp.AllowUnexported(starlark.Int{}),
 		cmp.AllowUnexported(starlark.List{}),
 		cmpopts.IgnoreFields(starlark.List{}, "frozen"),
