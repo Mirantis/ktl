@@ -64,7 +64,6 @@ func TestSchemaPath(t *testing.T) {
 
 func TestFieldIndexLoad(t *testing.T) {
 	const metaRef = "io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
-	got := refFields{}
 	want := refFields{
 		"io.k8s.apimachinery.pkg.apis.meta.v1.ManagedFieldsEntry": {
 			{"managedFields", "[]"},
@@ -79,11 +78,59 @@ func TestFieldIndexLoad(t *testing.T) {
 	}
 
 	schema := openapi.Schema().Definitions[metaRef]
-	if err := got.load(&schema); err != nil {
-		t.Fatal(err)
-	}
+	got := newRefFields(&schema)
 
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("-want +got:\n%s", diff)
+	}
+}
+
+func TestSchemaIndexRel(t *testing.T) {
+	tests := []struct {
+		name string
+		from refName
+		to   refName
+		want []fieldPath
+	}{
+		{
+			name: "linked",
+			from: `io.k8s.api.apps.v1.Deployment`,
+			to:   `io.k8s.api.core.v1.EnvVar`,
+			want: []fieldPath{
+				{"spec", "template", "spec", "containers", "[]", "env", "[]"},
+				{"spec", "template", "spec", "ephemeralContainers", "[]", "env", "[]"},
+				{"spec", "template", "spec", "initContainers", "[]", "env", "[]"},
+			},
+		},
+		{
+			name: "not-linked",
+			from: `io.k8s.api.core.v1.ConfigMap`,
+			to:   `io.k8s.api.core.v1.EnvVar`,
+			want: nil,
+		},
+		{
+			name: "not-linked-cached",
+			from: `io.k8s.api.core.v1.ConfigMap`,
+			to:   `io.k8s.api.core.v1.EnvVar`,
+			want: nil,
+		},
+		{
+			name: "undef",
+			from: `undef1`,
+			to:   `undef2`,
+			want: nil,
+		},
+	}
+
+	idx := NewSchemaIndex(nil)
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := idx.rel(test.from, test.to)
+
+			if diff := cmp.Diff(test.want, got); diff != "" {
+				t.Fatalf("-want +got:\n%s", diff)
+			}
+		})
 	}
 }

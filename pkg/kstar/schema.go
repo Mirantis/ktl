@@ -89,7 +89,12 @@ type fieldPath []string
 
 type refFields map[refName][]fieldPath
 
-func (refs refFields) load(schema *spec.Schema) error {
+func newRefFields(schema *spec.Schema) refFields {
+	refs := refFields{}
+	if schema == nil {
+		return refs
+	}
+
 	type qentry struct {
 		schema *spec.Schema
 		path   fieldPath
@@ -134,5 +139,80 @@ func (refs refFields) load(schema *spec.Schema) error {
 		slices.SortFunc(paths, slices.Compare)
 	}
 
-	return nil
+	return refs
+}
+
+type refLink struct{ from, to refName }
+
+type SchemaIndex struct {
+	cachedPaths map[refLink][]fieldPath
+	refFields   map[refName]refFields
+	global      *spec.Schema
+}
+
+func NewSchemaIndex(schema *spec.Schema) *SchemaIndex {
+	if schema == nil {
+		schema = openapi.Schema()
+	}
+
+	return &SchemaIndex{
+		cachedPaths: map[refLink][]fieldPath{},
+		refFields:   map[refName]refFields{},
+		global:      schema,
+	}
+}
+
+func (idx *SchemaIndex) rel(from, to refName) []fieldPath {
+	link := refLink{from: from, to: to}
+
+	paths, cached := idx.cachedPaths[link]
+	if cached {
+		return paths
+	}
+
+	paths = idx.relDfs(from, to, map[refName]struct{}{})
+	slices.SortFunc(paths, slices.Compare)
+	idx.cachedPaths[link] = paths
+
+	return paths
+}
+
+func (idx *SchemaIndex) relDfs(from, to refName, visited map[refName]struct{}) []fieldPath {
+	var result []fieldPath
+	visited[from] = struct{}{}
+
+	fields, loaded := idx.refFields[from]
+	if !loaded {
+		schema := idx.schema(from)
+		fields = newRefFields(schema)
+		idx.refFields[from] = fields
+	}
+
+	for fieldRef, paths := range fields {
+		if fieldRef == to {
+			result = append(result, paths...)
+			continue
+		}
+
+		if _, ok := visited[fieldRef]; ok {
+			continue
+		}
+
+		for _, subPath := range idx.relDfs(fieldRef, to, visited) {
+			for _, path := range paths {
+				result = append(result, slices.Concat(path, subPath))
+			}
+		}
+	}
+
+	return result
+}
+
+func (idx *SchemaIndex) schema(ref refName) *spec.Schema {
+	schema, found := idx.global.Definitions[ref]
+	if !found {
+		return nil
+	}
+
+	return &schema
 }
