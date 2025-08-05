@@ -4,14 +4,13 @@ import (
 	"fmt"
 
 	"go.starlark.net/starlark"
-	"sigs.k8s.io/kustomize/kyaml/openapi"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 const SequenceNodeType = "SequenceNode"
 
 type SequenceNode struct {
-	schema *openapi.ResourceSchema
+	schema *NodeSchema
 	value  *yaml.Node
 }
 
@@ -41,6 +40,10 @@ func (node *SequenceNode) Truth() starlark.Bool {
 
 func (node *SequenceNode) Hash() (uint32, error) {
 	panic(errNotImplemented)
+}
+
+func (node *SequenceNode) setSchema(ns *NodeSchema) {
+	node.schema = ns
 }
 
 func (node *SequenceNode) len() int {
@@ -140,7 +143,7 @@ func (node *SequenceNode) Iterate() starlark.Iterator {
 }
 
 type seqIterator struct {
-	schema *openapi.ResourceSchema
+	schema *NodeSchema
 	ynodes []*yaml.Node
 }
 

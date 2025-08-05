@@ -17,6 +17,7 @@ var (
 )
 
 type ScalarNode struct {
+	schema *NodeSchema
 	value  *yaml.Node
 	cached starlark.Value
 }
@@ -50,6 +51,10 @@ func (node *ScalarNode) Value() (starlark.Value, error) {
 	}
 
 	return node.cached, err
+}
+
+func (node *ScalarNode) setSchema(ns *NodeSchema) {
+	node.schema = ns
 }
 
 func (node *ScalarNode) compute() (starlark.Value, error) {

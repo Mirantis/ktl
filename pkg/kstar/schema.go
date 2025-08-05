@@ -105,6 +105,10 @@ type refName = string
 
 type fieldPath []string
 
+func (path fieldPath) String() string {
+	return strings.Join(path, ".")
+}
+
 type refFields map[refName][]fieldPath
 
 func newRefFields(schema *spec.Schema) refFields {
@@ -181,6 +185,10 @@ func NewSchemaIndex(schema *spec.Schema) *SchemaIndex {
 }
 
 func (idx *SchemaIndex) rel(from, to refName) []fieldPath {
+	if from == to {
+		return []fieldPath{{}}
+	}
+
 	link := refLink{from: from, to: to}
 
 	paths, cached := idx.cachedPaths[link]

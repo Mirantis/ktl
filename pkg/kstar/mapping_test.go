@@ -521,17 +521,49 @@ func TestMappingHasSetKey(t *testing.T) {
 }
 
 func TestMappingMerge(t *testing.T) {
+	const (
+		metaRef        = `io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta`
+		cmRef          = `io.k8s.api.core.v1.ConfigMap`
+		deployRef      = `io.k8s.api.apps.v1.Deployment`
+		containerRef   = `io.k8s.api.core.v1.Container`
+		serviceSpecRef = `io.k8s.api.core.v1.ServiceSpec`
+	)
+	schemaIndex := NewSchemaIndex(nil)
 	cmpOpts := slices.Concat(commonCmpOpts, cmp.Options{
 		cmpopts.IgnoreFields(yaml.Node{}, "Line", "Style", "Column", "Tag"),
 	})
-	cm := &MappingNode{value: yaml.MustParse(strings.Join([]string{
-		`apiVersion: v1`,
-		`kind: ConfigMap`,
-		`metadata:`,
-		`  name: test-cm`,
-		`data:`,
-		`  a: 1`,
-	}, "\n")).YNode()}
+	cm := &MappingNode{
+		value: yaml.MustParse(strings.Join([]string{
+			`apiVersion: v1`,
+			`kind: ConfigMap`,
+			`metadata:`,
+			`  name: test-cm`,
+			`data:`,
+			`  a: 1`,
+		}, "\n")).YNode(),
+		schema: &NodeSchema{
+			idx: schemaIndex,
+			ref: cmRef,
+		},
+	}
+	deploy := &MappingNode{
+		value: yaml.MustParse(strings.Join([]string{
+			`apiVersion: apps/v1`,
+			`kind: Deployment`,
+			`metadata:`,
+			`  name: test-deploy`,
+			`spec:`,
+			`  template:`,
+			`    spec:`,
+			`      containers:`,
+			`      - name: app`,
+			`        image: app-image`,
+		}, "\n")).YNode(),
+		schema: &NodeSchema{
+			idx: schemaIndex,
+			ref: deployRef,
+		},
+	}
 
 	tests := []struct {
 		name        string
@@ -624,6 +656,75 @@ func TestMappingMerge(t *testing.T) {
 				`  a: 1`,
 				`  b: 4`,
 			}, "\n"),
+		},
+		{
+			name: "merge-schema",
+			left: deploy,
+			right: &MappingNode{
+				value: yaml.MustParse(strings.Join([]string{
+					`metadata:`,
+					`  namespace: test-ns`,
+				}, "\n")).YNode(),
+				schema: &NodeSchema{
+					idx: schemaIndex,
+					ref: deployRef,
+				},
+			},
+			want: strings.Join([]string{
+				`apiVersion: apps/v1`,
+				`kind: Deployment`,
+				`metadata:`,
+				`  name: test-deploy`,
+				`  namespace: test-ns`,
+				`spec:`,
+				`  template:`,
+				`    spec:`,
+				`      containers:`,
+				`      - name: app`,
+				`        image: app-image`,
+			}, "\n"),
+		},
+		{
+			name: "merge-schema-multiple-paths",
+			left: deploy,
+			right: &MappingNode{
+				value: yaml.MustParse(strings.Join([]string{
+					`{ namespace: test-ns }`,
+				}, "\n")).YNode(),
+				schema: &NodeSchema{
+					idx: schemaIndex,
+					ref: metaRef,
+				},
+			},
+			wantExprErr: true,
+		},
+		{
+			name: "merge-schema-ambiguous",
+			left: deploy,
+			right: &MappingNode{
+				value: yaml.MustParse(strings.Join([]string{
+					`{ name: app, image: other }`,
+				}, "\n")).YNode(),
+				schema: &NodeSchema{
+					idx: schemaIndex,
+					ref: containerRef,
+				},
+			},
+			wantExprErr: true,
+		},
+		{
+			name: "merge-schema-nopath",
+			left: deploy,
+			right: &MappingNode{
+				value: yaml.MustParse(strings.Join([]string{
+					`{ clusterIP: 1.2.3.4 }`,
+				}, "\n")).YNode(),
+				schema: &NodeSchema{
+					idx: schemaIndex,
+					ref: serviceSpecRef,
+				},
+			},
+			wantExprErr: true,
 		},
 		{
 			name: "op-right",

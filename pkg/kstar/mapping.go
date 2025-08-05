@@ -7,6 +7,7 @@ import (
 
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
+	"sigs.k8s.io/kustomize/kyaml/openapi"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 	"sigs.k8s.io/kustomize/kyaml/yaml/merge2"
 	"sigs.k8s.io/kustomize/kyaml/yaml/walk"
@@ -68,6 +69,10 @@ func (node *MappingNode) Hash() (uint32, error) {
 	panic(errNotImplemented)
 }
 
+func (node *MappingNode) setSchema(ns *NodeSchema) {
+	node.schema = ns
+}
+
 func (node *MappingNode) loadFields() {
 	if node.value == nil {
 		node.fields = make(map[string]starlark.Value)
@@ -79,7 +84,9 @@ func (node *MappingNode) loadFields() {
 
 	for idx := range len(content) / 2 {
 		key, value := content[idx*2], content[idx*2+1]
-		node.fields[key.Value] = FromYNode(value)
+		field := FromYNode(value)
+		field.setSchema(node.schema.Field(key.Value))
+		node.fields[key.Value] = field
 	}
 }
 
@@ -228,12 +235,85 @@ func (*MappingNode) exprOp(op syntax.Token, value starlark.Value, side starlark.
 	}
 }
 
+func (node *MappingNode) find(other *MappingNode) []fieldPath {
+	if node.schema == nil || other.schema == nil {
+		return nil
+	}
+
+	lns := node.schema
+	rns := other.schema
+
+	paths := []fieldPath{}
+	prefixLen := len(lns.path)
+	allPaths := lns.idx.rel(lns.ref, rns.ref)
+
+	for _, path := range allPaths {
+		if len(path) < prefixLen {
+			continue
+		}
+
+		if slices.Compare(path[:prefixLen], lns.path) != 0 {
+			continue
+		}
+
+		paths = append(paths, slices.Concat(path[prefixLen:], rns.path))
+	}
+
+	return paths
+}
+
 func (node *MappingNode) merge(other *MappingNode) error {
+	var err error
+
 	dest := yaml.NewRNode(node.value)
 	src := yaml.NewRNode(other.value)
+	schema := node.schema.Schema()
 
-	rnode, err := walk.Walker{
-		Schema:       node.schema.Schema(),
+	allPaths := node.find(other)
+	paths := slices.DeleteFunc(slices.Clone(allPaths), func(path fieldPath) bool {
+		return slices.Contains(path, openapi.Elements)
+	})
+
+	switch {
+	case len(paths) == 1:
+		schema = schema.Lookup(paths[0]...)
+
+		dest, err = dest.Pipe(yaml.LookupCreate(yaml.MappingNode, paths[0]...))
+		if err != nil {
+			return fmt.Errorf(
+				"%w: %v",
+				errInvalid,
+				err,
+			)
+		}
+	case len(paths) > 1:
+		return fmt.Errorf(
+			"%w: multiple paths for %s in %s: %v",
+			errUnsupportedType,
+			other.schema.ref,
+			node.schema.ref,
+			paths,
+		)
+	case len(allPaths) > 0:
+		return fmt.Errorf(
+			"%w: ambiguous paths for %s in %s: %v",
+			errUnsupportedType,
+			other.schema.ref,
+			node.schema.ref,
+			allPaths,
+		)
+	case node.schema != nil && other.schema != nil:
+		return fmt.Errorf(
+			"%w: no path to %s in %s.%s",
+			errUnsupportedType,
+			other.schema.ref,
+			node.schema.ref,
+			node.schema.path,
+		)
+	}
+
+	_, err = walk.Walker{
+		Schema:       schema,
 		Sources:      []*yaml.RNode{dest, src},
 		Visitor:      merge2.Merger{},
 		MergeOptions: yaml.MergeOptions{},
@@ -243,7 +323,6 @@ func (node *MappingNode) merge(other *MappingNode) error {
 		return fmt.Errorf("unable to merge values: %w", err)
 	}
 
-	node.value = rnode.YNode()
 	node.fields = nil
 
 	return nil

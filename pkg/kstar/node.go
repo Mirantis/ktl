@@ -15,7 +15,12 @@ var (
 	errInvalid         = errors.New("invalid value")
 )
 
-func FromYNode(ynode *yaml.Node) starlark.Value {
+type nodeValue interface {
+	starlark.Value
+	setSchema(*NodeSchema)
+}
+
+func FromYNode(ynode *yaml.Node) nodeValue {
 	switch kind := ynode.Kind; kind {
 	case yaml.MappingNode:
 		return &MappingNode{value: ynode}
