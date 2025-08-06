@@ -1,12 +1,14 @@
 package kstar
 
 import (
+	"maps"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"go.starlark.net/starlark"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"sigs.k8s.io/kustomize/kyaml/openapi"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
@@ -157,10 +159,10 @@ func TestNodeSchemaCreate(t *testing.T) {
 					ref:  metaRef,
 					path: fieldPath{"labels"},
 				},
-				value: yaml.NewMapRNode(&map[string]string{
-					"a": "b",
-					"c": "d",
-				}).YNode(),
+				value: yaml.MustParse(strings.Join([]string{
+					`a: b`,
+					`c: d`,
+				}, "\n")).YNode(),
 			},
 		},
 		{
@@ -284,5 +286,140 @@ func TestSchemaIndexRel(t *testing.T) {
 				t.Fatalf("-want +got:\n%s", diff)
 			}
 		})
+	}
+}
+
+func TestSchemaIndexLookup(t *testing.T) {
+	const (
+		deployRef  = `io.k8s.api.apps.v1.Deployment`
+		customRef  = `com.mirantis.ktl.Deployment`
+		customRef1 = `com.mirantis.ktl.v1.CustomDeployment`
+		customRef2 = `com.mirantis.ktl.v2.CustomDeployment`
+	)
+	globalSchema := *openapi.Schema()
+	globalSchema.Definitions = maps.Clone(globalSchema.Definitions)
+	globalSchema.Definitions[customRef] = globalSchema.Definitions[deployRef]
+	globalSchema.Definitions[customRef1] = globalSchema.Definitions[deployRef]
+	globalSchema.Definitions[customRef2] = globalSchema.Definitions[deployRef]
+
+	schemaIndex := NewSchemaIndex(&globalSchema)
+	cmpOpts := slices.Concat(commonCmpOpts, cmp.Options{
+		cmpopts.IgnoreFields(yaml.Node{}, "Line", "Style", "Column", "Tag"),
+	})
+
+	tests := []struct {
+		name      string
+		script    string
+		want      starlark.Value
+		wantErr   wantErr
+		wantPanic wantPanic
+	}{
+		{
+			name:   "exact-match",
+			script: `schema["` + deployRef + `"]`,
+			want: &NodeSchema{
+				idx: schemaIndex,
+				ref: deployRef,
+			},
+		},
+		{
+			name:    "exact-match",
+			script:  `schema["no-such-schema"]`,
+			wantErr: true,
+		},
+		{
+			name:   "alias-match",
+			script: `schema.Deployment`,
+			want: &NodeSchema{
+				idx: schemaIndex,
+				ref: deployRef,
+			},
+		},
+		{
+			name:    "alias-no-match",
+			script:  `schema.NoSuchSchema`,
+			wantErr: true,
+		},
+		{
+			name:   "partial-match",
+			script: `schema.v1.Deployment`,
+			want: &NodeSchema{
+				idx: schemaIndex,
+				ref: deployRef,
+			},
+		},
+		{
+			name:   "custom-match",
+			script: `schema.ktl.Deployment`,
+			want: &NodeSchema{
+				idx: schemaIndex,
+				ref: customRef,
+			},
+		},
+		{
+			name:   "custom-match-v1",
+			script: `schema.v1.CustomDeployment`,
+			want: &NodeSchema{
+				idx: schemaIndex,
+				ref: customRef1,
+			},
+		},
+		{
+			name:   "custom-match-v2",
+			script: `schema.v2.CustomDeployment`,
+			want: &NodeSchema{
+				idx: schemaIndex,
+				ref: customRef2,
+			},
+		},
+		{
+			name:   "long-match",
+			script: `schema.` + deployRef,
+			want: &NodeSchema{
+				idx: schemaIndex,
+				ref: deployRef,
+			},
+		},
+		{
+			name:    "duplicate-match",
+			script:  `schema.CustomDeployment`,
+			wantErr: true,
+		},
+		{
+			name:    "lookup-no-match",
+			script:  `schema.ktl.NoSuchSchema`,
+			wantErr: true,
+		},
+		{
+			name:    "invalid-key",
+			script:  `schema[0]`,
+			wantErr: true,
+		},
+		{
+			name:    "invalid-key",
+			script:  `schema[0]`,
+			wantErr: true,
+		},
+		{
+			name:    "empty-key",
+			script:  `schema[""]`,
+			wantErr: true,
+		},
+	}
+
+	for _, test := range tests {
+		runStarlarkTest(t, test.name,
+			"result = "+test.script,
+			StringDict{
+				"schema": schemaIndex,
+			},
+			test.wantPanic, test.wantErr,
+			func(t *testing.T, gotAll StringDict) {
+				got := gotAll["result"]
+
+				if diff := cmp.Diff(test.want, got, cmpOpts...); diff != "" {
+					t.Fatalf("-want +got:\n%s", diff)
+				}
+			})
 	}
 }

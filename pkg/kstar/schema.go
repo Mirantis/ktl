@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"unicode"
 
 	"go.starlark.net/starlark"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -12,8 +13,11 @@ import (
 )
 
 const (
+	iok8s                   = "io.k8s."
 	schemaDefinitionsPrefix = "#/definitions/"
 	NodeSchemaType          = `NodeSchema`
+	SchemaIndexType         = `SchemaIndex`
+	schemaLookupType        = `SchemaLookup`
 )
 
 var (
@@ -270,10 +274,17 @@ func newRefFields(schema *spec.Schema) refFields {
 
 type refLink struct{ from, to refName }
 
+var (
+	_ starlark.Value    = new(SchemaIndex)
+	_ starlark.Mapping  = new(SchemaIndex)
+	_ starlark.HasAttrs = new(SchemaIndex)
+)
+
 type SchemaIndex struct {
 	cachedPaths map[refLink][]fieldPath
 	refFields   map[refName]refFields
 	global      *spec.Schema
+	aliases     map[string]*NodeSchema
 }
 
 func NewSchemaIndex(schema *spec.Schema) *SchemaIndex {
@@ -281,11 +292,106 @@ func NewSchemaIndex(schema *spec.Schema) *SchemaIndex {
 		schema = openapi.Schema()
 	}
 
-	return &SchemaIndex{
+	aliases := map[string]*NodeSchema{}
+	idx := &SchemaIndex{
 		cachedPaths: map[refLink][]fieldPath{},
 		refFields:   map[refName]refFields{},
 		global:      schema,
+		aliases:     aliases,
 	}
+
+	for ref := range schema.Definitions {
+		if !strings.HasPrefix(ref, iok8s) {
+			continue
+		}
+
+		parts := strings.Split(ref, ".")
+		name := parts[len(parts)-1]
+		aliases[name] = &NodeSchema{
+			idx: idx,
+			ref: ref,
+		}
+	}
+
+	for ref := range schema.Definitions {
+		if strings.HasPrefix(ref, iok8s) {
+			continue
+		}
+
+		parts := strings.Split(ref, ".")
+		name := parts[len(parts)-1]
+
+		ns, dup := aliases[name]
+		if dup && strings.HasPrefix(ns.ref, iok8s) {
+			continue
+		}
+
+		if dup {
+			aliases[name] = nil
+			continue
+		}
+
+		aliases[name] = &NodeSchema{
+			idx: idx,
+			ref: ref,
+		}
+	}
+
+	return idx
+}
+
+func (idx *SchemaIndex) String() string {
+	panic(errNotImplemented)
+}
+
+func (idx *SchemaIndex) Type() string {
+	return SchemaIndexType
+}
+
+func (idx *SchemaIndex) Freeze() {
+	//TODO: freeze node
+}
+
+func (idx *SchemaIndex) Truth() starlark.Bool {
+	return idx != nil && idx.global != nil
+}
+
+func (idx *SchemaIndex) Hash() (uint32, error) {
+	panic(errNotImplemented)
+}
+
+func (idx *SchemaIndex) Attr(name string) (starlark.Value, error) {
+	sl := &schemaLookup{idx: idx}
+
+	return sl.Attr(name)
+}
+
+func (idx *SchemaIndex) AttrNames() []string {
+	return nil
+}
+
+func (idx *SchemaIndex) Get(key starlark.Value) (_ starlark.Value, found bool, _ error) {
+	name, ok := key.(starlark.String)
+	if !ok {
+		return nil, false, nil
+	}
+
+	if len(name) == 0 {
+		return nil, false, nil
+	}
+
+	ref := name.GoString()
+	_, found = idx.global.Definitions[ref]
+	if !found {
+		return nil, false, nil
+	}
+
+	schema := &NodeSchema{
+		idx: idx,
+		ref: ref,
+	}
+
+	return schema, found, nil
 }
 
 func (idx *SchemaIndex) rel(from, to refName) []fieldPath {
@@ -345,4 +451,89 @@ func (idx *SchemaIndex) schema(ref refName) *spec.Schema {
 	}
 
 	return &schema
+}
+
+var (
+	_ starlark.Value    = new(schemaLookup)
+	_ starlark.HasAttrs = new(schemaLookup)
+)
+
+type schemaLookup struct {
+	idx   *SchemaIndex
+	parts []string
+}
+
+func (sl *schemaLookup) String() string {
+	panic(errNotImplemented)
+}
+
+func (sl *schemaLookup) Type() string {
+	return schemaLookupType
+}
+
+func (sl *schemaLookup) Freeze() {
+	//TODO: freeze node
+}
+
+func (sl *schemaLookup) Truth() starlark.Bool {
+	return sl != nil && sl.idx.Truth()
+}
+
+func (sl *schemaLookup) Hash() (uint32, error) {
+	panic(errNotImplemented)
+}
+
+func (sl *schemaLookup) AttrNames() []string {
+	return nil
+}
+
+func (sl *schemaLookup) Attr(name string) (starlark.Value, error) {
+	parts := []string{name}
+	if len(sl.parts) > 0 {
+		parts = slices.Concat(sl.parts, parts)
+	}
+
+	if unicode.IsLower(rune(name[0])) {
+		return &schemaLookup{
+			idx:   sl.idx,
+			parts: parts,
+		}, nil
+	}
+
+	name = strings.Join(parts, ".")
+	if schema, found := sl.idx.aliases[name]; found && schema != nil {
+		return schema, nil
+	}
+
+	matches := []string{}
+	for ref := range sl.idx.global.Definitions {
+		if !strings.HasSuffix(ref, name) {
+			continue
+		}
+
+		matches = append(matches, ref)
+	}
+
+	sl.idx.aliases[name] = nil
+
+	switch len(matches) {
+	case 0:
+
+		return nil, nil
+	case 1:
+		schema := &NodeSchema{
+			idx: sl.idx,
+			ref: matches[0],
+		}
+		sl.idx.aliases[name] = schema
+
+		return schema, nil
+	default:
+		return nil, fmt.Errorf(
+			"%w: multiple matching schemas for %q: %v",
+			errInvalid,
+			name,
+			matches,
+		)
+	}
 }

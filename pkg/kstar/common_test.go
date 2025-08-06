@@ -31,6 +31,8 @@ var (
 		cmp.AllowUnexported(starlark.Int{}),
 		cmp.AllowUnexported(starlark.List{}),
 		cmpopts.IgnoreFields(starlark.List{}, "frozen"),
+		cmpopts.IgnoreFields(SchemaIndex{}, "global"),
+		cmpopts.IgnoreFields(NodeSchema{}, "idx"),
 	}
 )
 
