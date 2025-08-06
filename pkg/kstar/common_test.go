@@ -21,8 +21,11 @@ var (
 
 	commonCmpOpts = []cmp.Option{
 		cmp.AllowUnexported(matchPattern{}),
+		cmp.AllowUnexported(NodeSchema{}),
+		cmp.AllowUnexported(SchemaIndex{}),
 		cmp.AllowUnexported(MappingNode{}),
 		cmp.AllowUnexported(ScalarNode{}),
+		cmp.AllowUnexported(SequenceNode{}),
 		cmp.AllowUnexported(jsonreference.Ref{}),
 		cmp.AllowUnexported(jsonpointer.Pointer{}),
 		cmp.AllowUnexported(starlark.Int{}),

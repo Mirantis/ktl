@@ -1,14 +1,25 @@
 package kstar
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 
+	"go.starlark.net/starlark"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"sigs.k8s.io/kustomize/kyaml/openapi"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-const schemaDefinitionsPrefix = "#/definitions/"
+const (
+	schemaDefinitionsPrefix = "#/definitions/"
+	NodeSchemaType          = `NodeSchema`
+)
+
+var (
+	_ starlark.Value    = new(NodeSchema)
+	_ starlark.Callable = new(NodeSchema)
+)
 
 type NodeSchema struct {
 	idx    *SchemaIndex
@@ -16,6 +27,99 @@ type NodeSchema struct {
 	schema *spec.Schema
 	ref    refName
 	path   fieldPath
+}
+
+func (ns *NodeSchema) String() string {
+	panic(errNotImplemented)
+}
+
+func (ns *NodeSchema) Type() string {
+	return NodeSchemaType
+}
+
+func (ns *NodeSchema) Freeze() {
+	//TODO: freeze node
+}
+
+func (ns *NodeSchema) Truth() starlark.Bool {
+	return ns != nil && (ns.schema != nil || len(ns.ref) > 0)
+}
+
+func (ns *NodeSchema) Hash() (uint32, error) {
+	panic(errNotImplemented)
+}
+
+func (ns *NodeSchema) Name() string {
+	name := NodeSchemaType
+	if ns == nil {
+		return name
+	}
+
+	if ns.ref != "" {
+		name += "." + ns.ref
+	}
+
+	if len(ns.path) > 0 {
+		name += "." + ns.path.String()
+	}
+
+	return name
+}
+
+func (ns *NodeSchema) callArgs(_ *starlark.Thread, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var value starlark.Value
+	err := starlark.UnpackPositionalArgs(ns.Name(), args, kwargs, 1, &value)
+	if err != nil {
+		return nil, err
+	}
+
+	ynode, err := FromStarlark(value)
+	if err != nil {
+		return nil, err
+	}
+
+	node := FromYNode(ynode)
+	node.setSchema(ns)
+
+	return node, nil
+}
+
+func (ns *NodeSchema) callKWArgs(_ *starlark.Thread, _ starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	rnode := yaml.NewMapRNode(nil)
+	node := &MappingNode{
+		schema: ns,
+		value:  rnode.YNode(),
+	}
+
+	for _, pair := range kwargs {
+		name, value := pair[0].(starlark.String), pair[1]
+		ynode, err := FromStarlark(value)
+		if err != nil {
+			return nil, err
+		}
+
+		path := strings.Split(name.GoString(), "_")
+		vnode, err := rnode.Pipe(yaml.LookupCreate(ynode.Kind, path...))
+		if err != nil {
+			return nil, fmt.Errorf(
+				"unable to set %v for %s: %w",
+				path,
+				ns.Name(),
+				err,
+			)
+		}
+		*vnode.YNode() = *ynode
+	}
+
+	return node, nil
+}
+
+func (ns *NodeSchema) CallInternal(th *starlark.Thread, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	if len(args) > 0 {
+		return ns.callArgs(th, args, kwargs)
+	}
+
+	return ns.callKWArgs(th, args, kwargs)
 }
 
 func (ns *NodeSchema) Schema() *openapi.ResourceSchema {

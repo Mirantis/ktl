@@ -1,11 +1,15 @@
 package kstar
 
 import (
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"sigs.k8s.io/kustomize/kyaml/openapi"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 func TestNodeSchemaResolve(t *testing.T) {
@@ -79,6 +83,134 @@ func TestNodeSchemaResolve(t *testing.T) {
 				t.Errorf("path -want +got:\n%s", diff)
 			}
 		})
+	}
+}
+
+func TestNodeSchemaCreate(t *testing.T) {
+	const (
+		metaRef   = `io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta`
+		deployRef = `io.k8s.api.apps.v1.Deployment`
+	)
+	schemaIndex := NewSchemaIndex(nil)
+	cmpOpts := slices.Concat(commonCmpOpts, cmp.Options{
+		cmpopts.IgnoreFields(yaml.Node{}, "Line", "Style", "Column", "Tag"),
+	})
+
+	tests := []struct {
+		name      string
+		create    *NodeSchema
+		script    string
+		want      nodeValue
+		wantErr   wantErr
+		wantPanic wantPanic
+	}{
+		{
+			name: "scalar",
+			create: &NodeSchema{
+				idx:  schemaIndex,
+				ref:  metaRef,
+				path: fieldPath{"name"},
+			},
+			script: `create("test")`,
+			want: &ScalarNode{
+				schema: &NodeSchema{
+					idx:  schemaIndex,
+					ref:  metaRef,
+					path: fieldPath{"name"},
+				},
+				value: yaml.NewStringRNode(
+					"test",
+				).YNode(),
+			},
+		},
+		{
+			name: "sequence",
+			create: &NodeSchema{
+				idx:  schemaIndex,
+				ref:  metaRef,
+				path: fieldPath{"finalizers"},
+			},
+			script: `create(["a","b"])`,
+			want: &SequenceNode{
+				schema: &NodeSchema{
+					idx:  schemaIndex,
+					ref:  metaRef,
+					path: fieldPath{"finalizers"},
+				},
+				value: yaml.NewListRNode(
+					"a",
+					"b",
+				).YNode(),
+			},
+		},
+		{
+			name: "mapping",
+			create: &NodeSchema{
+				idx:  schemaIndex,
+				ref:  metaRef,
+				path: fieldPath{"labels"},
+			},
+			script: `create({"a":"b", "c":"d"})`,
+			want: &MappingNode{
+				schema: &NodeSchema{
+					idx:  schemaIndex,
+					ref:  metaRef,
+					path: fieldPath{"labels"},
+				},
+				value: yaml.NewMapRNode(&map[string]string{
+					"a": "b",
+					"c": "d",
+				}).YNode(),
+			},
+		},
+		{
+			name: "kwargs",
+			create: &NodeSchema{
+				idx: schemaIndex,
+				ref: metaRef,
+			},
+			script: strings.Join([]string{
+				`create(`,
+				`  metadata_name="test",`,
+				`  metadata_labels={`,
+				`    "a": "b",`,
+				`    "c": "d",`,
+				`  },`,
+				`)`,
+			}, "\n"),
+			want: &MappingNode{
+				schema: &NodeSchema{
+					idx: schemaIndex,
+					ref: metaRef,
+				},
+				value: yaml.MustParse(strings.Join([]string{
+					`metadata:`,
+					`  name: test`,
+					`  labels:`,
+					`    a: b`,
+					`    c: d`,
+				}, "\n")).YNode(),
+			},
+		},
+	}
+
+	for _, test := range tests {
+		runStarlarkTest(t, test.name,
+			"result = "+test.script,
+			StringDict{
+				"create": test.create,
+			},
+			test.wantPanic, test.wantErr,
+			func(t *testing.T, gotAll StringDict) {
+				got, ok := gotAll["result"].(nodeValue)
+				if !ok {
+					t.Fatal("result is not a node")
+				}
+
+				if diff := cmp.Diff(test.want, got, cmpOpts...); diff != "" {
+					t.Fatalf("-want +got:\n%s", diff)
+				}
+			})
 	}
 }
 
