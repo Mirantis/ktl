@@ -50,7 +50,7 @@ func TestSequenceHasGet(t *testing.T) {
 		{
 			name: "mapping",
 			expr: `node.data.mappings[0]`,
-			want: &MappingNode{value: yaml.MustParse(`{ key: "value" }`).YNode()},
+			want: &MappingNode{ynode: yaml.MustParse(`{ key: "value" }`).YNode()},
 		},
 		{
 			name:    "out-of-bounds",
@@ -74,7 +74,7 @@ func TestSequenceHasGet(t *testing.T) {
 		runStarlarkTest(t, test.name,
 			fmt.Sprintf("%s = %s", resultVar, test.expr),
 			StringDict{
-				"node": &MappingNode{value: yaml.CopyYNode(pod)},
+				"node": &MappingNode{ynode: yaml.CopyYNode(pod)},
 			},
 			test.wantPanic, test.wantErr,
 			func(t *testing.T, gotAll StringDict) {
@@ -186,7 +186,7 @@ func TestSequenceHasSetKey(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		node := &MappingNode{value: yaml.CopyYNode(cm)}
+		node := &MappingNode{ynode: yaml.CopyYNode(cm)}
 		runStarlarkTest(t, test.name,
 			test.script,
 			StringDict{
@@ -194,7 +194,7 @@ func TestSequenceHasSetKey(t *testing.T) {
 			},
 			test.wantPanic, test.wantErr,
 			func(t *testing.T, _ StringDict) {
-				got := node.value
+				got := node.ynode
 				want := yaml.MustParse(test.want).YNode()
 
 				if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {
@@ -243,7 +243,7 @@ func TestSequenceIter(t *testing.T) {
 			name:   "mapping-list",
 			script: `result = list(node.data.mappings)`,
 			want: starlark.NewList([]starlark.Value{
-				&MappingNode{value: yaml.MustParse(`{ key: value }`).YNode()},
+				&MappingNode{ynode: yaml.MustParse(`{ key: value }`).YNode()},
 			}),
 		},
 		{
@@ -267,13 +267,13 @@ func TestSequenceIter(t *testing.T) {
 				`  result.append(item)`,
 			}, "\n"),
 			want: starlark.NewList([]starlark.Value{
-				&MappingNode{value: yaml.MustParse(`{ key: value }`).YNode()},
+				&MappingNode{ynode: yaml.MustParse(`{ key: value }`).YNode()},
 			}),
 		},
 	}
 
 	for _, test := range tests {
-		node := &MappingNode{value: yaml.CopyYNode(cm)}
+		node := &MappingNode{ynode: yaml.CopyYNode(cm)}
 		runStarlarkTest(t, test.name,
 			test.script,
 			StringDict{
@@ -380,7 +380,7 @@ func TestSequenceFilter(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		node := &MappingNode{value: yaml.CopyYNode(cm)}
+		node := &MappingNode{ynode: yaml.CopyYNode(cm)}
 		runStarlarkTest(t, test.name,
 			test.script,
 			StringDict{

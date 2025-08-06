@@ -17,7 +17,7 @@ const MappingNodeType = "MappingNode"
 
 type MappingNode struct {
 	schema *NodeSchema
-	value  *yaml.Node
+	ynode  *yaml.Node
 	fields map[string]starlark.Value
 }
 
@@ -43,7 +43,7 @@ func toMappingNode(value starlark.Value) (*MappingNode, bool) {
 		return nil, false
 	}
 
-	node = &MappingNode{value: ynode}
+	node = &MappingNode{ynode: ynode}
 
 	return node, true
 }
@@ -62,7 +62,7 @@ func (node *MappingNode) Freeze() {
 }
 
 func (node *MappingNode) Truth() starlark.Bool {
-	return !starlark.Bool(yaml.IsYNodeNilOrEmpty(node.value))
+	return !starlark.Bool(yaml.IsYNodeNilOrEmpty(node.ynode))
 }
 
 func (node *MappingNode) Hash() (uint32, error) {
@@ -74,12 +74,12 @@ func (node *MappingNode) setSchema(ns *NodeSchema) {
 }
 
 func (node *MappingNode) loadFields() {
-	if node.value == nil {
+	if node.ynode == nil {
 		node.fields = make(map[string]starlark.Value)
 		return
 	}
 
-	content := node.value.Content
+	content := node.ynode.Content
 	node.fields = make(map[string]starlark.Value, len(content)/2)
 
 	for idx := range len(content) / 2 {
@@ -146,7 +146,7 @@ func (node *MappingNode) SetField(name string, value starlark.Value) error {
 
 	newRNode := yaml.NewRNode(newYNode)
 	keyRNode := yaml.NewStringRNode(name)
-	thisRNode := yaml.NewRNode(node.value)
+	thisRNode := yaml.NewRNode(node.ynode)
 
 	return thisRNode.PipeE(yaml.MapEntrySetter{
 		Name:  name,
@@ -193,7 +193,7 @@ func (node *MappingNode) SetKey(key, value starlark.Value) error {
 func (node *MappingNode) clone() nodeExprTarget {
 	return &MappingNode{
 		schema: node.schema,
-		value:  yaml.CopyYNode(node.value),
+		ynode:  yaml.CopyYNode(node.ynode),
 	}
 }
 
@@ -265,8 +265,8 @@ func (node *MappingNode) find(other *MappingNode) []fieldPath {
 func (node *MappingNode) merge(other *MappingNode) error {
 	var err error
 
-	dest := yaml.NewRNode(node.value)
-	src := yaml.NewRNode(other.value)
+	dest := yaml.NewRNode(node.ynode)
+	src := yaml.NewRNode(other.ynode)
 	schema := node.schema.Schema()
 
 	allPaths := node.find(other)

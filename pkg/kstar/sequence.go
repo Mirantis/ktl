@@ -11,7 +11,7 @@ const SequenceNodeType = "SequenceNode"
 
 type SequenceNode struct {
 	schema *NodeSchema
-	value  *yaml.Node
+	ynode  *yaml.Node
 }
 
 var (
@@ -35,7 +35,7 @@ func (node *SequenceNode) Freeze() {
 }
 
 func (node *SequenceNode) Truth() starlark.Bool {
-	return !starlark.Bool(yaml.IsYNodeNilOrEmpty(node.value))
+	return !starlark.Bool(yaml.IsYNodeNilOrEmpty(node.ynode))
 }
 
 func (node *SequenceNode) Hash() (uint32, error) {
@@ -47,16 +47,16 @@ func (node *SequenceNode) setSchema(ns *NodeSchema) {
 }
 
 func (node *SequenceNode) len() int {
-	if node.value == nil {
+	if node.ynode == nil {
 		return 0
 	}
 
-	return len(node.value.Content)
+	return len(node.ynode.Content)
 }
 
 func (node *SequenceNode) index(idx int) starlark.Value {
 	//TODO: add cache
-	value := FromYNode(node.value.Content[idx])
+	value := FromYNode(node.ynode.Content[idx])
 
 	scalar, isScalar := value.(*ScalarNode)
 	if !isScalar {
@@ -116,7 +116,7 @@ func (node *SequenceNode) SetKey(key, value starlark.Value) error {
 			return err
 		}
 
-		node.value.Content[idx] = item
+		node.ynode.Content[idx] = item
 
 		return nil
 	default:
@@ -131,8 +131,8 @@ func (node *SequenceNode) Iterate() starlark.Iterator {
 		return iter
 	}
 
-	if node.value != nil {
-		iter.ynodes = append(iter.ynodes, node.value.Content...)
+	if node.ynode != nil {
+		iter.ynodes = append(iter.ynodes, node.ynode.Content...)
 	}
 
 	if node.schema != nil {
@@ -178,7 +178,7 @@ func (node *SequenceNode) filter(th *starlark.Thread, fn starlark.Callable) (*Se
 	items := []*yaml.Node{}
 
 	for idx := range node.len() {
-		ynode := node.value.Content[idx]
+		ynode := node.ynode.Content[idx]
 		value := node.index(idx)
 
 		result, err := fn.CallInternal(th, starlark.Tuple{value}, nil)
@@ -195,7 +195,7 @@ func (node *SequenceNode) filter(th *starlark.Thread, fn starlark.Callable) (*Se
 
 	return &SequenceNode{
 		schema: node.schema,
-		value: &yaml.Node{
+		ynode: &yaml.Node{
 			Kind:    yaml.SequenceNode,
 			Tag:     yaml.NodeTagSeq,
 			Content: items,

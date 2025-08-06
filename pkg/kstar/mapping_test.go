@@ -70,7 +70,7 @@ func TestMappingHasAttrs(t *testing.T) {
 		runStarlarkTest(t, test.name,
 			fmt.Sprintf("%s = %s", resultVar, test.expr),
 			StringDict{
-				"node": &MappingNode{value: yaml.CopyYNode(pod)},
+				"node": &MappingNode{ynode: yaml.CopyYNode(pod)},
 			},
 			false, test.wantErr,
 			func(t *testing.T, gotAll StringDict) {
@@ -227,7 +227,7 @@ func TestMappingHasSetField(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		node := &MappingNode{value: yaml.CopyYNode(cm)}
+		node := &MappingNode{ynode: yaml.CopyYNode(cm)}
 		runStarlarkTest(t, test.name,
 			test.script,
 			StringDict{
@@ -235,7 +235,7 @@ func TestMappingHasSetField(t *testing.T) {
 			},
 			false, test.wantErr,
 			func(t *testing.T, _ StringDict) {
-				got := node.value
+				got := node.ynode
 				want := yaml.MustParse(test.want).YNode()
 
 				if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {
@@ -308,7 +308,7 @@ func TestMappingHasGet(t *testing.T) {
 		runStarlarkTest(t, test.name,
 			fmt.Sprintf("%s = %s", resultVar, test.expr),
 			StringDict{
-				"node": &MappingNode{value: yaml.CopyYNode(pod)},
+				"node": &MappingNode{ynode: yaml.CopyYNode(pod)},
 			},
 			test.wantPanic, test.wantErr,
 			func(t *testing.T, gotAll StringDict) {
@@ -502,7 +502,7 @@ func TestMappingHasSetKey(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		node := &MappingNode{value: yaml.CopyYNode(cm)}
+		node := &MappingNode{ynode: yaml.CopyYNode(cm)}
 		runStarlarkTest(t, test.name,
 			test.script,
 			StringDict{
@@ -510,7 +510,7 @@ func TestMappingHasSetKey(t *testing.T) {
 			},
 			test.wantPanic, test.wantErr,
 			func(t *testing.T, sd StringDict) {
-				got := node.value
+				got := node.ynode
 				want := yaml.MustParse(test.want).YNode()
 
 				if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {
@@ -533,7 +533,7 @@ func TestMappingMerge(t *testing.T) {
 		cmpopts.IgnoreFields(yaml.Node{}, "Line", "Style", "Column", "Tag"),
 	})
 	cm := &MappingNode{
-		value: yaml.MustParse(strings.Join([]string{
+		ynode: yaml.MustParse(strings.Join([]string{
 			`apiVersion: v1`,
 			`kind: ConfigMap`,
 			`metadata:`,
@@ -547,7 +547,7 @@ func TestMappingMerge(t *testing.T) {
 		},
 	}
 	deploy := &MappingNode{
-		value: yaml.MustParse(strings.Join([]string{
+		ynode: yaml.MustParse(strings.Join([]string{
 			`apiVersion: apps/v1`,
 			`kind: Deployment`,
 			`metadata:`,
@@ -577,7 +577,7 @@ func TestMappingMerge(t *testing.T) {
 		{
 			name: "replace-field",
 			left: cm,
-			right: &MappingNode{value: yaml.MustParse(strings.Join([]string{
+			right: &MappingNode{ynode: yaml.MustParse(strings.Join([]string{
 				`kind: NotConfigMap`,
 			}, "\n")).YNode()},
 			want: strings.Join([]string{
@@ -592,7 +592,7 @@ func TestMappingMerge(t *testing.T) {
 		{
 			name: "replace-nested",
 			left: cm,
-			right: &MappingNode{value: yaml.MustParse(strings.Join([]string{
+			right: &MappingNode{ynode: yaml.MustParse(strings.Join([]string{
 				`data:`,
 				`  a: 2`,
 			}, "\n")).YNode()},
@@ -625,7 +625,7 @@ func TestMappingMerge(t *testing.T) {
 		{
 			name: "append-nested",
 			left: cm,
-			right: &MappingNode{value: yaml.MustParse(strings.Join([]string{
+			right: &MappingNode{ynode: yaml.MustParse(strings.Join([]string{
 				`data:`,
 				`  b: 3`,
 			}, "\n")).YNode()},
@@ -661,7 +661,7 @@ func TestMappingMerge(t *testing.T) {
 			name: "merge-schema",
 			left: deploy,
 			right: &MappingNode{
-				value: yaml.MustParse(strings.Join([]string{
+				ynode: yaml.MustParse(strings.Join([]string{
 					`metadata:`,
 					`  namespace: test-ns`,
 				}, "\n")).YNode(),
@@ -688,7 +688,7 @@ func TestMappingMerge(t *testing.T) {
 			name: "merge-schema-multiple-paths",
 			left: deploy,
 			right: &MappingNode{
-				value: yaml.MustParse(strings.Join([]string{
+				ynode: yaml.MustParse(strings.Join([]string{
 					`{ namespace: test-ns }`,
 				}, "\n")).YNode(),
 				schema: &NodeSchema{
@@ -702,7 +702,7 @@ func TestMappingMerge(t *testing.T) {
 			name: "merge-schema-ambiguous",
 			left: deploy,
 			right: &MappingNode{
-				value: yaml.MustParse(strings.Join([]string{
+				ynode: yaml.MustParse(strings.Join([]string{
 					`{ name: app, image: other }`,
 				}, "\n")).YNode(),
 				schema: &NodeSchema{
@@ -716,7 +716,7 @@ func TestMappingMerge(t *testing.T) {
 			name: "merge-schema-nopath",
 			left: deploy,
 			right: &MappingNode{
-				value: yaml.MustParse(strings.Join([]string{
+				ynode: yaml.MustParse(strings.Join([]string{
 					`{ clusterIP: 1.2.3.4 }`,
 				}, "\n")).YNode(),
 				schema: &NodeSchema{
@@ -767,7 +767,7 @@ func TestMappingMerge(t *testing.T) {
 					return
 				}
 
-				got := gotNode.(*MappingNode).value
+				got := gotNode.(*MappingNode).ynode
 				want := yaml.MustParse(test.want).YNode()
 
 				if diff := cmp.Diff(want, got, cmpOpts...); diff != "" {

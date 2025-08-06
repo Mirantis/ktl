@@ -120,7 +120,7 @@ func TestNodeSchemaCreate(t *testing.T) {
 					ref:  metaRef,
 					path: fieldPath{"name"},
 				},
-				value: yaml.NewStringRNode(
+				ynode: yaml.NewStringRNode(
 					"test",
 				).YNode(),
 			},
@@ -139,7 +139,7 @@ func TestNodeSchemaCreate(t *testing.T) {
 					ref:  metaRef,
 					path: fieldPath{"finalizers"},
 				},
-				value: yaml.NewListRNode(
+				ynode: yaml.NewListRNode(
 					"a",
 					"b",
 				).YNode(),
@@ -159,7 +159,7 @@ func TestNodeSchemaCreate(t *testing.T) {
 					ref:  metaRef,
 					path: fieldPath{"labels"},
 				},
-				value: yaml.MustParse(strings.Join([]string{
+				ynode: yaml.MustParse(strings.Join([]string{
 					`a: b`,
 					`c: d`,
 				}, "\n")).YNode(),
@@ -185,7 +185,7 @@ func TestNodeSchemaCreate(t *testing.T) {
 					idx: schemaIndex,
 					ref: metaRef,
 				},
-				value: yaml.MustParse(strings.Join([]string{
+				ynode: yaml.MustParse(strings.Join([]string{
 					`metadata:`,
 					`  name: test`,
 					`  labels:`,

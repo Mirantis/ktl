@@ -18,32 +18,32 @@ func TestScalarValue(t *testing.T) {
 	}{
 		{
 			name:  "string",
-			input: &ScalarNode{value: yaml.NewStringRNode("test-value").YNode()},
+			input: &ScalarNode{ynode: yaml.NewStringRNode("test-value").YNode()},
 			want:  starlark.String("test-value"),
 		},
 		{
 			name:  "int",
-			input: &ScalarNode{value: yaml.NewScalarRNode("1").YNode()},
+			input: &ScalarNode{ynode: yaml.NewScalarRNode("1").YNode()},
 			want:  starlark.MakeInt64(1),
 		},
 		{
 			name:  "float",
-			input: &ScalarNode{value: yaml.NewScalarRNode("1.5").YNode()},
+			input: &ScalarNode{ynode: yaml.NewScalarRNode("1.5").YNode()},
 			want:  starlark.Float(1.5),
 		},
 		{
 			name:  "true",
-			input: &ScalarNode{value: yaml.NewScalarRNode("true").YNode()},
+			input: &ScalarNode{ynode: yaml.NewScalarRNode("true").YNode()},
 			want:  starlark.True,
 		},
 		{
 			name:  "false",
-			input: &ScalarNode{value: yaml.NewScalarRNode("false").YNode()},
+			input: &ScalarNode{ynode: yaml.NewScalarRNode("false").YNode()},
 			want:  starlark.False,
 		},
 		{
 			name: "invalid-nan",
-			input: &ScalarNode{value: &yaml.Node{
+			input: &ScalarNode{ynode: &yaml.Node{
 				Tag:   "!!int",
 				Value: "not-a-number",
 			}},
@@ -51,17 +51,17 @@ func TestScalarValue(t *testing.T) {
 		},
 		{
 			name:      "panic-map",
-			input:     &ScalarNode{value: yaml.NewMapRNode(nil).YNode()},
+			input:     &ScalarNode{ynode: yaml.NewMapRNode(nil).YNode()},
 			wantPanic: true,
 		},
 		{
 			name:      "panic-list",
-			input:     &ScalarNode{value: yaml.NewListRNode().YNode()},
+			input:     &ScalarNode{ynode: yaml.NewListRNode().YNode()},
 			wantPanic: true,
 		},
 		{
 			name:      "panic-null",
-			input:     &ScalarNode{value: yaml.MakeNullNode().YNode()},
+			input:     &ScalarNode{ynode: yaml.MakeNullNode().YNode()},
 			wantPanic: true,
 		},
 	}

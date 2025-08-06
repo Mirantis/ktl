@@ -18,7 +18,7 @@ var (
 
 type ScalarNode struct {
 	schema *NodeSchema
-	value  *yaml.Node
+	ynode  *yaml.Node
 	cached starlark.Value
 }
 
@@ -58,25 +58,25 @@ func (node *ScalarNode) setSchema(ns *NodeSchema) {
 }
 
 func (node *ScalarNode) compute() (starlark.Value, error) {
-	switch tag := node.value.ShortTag(); tag {
+	switch tag := node.ynode.ShortTag(); tag {
 	case yaml.NodeTagString:
-		return starlark.String(node.value.Value), nil
+		return starlark.String(node.ynode.Value), nil
 	case yaml.NodeTagFloat:
-		value, err := strconv.ParseFloat(node.value.Value, 64)
+		value, err := strconv.ParseFloat(node.ynode.Value, 64)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", errInvalidScalarValue, err)
 		}
 
 		return starlark.Float(value), nil
 	case yaml.NodeTagInt:
-		value, err := strconv.ParseInt(node.value.Value, 10, 64)
+		value, err := strconv.ParseInt(node.ynode.Value, 10, 64)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", errInvalidScalarValue, err)
 		}
 
 		return starlark.MakeInt64(value), nil
 	case yaml.NodeTagBool:
-		value, err := strconv.ParseBool(node.value.Value)
+		value, err := strconv.ParseBool(node.ynode.Value)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", errInvalidScalarValue, err)
 		}

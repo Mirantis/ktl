@@ -23,11 +23,11 @@ type nodeValue interface {
 func FromYNode(ynode *yaml.Node) nodeValue {
 	switch kind := ynode.Kind; kind {
 	case yaml.MappingNode:
-		return &MappingNode{value: ynode}
+		return &MappingNode{ynode: ynode}
 	case yaml.SequenceNode:
-		return &SequenceNode{value: ynode}
+		return &SequenceNode{ynode: ynode}
 	case yaml.ScalarNode:
-		return &ScalarNode{value: ynode}
+		return &ScalarNode{ynode: ynode}
 	default:
 		panic(errNotImplemented)
 	}
@@ -96,11 +96,11 @@ func fromStarlarkElements(value starlark.Iterable) (*yaml.Node, error) {
 func FromStarlark(value starlark.Value) (*yaml.Node, error) {
 	switch value := value.(type) {
 	case *ScalarNode:
-		return yaml.CopyYNode(value.value), nil
+		return yaml.CopyYNode(value.ynode), nil
 	case *MappingNode:
-		return yaml.CopyYNode(value.value), nil
+		return yaml.CopyYNode(value.ynode), nil
 	case *SequenceNode:
-		return yaml.CopyYNode(value.value), nil
+		return yaml.CopyYNode(value.ynode), nil
 	case starlark.String:
 		return &yaml.Node{
 			Kind:  yaml.ScalarNode,

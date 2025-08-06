@@ -92,7 +92,7 @@ func (ns *NodeSchema) callKWArgs(_ *starlark.Thread, _ starlark.Tuple, kwargs []
 	rnode := yaml.NewMapRNode(nil)
 	node := &MappingNode{
 		schema: ns,
-		value:  rnode.YNode(),
+		ynode:  rnode.YNode(),
 	}
 
 	for _, pair := range kwargs {
