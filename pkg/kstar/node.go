@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"go.starlark.net/starlark"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
@@ -20,7 +21,39 @@ type nodeValue interface {
 	setSchema(*NodeSchema)
 }
 
+func FromRNodes(idx *SchemaIndex, rnodes []*yaml.RNode) *SequenceNode {
+	ref := ""
+	refs := map[string]struct{}{}
+	ynode := yaml.NewListRNode().YNode()
+	elems := []starlark.Value{}
+
+	for _, rnode := range rnodes {
+		ref = strings.Trim(rnode.GetApiVersion()+"."+rnode.GetKind(), ".")
+		refs[ref] = struct{}{}
+
+		schema := &NodeSchema{
+			idx: idx,
+			ref: ref,
+		}
+
+		ynode.Content = append(ynode.Content, rnode.YNode())
+		elems = append(elems, &MappingNode{
+			schema: schema,
+			ynode:  rnode.YNode(),
+		})
+	}
+
+	return &SequenceNode{
+		ynode: ynode,
+		elems: elems,
+	}
+}
+
 func FromYNode(ynode *yaml.Node) nodeValue {
+	if ynode == nil {
+		return nil
+	}
+
 	switch kind := ynode.Kind; kind {
 	case yaml.MappingNode:
 		return &MappingNode{ynode: ynode}

@@ -8,7 +8,7 @@ filters:
 - starlark:
     script: |
       for res in resources:
-        if str(res.kind) != "Deployment":
+        if res.kind != "Deployment":
           continue
         output.append(res)
 

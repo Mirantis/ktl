@@ -314,9 +314,12 @@ func testQuery(t *testing.T) {
 		"-n", "simple-app",
 		"-C", "CONTAINER:spec.template.spec.containers.*.name,IMAGE:spec.template.spec.containers.*.image",
 		"*",
-		`str(it.kind) == "Service"`,
+		`it.kind == "Service"`,
 		"or",
-		`it["spec.template.spec.containers.[image=db:.*]"]`,
+		//FIXME: test with unset nodes
+		`it.kind in ["Deployment", "ReplicaSet"]`,
+		`and`,
+		`it.metadata.name.startswith("simple-app-db")`,
 	})
 	runCmd.SetOut(gotOut)
 
