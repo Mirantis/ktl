@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/fs"
 	"path/filepath"
 
 	"github.com/Mirantis/ktl/pkg/apis"
@@ -32,8 +31,11 @@ func newMCPCommand() *cobra.Command {
 		Short: "run the MCP server",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			srv := mcp.NewServer("ktl", "v1.0-beta1", nil)
-			tools := []*mcp.ServerTool{}
+			srv := mcp.NewServer(
+				&mcp.Implementation{
+					Name:    "ktl",
+					Version: "v1.0-beta1",
+				}, nil)
 
 			for _, toolPath := range toolPaths {
 				toolSpec, err := loadPipelineSpec(toolPath)
@@ -45,34 +47,28 @@ func newMCPCommand() *cobra.Command {
 					return fmt.Errorf("missing name for tool %s", toolPath)
 				}
 
+				tool := &mcp.Tool{
+					Name:        toolSpec.Name,
+					Description: toolSpec.GetDescription(),
+				}
+
 				if inlineSchema := toolSpec.GetArgs().GetSchema(); inlineSchema != nil {
-					tool := mcp.NewServerTool(
-						toolSpec.Name,
-						toolSpec.GetDescription(),
-						newMCPHandler[map[string]any](filepath.Dir(toolPath), toolSpec),
-					)
 					schemaBody, err := json.Marshal(inlineSchema)
 					if err != nil {
 						return err
 					}
 					argsSchema := &jsonschema.Schema{}
 					if err := json.Unmarshal(schemaBody, argsSchema); err != nil {
-						return err
+						return fmt.Errorf("invalid args schema: %w", err)
 					}
-					tool.Tool.InputSchema = argsSchema
-					tools = append(tools, tool)
-				} else {
-					tool := mcp.NewServerTool(
-						toolSpec.Name,
-						toolSpec.GetDescription(),
-						newMCPHandler[struct{}](filepath.Dir(toolPath), toolSpec),
-					)
-					tools = append(tools, tool)
+					tool.InputSchema = argsSchema
 				}
 
+				mcp.AddTool(srv, tool, newMCPHandler[map[string]any](
+					filepath.Dir(toolPath),
+					toolSpec,
+				))
 			}
-
-			srv.AddTools(tools...)
 
 			transport := mcp.NewStdioTransport()
 			ctx := cmp.Or(cmd.Context(), context.Background())
@@ -93,12 +89,15 @@ func newMCPCommand() *cobra.Command {
 	return mcpCmd
 }
 
-func newMCPHandler[In any](workdir string, spec *apis.Pipeline) mcp.ToolHandlerFor[In, struct{}] {
-	return func(ctx context.Context, ss *mcp.ServerSession, ctpf *mcp.CallToolParamsFor[In]) (*mcp.CallToolResultFor[struct{}], error) {
-		result := &mcp.CallToolResultFor[struct{}]{}
+func newMCPHandler[In any](workdir string, spec *apis.Pipeline) mcp.ToolHandlerFor[In, map[string]any] {
+	return func(ctx context.Context, ss *mcp.ServerSession, ctpf *mcp.CallToolParamsFor[In]) (*mcp.CallToolResultFor[map[string]any], error) {
+		result := &mcp.CallToolResultFor[map[string]any]{
+			Content: []mcp.Content{},
+			StructuredContent: map[string]any{},
+		}
 		stdout := bytes.NewBuffer(nil)
 		fileSys := fsutil.Stdio(
-			filesys.MakeFsInMemory(),
+			fsutil.Sub(filesys.MakeFsOnDisk(), workdir),
 			bytes.NewBuffer(nil),
 			stdout,
 		)
@@ -121,24 +120,6 @@ func newMCPHandler[In any](workdir string, spec *apis.Pipeline) mcp.ToolHandlerF
 		}
 
 		if err := pipeline.Run(env); err != nil {
-			return nil, err
-		}
-
-		err = env.FileSys.Walk(".", func(path string, info fs.FileInfo, err error) error {
-			if info.IsDir() {
-				return nil
-			}
-			content, err := env.FileSys.ReadFile(path)
-			if err != nil {
-				return err
-			}
-
-			result.Content = append(result.Content, &mcp.TextContent{
-				Text: "<source>" + path + "</source>" + string(content),
-			})
-			return nil
-		})
-		if err != nil {
 			return nil, err
 		}
 

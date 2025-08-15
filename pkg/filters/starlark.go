@@ -43,6 +43,7 @@ func (filter *StarlarkFilter) Filter(input []*yaml.RNode) ([]*yaml.RNode, error)
 	}
 	slOpts := &syntax.FileOptions{
 		TopLevelControl: true,
+		GlobalReassign: true,
 	}
 
 	slThread := &starlark.Thread{
