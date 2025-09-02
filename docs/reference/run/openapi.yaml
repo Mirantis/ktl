@@ -54,6 +54,9 @@ components:
           $ref: '#/components/schemas/SkipFilter'
         starlark:
           $ref: '#/components/schemas/StarlarkFilter'
+        defaults:
+          type: integer
+          format: enum
     HelmChartOutput:
       type: object
       properties:

@@ -71,7 +71,14 @@ func NewPipeline(spec *apis.Pipeline, args *yaml.RNode) (*Pipeline, error) {
 		return nil, err
 	}
 
+	defaultFilters := true
+
 	for _, filterSpec := range spec.GetFilters() {
+		if filterSpec.GetDefaults() == apis.DefaultsFilter_NONE {
+			defaultFilters = false
+			continue
+		}
+
 		filter, err := filters.New(filterSpec, args)
 		if err != nil {
 			return nil, err
@@ -82,7 +89,10 @@ func NewPipeline(spec *apis.Pipeline, args *yaml.RNode) (*Pipeline, error) {
 
 	pipeline.Source = Source{src}
 	pipeline.Output = Output{out}
-	pipeline.Filters = append(pipeline.Filters, defaults.Filters...)
+
+	if defaultFilters {
+		pipeline.Filters = append(pipeline.Filters, defaults.Filters...)
+	}
 
 	return pipeline, nil
 }

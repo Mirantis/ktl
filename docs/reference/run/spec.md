@@ -96,6 +96,7 @@
 | ----- | ---- | ----- | ----------- |
 | skip | [SkipFilter](#apis-SkipFilter) | optional |  |
 | starlark | [StarlarkFilter](#apis-StarlarkFilter) | optional |  |
+| defaults | [DefaultsFilter](#apis-DefaultsFilter) | optional |  |
 
 
 
@@ -331,6 +332,18 @@ Pipeline defines the combination of source, filters and output.
 
 
  <!-- end messages -->
+
+
+<a name="apis-DefaultsFilter"></a>
+
+### DefaultsFilter
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| UNKNOWN | 0 |  |
+| NONE | 1 |  |
+
 
  <!-- end enums -->
 

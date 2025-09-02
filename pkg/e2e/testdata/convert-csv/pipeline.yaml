@@ -1,10 +1,24 @@
 source:
-  kustomize:
-    path: "../import/${CLUSTER}"
+  kubeconfig:
     clusters:
     - matchNames:
-        include: [ "*-*" ]
+        include: [ dev-* ]
+      alias: dev
+    - matchNames:
+        include: [ test-cluster-a, test-cluster-b ]
+      alias: test
+    - matchNames:
+        include:
+        - prod-cluster-a
+        - prod-cluster-b
+      alias: prod
+    resources:
+    - matchNamespaces:
+        include: [ simple-app ]
+      matchApiResources:
+        include: [ deployments ]
 filters:
+- defaults: NONE
 - skip:
     keepResources:
     - kind: Deployment
@@ -22,4 +36,5 @@ output:
       field: spec.template.spec.containers.*.name
     - name: IMAGE
       field: spec.template.spec.containers.*.image
-
+    - name: READY_REPLICAS
+      field: status.readyReplicas

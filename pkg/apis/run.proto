@@ -79,6 +79,12 @@ message PatternSelector {
 message Filter {
   optional SkipFilter skip = 1;
   optional StarlarkFilter starlark = 2;
+  optional DefaultsFilter defaults = 3;
+}
+
+enum DefaultsFilter {
+    UNKNOWN = 0;
+    NONE = 1;
 }
 
 message StarlarkFilter {
