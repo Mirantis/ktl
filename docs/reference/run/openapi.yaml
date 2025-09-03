@@ -64,6 +64,13 @@ components:
           type: string
         version:
           type: string
+    JSONOutput:
+      type: object
+      properties:
+        path:
+          type: string
+        schema:
+          type: object
     KubeConfigSource:
       type: object
       properties:
@@ -116,6 +123,8 @@ components:
           $ref: '#/components/schemas/CRDDescriptionsOutput'
         kubectl:
           $ref: '#/components/schemas/KubectlOutput'
+        json:
+          $ref: '#/components/schemas/JSONOutput'
     PatternSelector:
       type: object
       properties:

@@ -115,6 +115,7 @@ message Output {
   optional ColumnarFileOutput table = 5;
   optional CRDDescriptionsOutput crd_descriptions = 6;
   optional KubectlOutput kubectl = 7;
+  optional JSONOutput json = 8;
 }
 
 message KubectlOutput {
@@ -135,6 +136,11 @@ message HelmChartOutput {
 
 message CRDDescriptionsOutput {
   optional string path = 1;
+}
+
+message JSONOutput {
+  optional string path = 1;
+  optional google.protobuf.Struct schema = 2;
 }
 
 message ColumnarFileOutput {

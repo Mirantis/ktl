@@ -1,0 +1,31 @@
+name: tool_with_args
+args:
+  schema:
+    type: object
+    properties:
+      arg1:
+        type: string
+      arg2:
+        type: number
+source:
+  kubeconfig:
+    clusters:
+    - matchNames: { include: [ 'dev-a' ] }
+    resources:
+    - matchNamespaces: { include: [ 'ktl-examples' ] }
+filters:
+- starlark:
+    script: |-
+      num_resources = 0
+      for _ in resources:
+        num_resources+=1
+      output.append({
+        "num_resources": num_resources,
+      })
+output:
+  json:
+    schema:
+      type: object
+      properties:
+        num_resources:
+          type: number

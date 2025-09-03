@@ -119,6 +119,22 @@
 
 
 
+<a name="apis-JSONOutput"></a>
+
+### JSONOutput
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| path | [string](#string) | optional |  |
+| schema | [google.protobuf.Struct](#google-protobuf-Struct) | optional |  |
+
+
+
+
+
+
 <a name="apis-KubeConfigSource"></a>
 
 ### KubeConfigSource
@@ -203,6 +219,7 @@
 | table | [ColumnarFileOutput](#apis-ColumnarFileOutput) | optional |  |
 | crdDescriptions | [CRDDescriptionsOutput](#apis-CRDDescriptionsOutput) | optional |  |
 | kubectl | [KubectlOutput](#apis-KubectlOutput) | optional |  |
+| json | [JSONOutput](#apis-JSONOutput) | optional |  |
 
 
 

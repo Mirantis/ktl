@@ -814,6 +814,7 @@ type Output struct {
 	Table               *ColumnarFileOutput        `protobuf:"bytes,5,opt,name=table,proto3,oneof" json:"table,omitempty"`
 	CrdDescriptions     *CRDDescriptionsOutput     `protobuf:"bytes,6,opt,name=crd_descriptions,json=crdDescriptions,proto3,oneof" json:"crd_descriptions,omitempty"`
 	Kubectl             *KubectlOutput             `protobuf:"bytes,7,opt,name=kubectl,proto3,oneof" json:"kubectl,omitempty"`
+	Json                *JSONOutput                `protobuf:"bytes,8,opt,name=json,proto3,oneof" json:"json,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -893,6 +894,13 @@ func (x *Output) GetCrdDescriptions() *CRDDescriptionsOutput {
 func (x *Output) GetKubectl() *KubectlOutput {
 	if x != nil {
 		return x.Kubectl
+	}
+	return nil
+}
+
+func (x *Output) GetJson() *JSONOutput {
+	if x != nil {
+		return x.Json
 	}
 	return nil
 }
@@ -1117,6 +1125,58 @@ func (x *CRDDescriptionsOutput) GetPath() string {
 	return ""
 }
 
+type JSONOutput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          *string                `protobuf:"bytes,1,opt,name=path,proto3,oneof" json:"path,omitempty"`
+	Schema        *structpb.Struct       `protobuf:"bytes,2,opt,name=schema,proto3,oneof" json:"schema,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JSONOutput) Reset() {
+	*x = JSONOutput{}
+	mi := &file_run_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JSONOutput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JSONOutput) ProtoMessage() {}
+
+func (x *JSONOutput) ProtoReflect() protoreflect.Message {
+	mi := &file_run_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JSONOutput.ProtoReflect.Descriptor instead.
+func (*JSONOutput) Descriptor() ([]byte, []int) {
+	return file_run_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *JSONOutput) GetPath() string {
+	if x != nil && x.Path != nil {
+		return *x.Path
+	}
+	return ""
+}
+
+func (x *JSONOutput) GetSchema() *structpb.Struct {
+	if x != nil {
+		return x.Schema
+	}
+	return nil
+}
+
 type ColumnarFileOutput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Path          *string                `protobuf:"bytes,1,opt,name=path,proto3,oneof" json:"path,omitempty"`
@@ -1127,7 +1187,7 @@ type ColumnarFileOutput struct {
 
 func (x *ColumnarFileOutput) Reset() {
 	*x = ColumnarFileOutput{}
-	mi := &file_run_proto_msgTypes[18]
+	mi := &file_run_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1139,7 +1199,7 @@ func (x *ColumnarFileOutput) String() string {
 func (*ColumnarFileOutput) ProtoMessage() {}
 
 func (x *ColumnarFileOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_run_proto_msgTypes[18]
+	mi := &file_run_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1152,7 +1212,7 @@ func (x *ColumnarFileOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ColumnarFileOutput.ProtoReflect.Descriptor instead.
 func (*ColumnarFileOutput) Descriptor() ([]byte, []int) {
-	return file_run_proto_rawDescGZIP(), []int{18}
+	return file_run_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ColumnarFileOutput) GetPath() string {
@@ -1181,7 +1241,7 @@ type ColumnOutput struct {
 
 func (x *ColumnOutput) Reset() {
 	*x = ColumnOutput{}
-	mi := &file_run_proto_msgTypes[19]
+	mi := &file_run_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1193,7 +1253,7 @@ func (x *ColumnOutput) String() string {
 func (*ColumnOutput) ProtoMessage() {}
 
 func (x *ColumnOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_run_proto_msgTypes[19]
+	mi := &file_run_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1206,7 +1266,7 @@ func (x *ColumnOutput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ColumnOutput.ProtoReflect.Descriptor instead.
 func (*ColumnOutput) Descriptor() ([]byte, []int) {
-	return file_run_proto_rawDescGZIP(), []int{19}
+	return file_run_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ColumnOutput) GetName() string {
@@ -1321,7 +1381,7 @@ const file_run_proto_rawDesc = "" +
 	"\n" +
 	"_namespaceB\x16\n" +
 	"\x14_annotation_selectorB\x11\n" +
-	"\x0f_label_selector\"\xa6\x04\n" +
+	"\x0f_label_selector\"\xda\x04\n" +
 	"\x06Output\x128\n" +
 	"\tkustomize\x18\x01 \x01(\v2\x15.apis.KustomizeOutputH\x00R\tkustomize\x88\x01\x01\x12W\n" +
 	"\x14kustomize_components\x18\x02 \x01(\v2\x1f.apis.KustomizeComponentsOutputH\x01R\x13kustomizeComponents\x88\x01\x01\x129\n" +
@@ -1330,7 +1390,8 @@ const file_run_proto_rawDesc = "" +
 	"\x03csv\x18\x04 \x01(\v2\x18.apis.ColumnarFileOutputH\x03R\x03csv\x88\x01\x01\x123\n" +
 	"\x05table\x18\x05 \x01(\v2\x18.apis.ColumnarFileOutputH\x04R\x05table\x88\x01\x01\x12K\n" +
 	"\x10crd_descriptions\x18\x06 \x01(\v2\x1b.apis.CRDDescriptionsOutputH\x05R\x0fcrdDescriptions\x88\x01\x01\x122\n" +
-	"\akubectl\x18\a \x01(\v2\x13.apis.KubectlOutputH\x06R\akubectl\x88\x01\x01B\f\n" +
+	"\akubectl\x18\a \x01(\v2\x13.apis.KubectlOutputH\x06R\akubectl\x88\x01\x01\x12)\n" +
+	"\x04json\x18\b \x01(\v2\x10.apis.JSONOutputH\aR\x04json\x88\x01\x01B\f\n" +
 	"\n" +
 	"_kustomizeB\x17\n" +
 	"\x15_kustomize_componentsB\r\n" +
@@ -1339,7 +1400,8 @@ const file_run_proto_rawDesc = "" +
 	"\x06_tableB\x13\n" +
 	"\x11_crd_descriptionsB\n" +
 	"\n" +
-	"\b_kubectl\"n\n" +
+	"\b_kubectlB\a\n" +
+	"\x05_json\"n\n" +
 	"\rKubectlOutput\x12#\n" +
 	"\n" +
 	"kubeconfig\x18\x01 \x01(\tH\x00R\n" +
@@ -1355,7 +1417,13 @@ const file_run_proto_rawDesc = "" +
 	"\aversion\x18\x02 \x01(\tR\aversion\"9\n" +
 	"\x15CRDDescriptionsOutput\x12\x17\n" +
 	"\x04path\x18\x01 \x01(\tH\x00R\x04path\x88\x01\x01B\a\n" +
-	"\x05_path\"d\n" +
+	"\x05_path\"o\n" +
+	"\n" +
+	"JSONOutput\x12\x17\n" +
+	"\x04path\x18\x01 \x01(\tH\x00R\x04path\x88\x01\x01\x124\n" +
+	"\x06schema\x18\x02 \x01(\v2\x17.google.protobuf.StructH\x01R\x06schema\x88\x01\x01B\a\n" +
+	"\x05_pathB\t\n" +
+	"\a_schema\"d\n" +
 	"\x12ColumnarFileOutput\x12\x17\n" +
 	"\x04path\x18\x01 \x01(\tH\x00R\x04path\x88\x01\x01\x12,\n" +
 	"\acolumns\x18\x02 \x03(\v2\x12.apis.ColumnOutputR\acolumnsB\a\n" +
@@ -1387,7 +1455,7 @@ func file_run_proto_rawDescGZIP() []byte {
 }
 
 var file_run_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_run_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_run_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_run_proto_goTypes = []any{
 	(DefaultsFilter)(0),               // 0: apis.DefaultsFilter
 	(*Pipeline)(nil),                  // 1: apis.Pipeline
@@ -1408,17 +1476,18 @@ var file_run_proto_goTypes = []any{
 	(*KustomizeComponentsOutput)(nil), // 16: apis.KustomizeComponentsOutput
 	(*HelmChartOutput)(nil),           // 17: apis.HelmChartOutput
 	(*CRDDescriptionsOutput)(nil),     // 18: apis.CRDDescriptionsOutput
-	(*ColumnarFileOutput)(nil),        // 19: apis.ColumnarFileOutput
-	(*ColumnOutput)(nil),              // 20: apis.ColumnOutput
-	(*structpb.Struct)(nil),           // 21: google.protobuf.Struct
-	(*emptypb.Empty)(nil),             // 22: google.protobuf.Empty
+	(*JSONOutput)(nil),                // 19: apis.JSONOutput
+	(*ColumnarFileOutput)(nil),        // 20: apis.ColumnarFileOutput
+	(*ColumnOutput)(nil),              // 21: apis.ColumnOutput
+	(*structpb.Struct)(nil),           // 22: google.protobuf.Struct
+	(*emptypb.Empty)(nil),             // 23: google.protobuf.Empty
 }
 var file_run_proto_depIdxs = []int32{
 	3,  // 0: apis.Pipeline.source:type_name -> apis.Source
 	9,  // 1: apis.Pipeline.filters:type_name -> apis.Filter
 	13, // 2: apis.Pipeline.output:type_name -> apis.Output
 	2,  // 3: apis.Pipeline.args:type_name -> apis.Args
-	21, // 4: apis.Args.schema:type_name -> google.protobuf.Struct
+	22, // 4: apis.Args.schema:type_name -> google.protobuf.Struct
 	4,  // 5: apis.Source.kubeconfig:type_name -> apis.KubeConfigSource
 	5,  // 6: apis.Source.kustomize:type_name -> apis.KustomizeSource
 	6,  // 7: apis.KubeConfigSource.clusters:type_name -> apis.ClusterSelector
@@ -1436,18 +1505,20 @@ var file_run_proto_depIdxs = []int32{
 	15, // 19: apis.Output.kustomize:type_name -> apis.KustomizeOutput
 	16, // 20: apis.Output.kustomize_components:type_name -> apis.KustomizeComponentsOutput
 	17, // 21: apis.Output.helm_chart:type_name -> apis.HelmChartOutput
-	19, // 22: apis.Output.csv:type_name -> apis.ColumnarFileOutput
-	19, // 23: apis.Output.table:type_name -> apis.ColumnarFileOutput
+	20, // 22: apis.Output.csv:type_name -> apis.ColumnarFileOutput
+	20, // 23: apis.Output.table:type_name -> apis.ColumnarFileOutput
 	18, // 24: apis.Output.crd_descriptions:type_name -> apis.CRDDescriptionsOutput
 	14, // 25: apis.Output.kubectl:type_name -> apis.KubectlOutput
-	20, // 26: apis.ColumnarFileOutput.columns:type_name -> apis.ColumnOutput
-	22, // 27: apis.KTL.Config:input_type -> google.protobuf.Empty
-	1,  // 28: apis.KTL.Config:output_type -> apis.Pipeline
-	28, // [28:29] is the sub-list for method output_type
-	27, // [27:28] is the sub-list for method input_type
-	27, // [27:27] is the sub-list for extension type_name
-	27, // [27:27] is the sub-list for extension extendee
-	0,  // [0:27] is the sub-list for field type_name
+	19, // 26: apis.Output.json:type_name -> apis.JSONOutput
+	22, // 27: apis.JSONOutput.schema:type_name -> google.protobuf.Struct
+	21, // 28: apis.ColumnarFileOutput.columns:type_name -> apis.ColumnOutput
+	23, // 29: apis.KTL.Config:input_type -> google.protobuf.Empty
+	1,  // 30: apis.KTL.Config:output_type -> apis.Pipeline
+	30, // [30:31] is the sub-list for method output_type
+	29, // [29:30] is the sub-list for method input_type
+	29, // [29:29] is the sub-list for extension type_name
+	29, // [29:29] is the sub-list for extension extendee
+	0,  // [0:29] is the sub-list for field type_name
 }
 
 func init() { file_run_proto_init() }
@@ -1468,13 +1539,14 @@ func file_run_proto_init() {
 	file_run_proto_msgTypes[17].OneofWrappers = []any{}
 	file_run_proto_msgTypes[18].OneofWrappers = []any{}
 	file_run_proto_msgTypes[19].OneofWrappers = []any{}
+	file_run_proto_msgTypes[20].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_run_proto_rawDesc), len(file_run_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   20,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

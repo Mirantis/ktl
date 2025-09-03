@@ -46,5 +46,9 @@ func New(spec *apis.Output) (Impl, error) {
 		return newKubectlOutput(implSpec)
 	}
 
+	if implSpec := spec.GetJson(); implSpec != nil {
+		return newJSONOutput(implSpec)
+	}
+
 	return nil, errors.New("unsupported output")
 }

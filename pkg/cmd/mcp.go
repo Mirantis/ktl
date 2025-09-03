@@ -52,16 +52,28 @@ func newMCPCommand() *cobra.Command {
 					Description: toolSpec.GetDescription(),
 				}
 
-				if inlineSchema := toolSpec.GetArgs().GetSchema(); inlineSchema != nil {
-					schemaBody, err := json.Marshal(inlineSchema)
+				if argsSchema := toolSpec.GetArgs().GetSchema(); argsSchema != nil {
+					schemaBody, err := json.Marshal(argsSchema)
 					if err != nil {
 						return err
 					}
-					argsSchema := &jsonschema.Schema{}
-					if err := json.Unmarshal(schemaBody, argsSchema); err != nil {
+
+					tool.InputSchema = &jsonschema.Schema{}
+					if err := json.Unmarshal(schemaBody, tool.InputSchema); err != nil {
 						return fmt.Errorf("invalid args schema: %w", err)
 					}
-					tool.InputSchema = argsSchema
+				}
+
+				if outSchema := toolSpec.GetOutput().GetJson().GetSchema(); outSchema != nil {
+					schemaBody, err := json.Marshal(outSchema)
+					if err != nil {
+						return err
+					}
+
+					tool.OutputSchema = &jsonschema.Schema{}
+					if err := json.Unmarshal(schemaBody, tool.OutputSchema); err != nil {
+						return fmt.Errorf("invalid output schema: %w", err)
+					}
 				}
 
 				mcp.AddTool(srv, tool, newMCPHandler[map[string]any](
@@ -92,7 +104,7 @@ func newMCPCommand() *cobra.Command {
 func newMCPHandler[In any](workdir string, spec *apis.Pipeline) mcp.ToolHandlerFor[In, map[string]any] {
 	return func(ctx context.Context, ss *mcp.ServerSession, ctpf *mcp.CallToolParamsFor[In]) (*mcp.CallToolResultFor[map[string]any], error) {
 		result := &mcp.CallToolResultFor[map[string]any]{
-			Content: []mcp.Content{},
+			Content:           []mcp.Content{},
 			StructuredContent: map[string]any{},
 		}
 		stdout := bytes.NewBuffer(nil)
@@ -134,6 +146,11 @@ func newMCPHandler[In any](workdir string, spec *apis.Pipeline) mcp.ToolHandlerF
 				result.Content = append(result.Content, &mcp.TextContent{
 					Text: "<source>result.json</source>" + stdout.String(),
 				})
+			case spec.GetOutput().GetJson() != nil:
+				err := json.Unmarshal(stdout.Bytes(), &result.StructuredContent)
+				if err != nil {
+					return nil, err
+				}
 			default:
 				result.Content = append(result.Content, &mcp.TextContent{
 					Text: stdout.String(),

@@ -34,6 +34,13 @@ var (
 	wantConvertCSV embed.FS
 
 	//go:embed testdata/import/*
+	//go:embed testdata/convert-json/pipeline.yaml
+	inputConvertJSON embed.FS
+
+	//go:embed testdata/convert-json/*
+	wantConvertJSON embed.FS
+
+	//go:embed testdata/import/*
 	//go:embed testdata/convert-starlark/pipeline.yaml
 	inputConvertStarlark embed.FS
 
@@ -186,6 +193,12 @@ func TestE2E(t *testing.T) {
 			args:  []string{"run"},
 			input: inputConvertCSV,
 			want:  wantConvertCSV,
+		},
+		"convert-json": {
+			dir:   "convert-json",
+			args:  []string{"run"},
+			input: inputConvertJSON,
+			want:  wantConvertJSON,
 		},
 		"convert-starlark": {
 			dir:        "convert-starlark",
