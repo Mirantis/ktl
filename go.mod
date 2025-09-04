@@ -10,6 +10,7 @@ require (
 	github.com/go-openapi/jsonreference v0.21.0
 	github.com/google/go-cmp v0.7.0
 	github.com/modelcontextprotocol/go-sdk v0.2.0
+	github.com/qri-io/starlib v0.5.0
 	github.com/spf13/cobra v1.9.1
 	github.com/testcontainers/testcontainers-go v0.33.0
 	go.starlark.net v0.0.0-20250623223156-8bf495bf4e9a

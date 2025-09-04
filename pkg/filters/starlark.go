@@ -6,6 +6,7 @@ import (
 
 	"github.com/Mirantis/ktl/pkg/apis"
 	"github.com/Mirantis/ktl/pkg/kstar"
+	"github.com/qri-io/starlib/encoding/base64"
 	"go.starlark.net/starlark"
 	"go.starlark.net/syntax"
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -35,15 +36,20 @@ type StarlarkFilter struct {
 func (filter *StarlarkFilter) Filter(input []*yaml.RNode) ([]*yaml.RNode, error) {
 	output := []*yaml.RNode{}
 	schemas := kstar.NewSchemaIndex(nil)
+	b64, err := base64.LoadModule()
+	if err != nil {
+		return nil, fmt.Errorf("b64 module: %w", err)
+	}
 
 	slPredeclared := starlark.StringDict{
 		"resources": kstar.FromRNodes(schemas, input),
 		"output":    starlark.NewList(nil),
 		"args":      kstar.FromYNode(filter.args.YNode()),
+		"base64":    b64["base64"],
 	}
 	slOpts := &syntax.FileOptions{
 		TopLevelControl: true,
-		GlobalReassign: true,
+		GlobalReassign:  true,
 	}
 
 	slThread := &starlark.Thread{
@@ -52,7 +58,7 @@ func (filter *StarlarkFilter) Filter(input []*yaml.RNode) ([]*yaml.RNode, error)
 			slog.Info("starlark filter output", "msg", msg)
 		},
 	}
-	_, err := starlark.ExecFileOptions(
+	_, err = starlark.ExecFileOptions(
 		slOpts,
 		slThread,
 		"starlark-filter",

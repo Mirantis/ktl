@@ -148,6 +148,10 @@ func newMCPHandler[In any](workdir string, spec *apis.Pipeline) mcp.ToolHandlerF
 				})
 			case spec.GetOutput().GetJson() != nil:
 				err := json.Unmarshal(stdout.Bytes(), &result.StructuredContent)
+				result.Content = append(result.Content, &mcp.TextContent{
+					Text: stdout.String(),
+					Meta: result.StructuredContent,
+				})
 				if err != nil {
 					return nil, err
 				}
