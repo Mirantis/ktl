@@ -10,3 +10,4 @@ preset_values:
     myapp/Deployment/myapp.spec.template.spec.containers.[name=myapp].image: myapp:v1.1
   test:
     myapp/Deployment/myapp.metadata.labels.env: test
+presets: []

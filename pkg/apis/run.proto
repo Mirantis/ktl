@@ -133,6 +133,9 @@ message HelmChartOutput {
   string name = 1;
   string version = 2;
   map<string, string> values_aliases = 3;
+  optional bool no_inline_values = 4;
+  repeated string default_presets = 5;
+  repeated string remove_presets = 6;
 }
 
 message CRDDescriptionsOutput {

@@ -68,6 +68,16 @@ components:
           type: object
           additionalProperties:
             type: string
+        noInlineValues:
+          type: boolean
+        defaultPresets:
+          type: array
+          items:
+            type: string
+        removePresets:
+          type: array
+          items:
+            type: string
     JSONOutput:
       type: object
       properties:

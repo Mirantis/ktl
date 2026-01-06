@@ -14,3 +14,4 @@ preset_values:
   test:
     simple-app/ConfigMap/simple-app-env.data.ENV_VAR2: test-value
     simple-app/Deployment/simple-app.spec.replicas: 3
+presets: []

@@ -114,6 +114,9 @@
 | name | [string](#string) |  |  |
 | version | [string](#string) |  |  |
 | valuesAliases | [HelmChartOutput.ValuesAliasesEntry](#apis-HelmChartOutput-ValuesAliasesEntry) | repeated |  |
+| noInlineValues | [bool](#bool) | optional |  |
+| defaultPresets | [string](#string) | repeated |  |
+| removePresets | [string](#string) | repeated |  |
 
 
 

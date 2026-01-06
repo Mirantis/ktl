@@ -1030,12 +1030,15 @@ func (*KustomizeComponentsOutput) Descriptor() ([]byte, []int) {
 }
 
 type HelmChartOutput struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Version       string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
-	ValuesAliases map[string]string      `protobuf:"bytes,3,rep,name=values_aliases,json=valuesAliases,proto3" json:"values_aliases,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Name           string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Version        string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	ValuesAliases  map[string]string      `protobuf:"bytes,3,rep,name=values_aliases,json=valuesAliases,proto3" json:"values_aliases,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	NoInlineValues *bool                  `protobuf:"varint,4,opt,name=no_inline_values,json=noInlineValues,proto3,oneof" json:"no_inline_values,omitempty"`
+	DefaultPresets []string               `protobuf:"bytes,5,rep,name=default_presets,json=defaultPresets,proto3" json:"default_presets,omitempty"`
+	RemovePresets  []string               `protobuf:"bytes,6,rep,name=remove_presets,json=removePresets,proto3" json:"remove_presets,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *HelmChartOutput) Reset() {
@@ -1085,6 +1088,27 @@ func (x *HelmChartOutput) GetVersion() string {
 func (x *HelmChartOutput) GetValuesAliases() map[string]string {
 	if x != nil {
 		return x.ValuesAliases
+	}
+	return nil
+}
+
+func (x *HelmChartOutput) GetNoInlineValues() bool {
+	if x != nil && x.NoInlineValues != nil {
+		return *x.NoInlineValues
+	}
+	return false
+}
+
+func (x *HelmChartOutput) GetDefaultPresets() []string {
+	if x != nil {
+		return x.DefaultPresets
+	}
+	return nil
+}
+
+func (x *HelmChartOutput) GetRemovePresets() []string {
+	if x != nil {
+		return x.RemovePresets
 	}
 	return nil
 }
@@ -1419,14 +1443,18 @@ const file_run_proto_rawDesc = "" +
 	"\n" +
 	"\b_cluster\"\x11\n" +
 	"\x0fKustomizeOutput\"\x1b\n" +
-	"\x19KustomizeComponentsOutput\"\xd2\x01\n" +
+	"\x19KustomizeComponentsOutput\"\xe6\x02\n" +
 	"\x0fHelmChartOutput\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\tR\aversion\x12O\n" +
-	"\x0evalues_aliases\x18\x03 \x03(\v2(.apis.HelmChartOutput.ValuesAliasesEntryR\rvaluesAliases\x1a@\n" +
+	"\x0evalues_aliases\x18\x03 \x03(\v2(.apis.HelmChartOutput.ValuesAliasesEntryR\rvaluesAliases\x12-\n" +
+	"\x10no_inline_values\x18\x04 \x01(\bH\x00R\x0enoInlineValues\x88\x01\x01\x12'\n" +
+	"\x0fdefault_presets\x18\x05 \x03(\tR\x0edefaultPresets\x12%\n" +
+	"\x0eremove_presets\x18\x06 \x03(\tR\rremovePresets\x1a@\n" +
 	"\x12ValuesAliasesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"9\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x13\n" +
+	"\x11_no_inline_values\"9\n" +
 	"\x15CRDDescriptionsOutput\x12\x17\n" +
 	"\x04path\x18\x01 \x01(\tH\x00R\x04path\x88\x01\x01B\a\n" +
 	"\x05_path\"o\n" +
@@ -1550,6 +1578,7 @@ func file_run_proto_init() {
 	file_run_proto_msgTypes[11].OneofWrappers = []any{}
 	file_run_proto_msgTypes[12].OneofWrappers = []any{}
 	file_run_proto_msgTypes[13].OneofWrappers = []any{}
+	file_run_proto_msgTypes[16].OneofWrappers = []any{}
 	file_run_proto_msgTypes[17].OneofWrappers = []any{}
 	file_run_proto_msgTypes[18].OneofWrappers = []any{}
 	file_run_proto_msgTypes[19].OneofWrappers = []any{}

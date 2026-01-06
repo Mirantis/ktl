@@ -204,6 +204,10 @@ func (chart *Chart) storeValues(fileSys filesys.FileSystem, dir string) error {
 
 	presetNames := slices.Sorted(maps.Keys(chart.presetValues))
 	for _, presetName := range presetNames {
+		if slices.Contains(chart.spec.RemovePresets, presetName) {
+			continue
+		}
+
 		vars := chart.presetValues[presetName]
 		preset := yaml.NewMapRNode(nil)
 
@@ -226,6 +230,10 @@ func (chart *Chart) storeValues(fileSys filesys.FileSystem, dir string) error {
 	}
 
 	if err := root.SetMapField(presets, "preset_values"); err != nil {
+		panic(err)
+	}
+
+	if err := root.SetMapField(yaml.NewListRNode(chart.spec.DefaultPresets...), "presets"); err != nil {
 		panic(err)
 	}
 
@@ -393,7 +401,7 @@ func (chart *Chart) value(variable string, variants []*resource.ValueGroup, opti
 
 func (chart *Chart) values(ids []types.ClusterID) chartValues {
 	preset := chart.clusters.Group(ids...)
-	if preset == chart.clusters.Cluster(ids[0]).Name {
+	if preset == chart.clusters.Cluster(ids[0]).Name && !chart.spec.GetNoInlineValues() {
 		cluster := ids[0]
 		values, exists := chart.inlineValues[cluster]
 
