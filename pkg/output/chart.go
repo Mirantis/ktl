@@ -32,7 +32,7 @@ var (
 
 func newChartOutput(spec *apis.HelmChartOutput) (*ChartOutput, error) {
 	hc := types.HelmChart{
-		Name: spec.GetName(),
+		Name:    spec.GetName(),
 		Version: spec.GetVersion(),
 	}
 
@@ -120,6 +120,7 @@ func (cv chartValues) asMap() map[string]any {
 type Chart struct {
 	meta      types.HelmChart
 	templates map[resid.ResId]*yaml.RNode
+	crds      map[resid.ResId]*yaml.RNode
 
 	token          string
 	presetValues   map[string]chartValues
@@ -140,6 +141,7 @@ func NewChart(meta types.HelmChart, clusters *types.ClusterIndex) *Chart {
 		inlineValues:   map[types.ClusterID]chartValues{},
 		clusterPresets: map[types.ClusterID]sets.String{},
 		templates:      map[resid.ResId]*yaml.RNode{},
+		crds:           map[resid.ResId]*yaml.RNode{},
 	}
 
 	return chart
@@ -147,6 +149,26 @@ func NewChart(meta types.HelmChart, clusters *types.ClusterIndex) *Chart {
 
 func (chart *Chart) templateName(id resid.ResId) string {
 	return strings.ToLower(fmt.Sprintf("%s-%s.yaml", id.Name, id.Kind))
+}
+
+func (chart *Chart) storeCRDs(fileSys filesys.FileSystem, dir string) error {
+	templatePrefix := []byte("# HELM" + chart.token + ": ")
+	store := &resource.FileStore{
+		FileSystem:    fsutil.Sub(fileSys, filepath.Join(dir, "crds")),
+		NameGenerator: chart.templateName,
+		PostProcessor: func(_ string, body []byte) []byte {
+			return bytes.ReplaceAll(body, templatePrefix, []byte{})
+		},
+	}
+
+	const errMsgTemplates = "unable to store crds"
+
+	err := store.WriteAll(maps.All(chart.crds))
+	if err != nil {
+		return fmt.Errorf("%s: %w", errMsgTemplates, err)
+	}
+
+	return nil
 }
 
 func (chart *Chart) storeTemplates(fileSys filesys.FileSystem, dir string) error {
@@ -213,6 +235,10 @@ func (chart *Chart) storeValues(fileSys filesys.FileSystem, dir string) error {
 }
 
 func (chart *Chart) Store(fileSys filesys.FileSystem, dir string) error {
+	if err := chart.storeCRDs(fileSys, dir); err != nil {
+		return err
+	}
+
 	if err := chart.storeTemplates(fileSys, dir); err != nil {
 		return err
 	}
@@ -268,7 +294,20 @@ func variableName(id resid.ResId, path resource.Query) string {
 	return name
 }
 
+func (chart *Chart) addCRD(resID resid.ResId, crds map[types.ClusterID]*yaml.RNode) error {
+	// FIXME: merge versions & detect conflicts
+	for _, rnode := range crds {
+		chart.crds[resID] = rnode.Copy()
+	}
+
+	return nil
+}
+
 func (chart *Chart) Add(resID resid.ResId, resources map[types.ClusterID]*yaml.RNode) error {
+	if resID.Group == "apiextensions.k8s.io" && resID.Version == "v1" && resID.Kind == "CustomResourceDefinition" {
+		return chart.addCRD(resID, resources)
+	}
+
 	if _, exists := chart.templates[resID]; exists {
 		return fmt.Errorf("%w: %s", errDuplicateResource, resID)
 	}

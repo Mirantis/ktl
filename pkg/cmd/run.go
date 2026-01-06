@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"os"
 	"path/filepath"
 
 	"github.com/Mirantis/ktl/pkg/fsutil"
@@ -19,6 +20,13 @@ func newRunCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error { //nolint:revive
 			fileName := args[0]
 			workDir := filepath.Dir(fileName)
+			if err := os.Chdir(workDir); err != nil {
+				return err
+			}
+			// FIXME: clenup
+			workDir = "."
+			fileName = filepath.Base(fileName)
+
 			fileSys := fsutil.Stdio(
 				fsutil.Sub(filesys.MakeFsOnDisk(), workDir),
 				cmd.InOrStdin(), cmd.OutOrStdout(),
