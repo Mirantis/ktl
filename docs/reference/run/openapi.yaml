@@ -64,6 +64,10 @@ components:
           type: string
         version:
           type: string
+        valuesAliases:
+          type: object
+          additionalProperties:
+            type: string
     JSONOutput:
       type: object
       properties:

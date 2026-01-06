@@ -113,6 +113,23 @@
 | ----- | ---- | ----- | ----------- |
 | name | [string](#string) |  |  |
 | version | [string](#string) |  |  |
+| valuesAliases | [HelmChartOutput.ValuesAliasesEntry](#apis-HelmChartOutput-ValuesAliasesEntry) | repeated |  |
+
+
+
+
+
+
+<a name="apis-HelmChartOutput-ValuesAliasesEntry"></a>
+
+### HelmChartOutput.ValuesAliasesEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [string](#string) |  |  |
 
 
 

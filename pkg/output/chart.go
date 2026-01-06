@@ -36,11 +36,12 @@ func newChartOutput(spec *apis.HelmChartOutput) (*ChartOutput, error) {
 		Version: spec.GetVersion(),
 	}
 
-	return &ChartOutput{hc}, nil
+	return &ChartOutput{hc, spec}, nil
 }
 
 type ChartOutput struct {
 	HelmChart types.HelmChart `yaml:"helmChart"`
+	spec      *apis.HelmChartOutput
 }
 
 //nolint:lll
@@ -73,7 +74,7 @@ func (out *ChartOutput) storeChartOverlays(env *types.Env, resources *types.Clus
 
 func (out *ChartOutput) Store(env *types.Env, resources *types.ClusterResources) error {
 	chartMeta := out.HelmChart
-	chart := NewChart(chartMeta, resources.Clusters)
+	chart := NewChart(chartMeta, out.spec, resources.Clusters)
 	chartDir := filepath.Join("charts", chartMeta.Name)
 	chartFS := fsutil.Sub(env.FileSys, chartDir)
 
@@ -119,6 +120,7 @@ func (cv chartValues) asMap() map[string]any {
 
 type Chart struct {
 	meta      types.HelmChart
+	spec      *apis.HelmChartOutput
 	templates map[resid.ResId]*yaml.RNode
 	crds      map[resid.ResId]*yaml.RNode
 
@@ -130,10 +132,11 @@ type Chart struct {
 	clusterIDs     []types.ClusterID
 }
 
-func NewChart(meta types.HelmChart, clusters *types.ClusterIndex) *Chart {
+func NewChart(meta types.HelmChart, spec *apis.HelmChartOutput, clusters *types.ClusterIndex) *Chart {
 	const tokenLen = 8
 	chart := &Chart{
 		meta:           meta,
+		spec:           spec,
 		clusters:       clusters,
 		clusterIDs:     clusters.IDs(),
 		token:          rand.String(tokenLen),
@@ -286,12 +289,21 @@ func (chart *Chart) Instances(clusters ...types.ClusterID) []types.HelmChart {
 	return helmCharts
 }
 
-func variableName(id resid.ResId, path resource.Query) string {
+func (chart *Chart) variableName(id resid.ResId, path resource.Query) string {
 	name := fmt.Sprintf("%s/%s/%s.%s", id.Namespace, id.Kind, id.Name, path)
 	name = strings.TrimPrefix(name, "/")
 	name = strings.TrimSuffix(name, ".")
 
-	return name
+	if chart.spec == nil || len(chart.spec.ValuesAliases) == 0 {
+		return name
+	}
+
+	alias, found := chart.spec.ValuesAliases[name]
+	if !found {
+		return name
+	}
+
+	return alias
 }
 
 func (chart *Chart) addCRD(resID resid.ResId, crds map[types.ClusterID]*yaml.RNode) error {
@@ -323,7 +335,7 @@ func (chart *Chart) Add(resID resid.ResId, resources map[types.ClusterID]*yaml.R
 		occurrences = append(occurrences, slices.Repeat([]int{0}, max(0, depth+2-len(occurrences)))...)
 		occurrences[depth+1] = len(resIterator.Clusters())
 		isOptional := occurrences[depth+1] < occurrences[depth]
-		varName := variableName(resID, resIterator.Path())
+		varName := chart.variableName(resID, resIterator.Path())
 		variants := resource.GroupByValue(resIterator.Values())
 		value := chart.value(varName, variants, isOptional)
 

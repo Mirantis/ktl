@@ -4,6 +4,7 @@ import (
 	"embed"
 	"testing"
 
+	"github.com/Mirantis/ktl/pkg/apis"
 	"github.com/Mirantis/ktl/pkg/e2e"
 	"github.com/Mirantis/ktl/pkg/output"
 	"github.com/Mirantis/ktl/pkg/types"
@@ -37,7 +38,7 @@ func TestChart(t *testing.T) {
 		Version: "v0.1",
 	}
 
-	chart := output.NewChart(meta, clusters)
+	chart := output.NewChart(meta, &apis.HelmChartOutput{}, clusters)
 	id := resid.FromRNode(resources[devA])
 
 	if err := chart.Add(id, resources); err != nil {
